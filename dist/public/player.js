@@ -79,10 +79,9 @@
 
                 // POST-INIT: Manually add 'showing' to the underlying video element ONLY.
                 // This ensures container.querySelector('.showing') returns the <video> element.
+                // We apply this directly to the element we created, avoiding the dangerous 'player.tech()' call.
                 if (isShowing) {
-                    // Access the tech's element (the real video tag)
-                    const techEl = player.tech().el();
-                    if (techEl) techEl.classList.add('showing');
+                    videoElement.classList.add('showing');
                 }
 
                 // CRITICAL: Expose the real video element to HFS for 'instanceof' check
