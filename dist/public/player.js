@@ -25,7 +25,7 @@
             const ext = src.substring(src.lastIndexOf('.')).toLowerCase();
             if (ext === '.webm') return 'video/webm';
             if (ext === '.ogv') return 'video/ogg';
-            if (ext === '.mkv') return 'video/x-matroska';
+            if (ext === '.mkv') return 'video/webm'; // Chrome often plays MKV if treated as WebM
             return 'video/mp4';
         }
 
