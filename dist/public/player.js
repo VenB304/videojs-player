@@ -37,14 +37,7 @@
             React.useEffect(() => {
                 console.log("VideoJS Plugin: Mounted with props:", props);
 
-                const rawClass = props.className || '';
-                const isShowing = rawClass.includes('showing');
-                const wrapperClass = rawClass.replace('showing', '').trim();
-
                 const videoElement = document.createElement('video');
-                // Standard classes only. 
-                // We do NOT add wrapperClass/showing here to avoid double-application 
-                // or applying layout constraints to the inner video element.
                 videoElement.className = 'video-js vjs-big-play-centered';
                 videoElementRef.current = videoElement;
 
@@ -53,15 +46,14 @@
                 }
 
                 // Initialize Video.js
-                // CLEAN RESET: Use "fluid: true"
-                // This makes the player fill the width of the parent container 
-                // and reserve height based on aspect ratio.
-                // It respects the parent's `max-width` provided by HFS.
+                // We DISABLE fluid mode because it forces width: 100%, which breaks 
+                // layout for tall videos (overflows height) and small videos (upscales).
                 const player = videojs(videoElement, {
                     controls: true,
                     autoplay: true,
                     preload: 'metadata',
-                    fluid: true,
+                    fluid: false, // Custom resize logic used instead
+                    fill: false,
                     sources: [{
                         src: props.src,
                         type: determineMimeType(props.src)
@@ -69,9 +61,7 @@
                 });
                 playerRef.current = player;
 
-                // FIX: specific HFS classes (like .showing) must be applied to the 
-                // PLAYER WRAPPER, not the video element. 
-                // This ensures rules like max-width apply to the whole player.
+                // Apply HFS classes (like .showing) to the player wrapper
                 if (props.className) {
                     player.addClass(props.className);
                 }
@@ -83,6 +73,51 @@
                         ref.current = videoElement;
                     }
                 }
+
+                // --- Custom Sizing Logic ---
+                // mimicks native HFS behavior: fit in container, don't upscale small, maintain aspect
+                const resizePlayer = () => {
+                    const el = player.el();
+                    if (!el) return;
+
+                    // Get native video dimensions
+                    const vidW = player.videoWidth();
+                    const vidH = player.videoHeight();
+                    if (!vidW || !vidH) return;
+
+                    // Find container constraints
+                    // We look for the sliding container or fallback to window
+                    const container = el.closest('.showing-container') || document.body;
+                    const rect = container.getBoundingClientRect();
+
+                    // HFS .showing often has max-width calculations (e.g. calc(100% - 4vw))
+                    // We approximate available space. 
+                    const maxW = rect.width;
+                    const maxH = rect.height;
+
+                    // Calculate scale to fit
+                    // 1. Scale down if video > container
+                    // 2. Scale = 1 if video < container (don't upscale)
+                    const scale = Math.min(
+                        maxW / vidW,
+                        maxH / vidH,
+                        1
+                    );
+
+                    const finalW = Math.floor(vidW * scale);
+                    const finalH = Math.floor(vidH * scale);
+
+                    // Apply dimensions
+                    player.width(finalW);
+                    player.height(finalH);
+                };
+
+                // Listeners for resizing
+                player.on('loadedmetadata', resizePlayer);
+                window.addEventListener('resize', resizePlayer);
+
+                // Also trigger initially in case metadata is already there or for slight delays
+                setTimeout(resizePlayer, 100);
 
                 // Event Listeners
                 player.on('play', () => {
@@ -98,6 +133,7 @@
                 });
 
                 return () => {
+                    window.removeEventListener('resize', resizePlayer);
                     if (player) {
                         player.dispose();
                     }
@@ -122,14 +158,12 @@
                 }
             }, [props.src]);
 
-            // Render container
-            // The container is a simple block div.
-            // Sizing is controlled by the HFS parent (which has max-width rules)
-            // and the `fluid: true` option in Video.js (which fills that width).
+            // Render container with display: contents to let Video.js element 
+            // participate directly in HFS flex layout
             return h('div', {
                 'data-vjs-player': true,
                 ref: containerRef,
-                // No custom styles. Let default CSS rule.
+                style: { display: 'contents' }
             });
         });
 
