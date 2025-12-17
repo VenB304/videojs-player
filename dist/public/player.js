@@ -29,6 +29,7 @@
         // 1. Define the Video.js React Wrapper Component
         class VideoJsPlayer extends React.Component {
             componentDidMount() {
+                console.log("VideoJS Plugin: Mounted with props:", this.props);
                 // Initialize Video.js on the video node
                 this.player = videojs(this.videoNode, {
                     controls: true,
@@ -43,10 +44,12 @@
 
                 // Hook into Video.js events to trigger HFS callbacks
                 this.player.on('play', () => {
+                    console.log("VideoJS Plugin: Play event");
                     if (this.props.onPlay) this.props.onPlay();
                 });
 
                 this.player.on('ended', () => {
+                    console.log("VideoJS Plugin: Ended event");
                     if (this.props.onEnded) this.props.onEnded();
                 });
 
@@ -57,6 +60,7 @@
 
             componentDidUpdate(prevProps) {
                 if (this.props.src !== prevProps.src) {
+                    console.log("VideoJS Plugin: Source changed to", this.props.src);
                     if (this.player) {
                         this.player.src({
                             src: this.props.src,
@@ -72,6 +76,15 @@
                     this.player.dispose();
                 }
             }
+
+            // Duck typing: Expose video element properties/methods for HFS
+            get duration() { return this.player ? this.player.duration() : 0; }
+            get currentTime() { return this.player ? this.player.currentTime() : 0; }
+            set currentTime(t) { if (this.player) this.player.currentTime(t); }
+            get paused() { return this.player ? this.player.paused() : true; }
+            get ended() { return this.player ? this.player.ended() : false; }
+            play() { if (this.player) this.player.play(); }
+            pause() { if (this.player) this.player.pause(); }
 
             determineMimeType(src) {
                 const ext = src.substring(src.lastIndexOf('.')).toLowerCase();
