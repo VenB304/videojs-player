@@ -51,7 +51,7 @@
                 }
 
                 // Initialize Video.js
-                // No fluid/fill options. Let CSS control size.
+                // fluid: false, fill: false. Let strictly CSS control the flow.
                 const player = videojs(videoElement, {
                     controls: true,
                     autoplay: true,
@@ -115,8 +115,13 @@
             }, [props.src]);
 
             // Render container
-            // 1. Container: fills available space (100% w/h), uses flexbox to align player in center.
-            // 2. Style: Forces the inner video-js element to respect max constraints, mimicking standard video behavior.
+            // 1. Emulate Native Layout Strategy:
+            //    - .video-js wrapper -> inline-block, width: auto (shrinks to child).
+            //    - .vjs-tech (video) -> position: relative (drives the size).
+            //    - background: transparent (removes black bars).
+            // 2. Parent Container:
+            //    - Centered via Flexbox.
+            //    - 100% size to provide the canvas.
             return h('div', {
                 'data-vjs-player': true,
                 ref: containerRef,
@@ -129,8 +134,25 @@
                 }
             }, h('style', {}, `
                 .video-js {
+                    background-color: transparent !important;
+                    width: auto !important;
+                    height: auto !important;
                     max-width: 100%;
                     max-height: 100%;
+                    display: inline-block !important;
+                    overflow: visible !important;
+                }
+                .video-js .vjs-tech {
+                    position: relative !important;
+                    top: 0;
+                    left: 0;
+                    width: 100% !important;
+                    height: 100% !important;
+                }
+                /* Ensure controls sit at the bottom of the visible video area */
+                .video-js .vjs-control-bar {
+                    width: 100%;
+                    bottom: 0;
                 }
             `));
         });
