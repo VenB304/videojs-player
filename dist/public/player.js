@@ -43,9 +43,16 @@
 
                 const videoElement = document.createElement('video');
                 // Standard classes only. 
-                // We do NOT add wrapperClass/showing here to avoid double-application 
-                // or applying layout constraints to the inner video element.
                 videoElement.className = 'video-js vjs-big-play-centered';
+
+                // FIX: HFS requires .showing on the element for Autoplay/JS detection.
+                if (isShowing) {
+                    videoElement.classList.add('showing');
+                    // FIX: But HFS global CSS sets max-width on .showing.
+                    // We must override this on the inner video element to prevent double-shrinking.
+                    videoElement.style.maxWidth = '100%';
+                }
+
                 videoElementRef.current = videoElement;
 
                 if (containerRef.current) {
@@ -54,9 +61,6 @@
 
                 // Initialize Video.js
                 // CLEAN RESET: Use "fluid: true"
-                // This makes the player fill the width of the parent container 
-                // and reserve height based on aspect ratio.
-                // It respects the parent's `max-width` provided by HFS.
                 const player = videojs(videoElement, {
                     controls: true,
                     autoplay: true,
@@ -69,9 +73,7 @@
                 });
                 playerRef.current = player;
 
-                // FIX: specific HFS classes (like .showing) must be applied to the 
-                // PLAYER WRAPPER, not the video element. 
-                // This ensures rules like max-width apply to the whole player.
+                // FIX: Apply classes to Wrapper for Layout (Nav button clearance)
                 if (props.className) {
                     player.addClass(props.className);
                 }
