@@ -135,11 +135,12 @@
             }, h('style', {}, `
                 .video-js {
                     background-color: transparent !important;
+                    /* Grid wraps usually tighter than inline-block for single child */
+                    display: inline-grid !important;
                     width: auto !important;
                     height: auto !important;
                     max-width: 100%;
                     max-height: 100%;
-                    display: inline-block !important;
                     overflow: visible !important;
                 }
                 .video-js .vjs-tech {
