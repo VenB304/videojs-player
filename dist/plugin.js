@@ -1,5 +1,5 @@
 exports.description = "Upgrade your HFS streaming experience with Video.js - a modern, responsive HTML5 video player.";
-exports.version = 26;
+exports.version = 27;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 

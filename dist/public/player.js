@@ -179,7 +179,9 @@
                             src: props.src,
                             type: determineMimeType(props.src)
                         });
-                        player.play();
+                        if (C.autoplay) {
+                            player.play();
+                        }
                     }
                 }
             }, [props.src]);
