@@ -51,3 +51,5 @@ You can customize the player behavior in **Admin Panel > Plugins > videojs-playe
 - **Preload Strategy**: Control how much data loads before playback (`Metadata`, `Auto`, `None`).
 - **Enable MKV/HLS Support**: Attempts to play `.m3u8` streams and `.mkv` files natively. 
   > **Note**: This is client-side only. It works if your browser supports the underlying codecs (e.g., Chrome playing H.264 in MKV). It does **not** transcode incompatible formats.
+
+# Sponsored by Google's Antigravity, Gemini 3 Pro and 1 Year Google AI Pro for Students
