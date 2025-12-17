@@ -43,6 +43,7 @@
 
                 const videoElement = document.createElement('video');
                 // Standard classes + wrapper class
+                // vjs-big-play-centered: Centers the play button
                 videoElement.className = `video-js vjs-big-play-centered ${wrapperClass}`;
                 videoElementRef.current = videoElement;
 
@@ -51,11 +52,15 @@
                 }
 
                 // Initialize Video.js
-                // fluid: false, fill: false. Let strictly CSS control the flow.
+                // CLEAN RESET: Use "fluid: true"
+                // This makes the player fill the width of the parent container 
+                // and reserve height based on aspect ratio.
+                // It respects the parent's `max-width` provided by HFS.
                 const player = videojs(videoElement, {
                     controls: true,
                     autoplay: true,
                     preload: 'metadata',
+                    fluid: true,
                     sources: [{
                         src: props.src,
                         type: determineMimeType(props.src)
@@ -114,20 +119,14 @@
                 }
             }, [props.src]);
 
-
-
             // Render container
-            // Reverted to basic container without custom injected CSS.
+            // The container is a simple block div.
+            // Sizing is controlled by the HFS parent (which has max-width rules)
+            // and the `fluid: true` option in Video.js (which fills that width).
             return h('div', {
                 'data-vjs-player': true,
                 ref: containerRef,
-                style: {
-                    width: '100%',
-                    height: '100%',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                }
+                // No custom styles. Let default CSS rule.
             });
         });
 
