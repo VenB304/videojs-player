@@ -61,9 +61,31 @@
                 });
                 playerRef.current = player;
 
-                // Apply HFS classes (like .showing) to the player wrapper
+                // FIX: specific HFS classes (like .showing) must be applied to the 
+                // INNER VIDEO ELEMENT (tech), not the player wrapper.
+                // Reason: HFS checks `querySelector('.showing') instanceof HTMLMediaElement`.
+                // If .showing is on the wrapper (Div), HFS thinks it's an image and starts a timer.
+                // By putting it on the video tag, HFS sees a MediaElement and waits for 'ended' event.
                 if (props.className) {
-                    player.addClass(props.className);
+                    // 1. Add classes OTHER THAN 'showing' to the wrapper
+                    const wrapperClasses = props.className.replace(/\bshowing\b/g, '').trim();
+                    if (wrapperClasses) {
+                        player.addClass(wrapperClasses);
+                    }
+
+                    // 2. Add 'showing' to the tech (the actual video element)
+                    // We do this after init to ensure it sticks and isn't moved by Video.js
+                    if (props.className.includes('showing')) {
+                        const tech = player.tech(true);
+                        if (tech) {
+                            // Video.js tech might be the video element itself or a wrapper depending on tech
+                            // For HTML5, element() is the video tag.
+                            const techEl = tech.el();
+                            if (techEl) {
+                                techEl.classList.add('showing');
+                            }
+                        }
+                    }
                 }
 
                 if (ref) {
