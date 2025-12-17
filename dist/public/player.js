@@ -32,7 +32,7 @@
                 // Initialize Video.js on the video node
                 this.player = videojs(this.videoNode, {
                     controls: true,
-                    autoplay: false,
+                    autoplay: this.props.autoplay || false,
                     preload: 'metadata',
                     fluid: true, // Responsive
                     sources: [{
@@ -46,9 +46,24 @@
                     if (this.props.onPlay) this.props.onPlay();
                 });
 
+                this.player.on('ended', () => {
+                    if (this.props.onEnded) this.props.onEnded();
+                });
+
                 this.player.on('error', () => {
                     if (this.props.onError) this.props.onError(this.player.error());
                 });
+            }
+
+            componentDidUpdate(prevProps) {
+                if (this.props.src !== prevProps.src) {
+                    if (this.player) {
+                        this.player.src({
+                            src: this.props.src,
+                            type: this.determineMimeType(this.props.src)
+                        });
+                    }
+                }
             }
 
             componentWillUnmount() {

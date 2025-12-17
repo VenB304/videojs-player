@@ -2,3 +2,4 @@ storage/
 node_modules/
 .DS_Store
 hfs-main/
+dev-plugins.md
