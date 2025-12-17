@@ -19,13 +19,31 @@
             h = React.createElement;
         }
 
+        // HFS API REQUIREMENT: getPluginConfig MUST be called at the very top level of the module
+        // We capture it once here.
+        const rawConfig = HFS.getPluginConfig ? HFS.getPluginConfig() : {};
+
+        // Process config into usable defaults immediately
+        const C = {
+            autoplay: rawConfig.autoplay ?? true,
+            loop: rawConfig.loop ?? false,
+            muted: rawConfig.muted ?? false,
+            controls: rawConfig.controls ?? true,
+            volume: rawConfig.volume ?? 1.0,
+            sizingMode: rawConfig.sizingMode || 'fit',
+            fillContainer: rawConfig.fillContainer ?? false,
+            playbackRates: rawConfig.playbackRates || "0.5, 1, 1.5, 2",
+            preload: rawConfig.preload || 'metadata',
+            enableHLS: rawConfig.enableHLS ?? false,
+        };
+
         const VIDEO_EXTS = ['.mp4', '.webm', '.ogv', '.mov'];
 
-        function determineMimeType(src, enableHLS) {
+        function determineMimeType(src) {
             const ext = src.substring(src.lastIndexOf('.')).toLowerCase();
             if (ext === '.webm') return 'video/webm';
             if (ext === '.ogv') return 'video/ogg';
-            if (enableHLS) {
+            if (C.enableHLS) {
                 if (ext === '.mkv') return 'video/webm'; // Trick for MKV
                 if (ext === '.m3u8') return 'application/x-mpegURL'; // HLS
             }
@@ -36,21 +54,6 @@
             const containerRef = React.useRef(null);
             const playerRef = React.useRef(null);
             const videoElementRef = React.useRef(null);
-
-            // Get Configs (with defaults in case they are missing)
-            const config = HFS.getPluginConfig ? HFS.getPluginConfig() : {};
-            const C = {
-                autoplay: config.autoplay ?? true,
-                loop: config.loop ?? false,
-                muted: config.muted ?? false,
-                controls: config.controls ?? true,
-                volume: config.volume ?? 1.0,
-                sizingMode: config.sizingMode || 'fit',
-                fillContainer: config.fillContainer ?? false,
-                playbackRates: config.playbackRates || "0.5, 1, 1.5, 2",
-                preload: config.preload || 'metadata',
-                enableHLS: config.enableHLS ?? false,
-            };
 
             React.useEffect(() => {
                 console.log("VideoJS Plugin: Mounted with config:", C);
@@ -88,7 +91,7 @@
                     playbackRates: rates.length ? rates : [0.5, 1, 1.5, 2],
                     sources: [{
                         src: props.src,
-                        type: determineMimeType(props.src, C.enableHLS)
+                        type: determineMimeType(props.src)
                     }]
                 });
                 playerRef.current = player;
@@ -164,7 +167,7 @@
                     if (videoElement && videoElement.parentNode) videoElement.parentNode.removeChild(videoElement);
                     if (dummyVideo && dummyVideo.parentNode) dummyVideo.parentNode.removeChild(dummyVideo);
                 };
-            }, []); // Re-mount if config conceptually changes? No, config is static per reload usually.
+            }, []);
 
             React.useEffect(() => {
                 const player = playerRef.current;
@@ -174,7 +177,7 @@
                         console.log("VideoJS Plugin: Source updating to", props.src);
                         player.src({
                             src: props.src,
-                            type: determineMimeType(props.src, C.enableHLS)
+                            type: determineMimeType(props.src)
                         });
                         player.play();
                     }
@@ -190,9 +193,8 @@
 
         HFS.onEvent('fileShow', (params) => {
             const { entry } = params;
-            // Get config for logic checking
-            const config = HFS.getPluginConfig ? HFS.getPluginConfig() : {};
-            const enableHLS = config.enableHLS ?? false;
+            // Use the top-level captured config
+            const enableHLS = C.enableHLS;
 
             const ext = entry.n.substring(entry.n.lastIndexOf('.')).toLowerCase();
 
