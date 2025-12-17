@@ -135,8 +135,7 @@
             }, h('style', {}, `
                 .video-js {
                     background-color: transparent !important;
-                    /* Grid wraps usually tighter than inline-block for single child */
-                    display: inline-grid !important;
+                    display: inline-block !important;
                     width: auto !important;
                     height: auto !important;
                     max-width: 100%;
@@ -148,27 +147,22 @@
                     top: 0;
                     left: 0;
                     width: 100% !important;
-                    height: 100% !important;
+                    height: auto !important;
                 }
                 /* Ensure controls sit at the bottom of the visible video area */
                 .video-js .vjs-control-bar {
                     width: 100%;
                     bottom: 0;
                 }
-                /* FIX 2: Circular Dependency Fix */
-                /* wrapper is width:auto (shrinks to child) */
-                /* child must NOT be width:100% (expands to parent) */
-                /* child must use intrinsic size OR max-width constraint */
+                /* FIX 3: Revert Grid, use Width 100% on Tech to match Controls */
                 .video-js .vjs-tech {
                     display: block !important;
                     margin: 0 !important;
                     padding: 0 !important;
-                    /* Let video be its natural size */
-                    width: auto !important; 
+                    /* Expand to fill the wrapper (which might have phantom width) */
+                    width: 100% !important; 
                     height: auto !important;
-                    /* But constrain it if it's too big for the screen */
                     max-width: 100%;
-                    max-height: 100%;
                     position: relative !important;
                 }
             `));
