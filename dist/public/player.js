@@ -117,22 +117,22 @@
             // Render container
             // 1. Container: fills available space (100% w/h), uses flexbox to align player in center.
             // 2. Style: Forces the inner video-js element to respect max constraints, mimicking standard video behavior.
-            // return h('div', {
-            //     'data-vjs-player': true,
-            //     ref: containerRef,
-            //     style: {
-            //         width: '100%',
-            //         height: '100%',
-            //         display: 'flex',
-            //         justifyContent: 'center',
-            //         alignItems: 'center',
-            //     }
-            // }, h('style', {}, `
-            //     .video-js {
-            //         max-width: 100%;
-            //         max-height: 100%;
-            //     }
-            // `));
+            return h('div', {
+                'data-vjs-player': true,
+                ref: containerRef,
+                // style: {
+                //     width: '100%',
+                //     height: '100%',
+                //     display: 'flex',
+                //     justifyContent: 'center',
+                //     alignItems: 'center',
+                // }
+            }, h('style', {}, `
+                // .video-js {
+                //     max-width: 100%;
+                //     max-height: 100%;
+                // }
+            `));
         });
 
         HFS.onEvent('fileShow', (params) => {
