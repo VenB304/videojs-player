@@ -19,13 +19,16 @@
             h = React.createElement;
         }
 
-        const VIDEO_EXTS = ['.mp4', '.mkv', '.webm', '.ogv', '.mov'];
+        const VIDEO_EXTS = ['.mp4', '.webm', '.ogv', '.mov'];
 
-        function determineMimeType(src) {
+        function determineMimeType(src, enableHLS) {
             const ext = src.substring(src.lastIndexOf('.')).toLowerCase();
             if (ext === '.webm') return 'video/webm';
             if (ext === '.ogv') return 'video/ogg';
-            if (ext === '.mkv') return 'video/webm'; // Chrome often plays MKV if treated as WebM
+            if (enableHLS) {
+                if (ext === '.mkv') return 'video/webm'; // Trick for MKV
+                if (ext === '.m3u8') return 'application/x-mpegURL'; // HLS
+            }
             return 'video/mp4';
         }
 
@@ -34,23 +37,35 @@
             const playerRef = React.useRef(null);
             const videoElementRef = React.useRef(null);
 
+            // Get Configs (with defaults in case they are missing)
+            const config = HFS.getPluginConfig ? HFS.getPluginConfig() : {};
+            const C = {
+                autoplay: config.autoplay ?? true,
+                loop: config.loop ?? false,
+                muted: config.muted ?? false,
+                controls: config.controls ?? true,
+                volume: config.volume ?? 1.0,
+                sizingMode: config.sizingMode || 'fit',
+                fillContainer: config.fillContainer ?? false,
+                playbackRates: config.playbackRates || "0.5, 1, 1.5, 2",
+                preload: config.preload || 'metadata',
+                enableHLS: config.enableHLS ?? false,
+            };
+
             React.useEffect(() => {
-                console.log("VideoJS Plugin: Mounted with props:", props);
+                console.log("VideoJS Plugin: Mounted with config:", C);
 
                 const videoElement = document.createElement('video');
                 videoElement.className = 'video-js vjs-big-play-centered';
+                if (C.fillContainer) {
+                    videoElement.style.objectFit = 'cover';
+                }
                 videoElementRef.current = videoElement;
 
                 // --- Dummy Video Proxy for HFS Autoplay ---
-                // HFS requires checking `querySelector('.showing') instanceof HTMLMediaElement`
-                // to attach the 'ended' listener for autoplay. 
-                // Video.js wrapper structure complicates this.
-                // SOLUTION: Create a hidden dummy <video class="showing"> that HFS finds.
-                // we forward events from the real player to this dummy.
                 const dummyVideo = document.createElement('video');
                 dummyVideo.className = 'showing';
                 dummyVideo.style.display = 'none';
-                // Mock play to satisfy HFS .play() call
                 dummyVideo.play = () => Promise.resolve();
 
                 if (containerRef.current) {
@@ -58,24 +73,32 @@
                     containerRef.current.appendChild(dummyVideo);
                 }
 
+                // Parse playback rates
+                const rates = C.playbackRates.split(',').map(r => parseFloat(r.trim())).filter(n => !isNaN(n));
+
                 // Initialize Video.js
-                // We DISABLE fluid mode because it forces width: 100%, which breaks 
-                // layout for tall videos (overflows height) and small videos (upscales).
                 const player = videojs(videoElement, {
-                    controls: true,
-                    autoplay: true,
-                    preload: 'metadata',
-                    fluid: false, // Custom resize logic used instead
-                    fill: false,
+                    controls: C.controls,
+                    autoplay: C.autoplay,
+                    loop: C.loop,
+                    muted: C.muted,
+                    preload: C.preload,
+                    fluid: C.sizingMode === 'fluid', // Built-in fluid mode
+                    fill: C.sizingMode === 'fluid',
+                    playbackRates: rates.length ? rates : [0.5, 1, 1.5, 2],
                     sources: [{
                         src: props.src,
-                        type: determineMimeType(props.src)
+                        type: determineMimeType(props.src, C.enableHLS)
                     }]
                 });
                 playerRef.current = player;
 
-                // Apply HFS classes to wrapper, BUT EXCLUDE .showing
-                // We want HFS to find the dummy video, not the wrapper
+                // Set Volume
+                player.ready(() => {
+                    player.volume(C.volume);
+                });
+
+                // Apply HFS classes to wrapper (excluding .showing)
                 if (props.className) {
                     const wrapperClasses = props.className.replace(/\bshowing\b/g, '').trim();
                     if (wrapperClasses) {
@@ -92,39 +115,32 @@
                 }
 
                 // --- Custom Sizing Logic ---
-                // mimicks native HFS behavior: fit in container, don't upscale small, maintain aspect
                 const resizePlayer = () => {
+                    if (C.sizingMode === 'fluid') return; // Video.js handles this
+
                     const el = player.el();
                     if (!el) return;
 
-                    // Get native video dimensions
                     const vidW = player.videoWidth();
                     const vidH = player.videoHeight();
                     if (!vidW || !vidH) return;
 
-                    // Find container constraints
-                    // We look for the sliding container or fallback to window
+                    if (C.sizingMode === 'native') {
+                        player.width(vidW);
+                        player.height(vidH);
+                        return;
+                    }
+
+                    // Fit to Container (Default)
                     const container = el.closest('.showing-container') || document.body;
                     const rect = container.getBoundingClientRect();
-
-                    // HFS .showing often has max-width calculations (e.g. calc(100% - 4vw))
-                    // We approximate available space. 
                     const maxW = rect.width;
                     const maxH = rect.height;
 
-                    // Calculate scale to fit
-                    // 1. Scale down if video > container
-                    // 2. Scale = 1 if video < container (don't upscale)
-                    const scale = Math.min(
-                        maxW / vidW,
-                        maxH / vidH,
-                        1
-                    );
-
+                    const scale = Math.min(maxW / vidW, maxH / vidH, 1);
                     const finalW = Math.floor(vidW * scale);
                     const finalH = Math.floor(vidH * scale);
 
-                    // Apply dimensions
                     player.width(finalW);
                     player.height(finalH);
                 };
@@ -132,38 +148,23 @@
                 // Listeners for resizing
                 player.on('loadedmetadata', resizePlayer);
                 window.addEventListener('resize', resizePlayer);
-
-                // Also trigger initially in case metadata is already there or for slight delays
                 setTimeout(resizePlayer, 100);
 
                 // Event Listeners
-                player.on('play', () => {
-                    if (props.onPlay) props.onPlay();
-                });
-
+                player.on('play', () => { if (props.onPlay) props.onPlay(); });
                 player.on('ended', () => {
                     if (props.onEnded) props.onEnded();
-                    // FORWARD TO DUMMY: Signal HFS that playback ended
                     dummyVideo.dispatchEvent(new Event('ended'));
                 });
-
-                player.on('error', () => {
-                    if (props.onError) props.onError(player.error());
-                });
+                player.on('error', () => { if (props.onError) props.onError(player.error()); });
 
                 return () => {
                     window.removeEventListener('resize', resizePlayer);
-                    if (player) {
-                        player.dispose();
-                    }
-                    if (videoElement && videoElement.parentNode) {
-                        videoElement.parentNode.removeChild(videoElement);
-                    }
-                    if (dummyVideo && dummyVideo.parentNode) {
-                        dummyVideo.parentNode.removeChild(dummyVideo);
-                    }
+                    if (player) player.dispose();
+                    if (videoElement && videoElement.parentNode) videoElement.parentNode.removeChild(videoElement);
+                    if (dummyVideo && dummyVideo.parentNode) dummyVideo.parentNode.removeChild(dummyVideo);
                 };
-            }, []);
+            }, []); // Re-mount if config conceptually changes? No, config is static per reload usually.
 
             React.useEffect(() => {
                 const player = playerRef.current;
@@ -173,15 +174,13 @@
                         console.log("VideoJS Plugin: Source updating to", props.src);
                         player.src({
                             src: props.src,
-                            type: determineMimeType(props.src)
+                            type: determineMimeType(props.src, C.enableHLS)
                         });
                         player.play();
                     }
                 }
             }, [props.src]);
 
-            // Render container with display: contents to let Video.js element 
-            // participate directly in HFS flex layout
             return h('div', {
                 'data-vjs-player': true,
                 ref: containerRef,
@@ -191,9 +190,18 @@
 
         HFS.onEvent('fileShow', (params) => {
             const { entry } = params;
+            // Get config for logic checking
+            const config = HFS.getPluginConfig ? HFS.getPluginConfig() : {};
+            const enableHLS = config.enableHLS ?? false;
+
             const ext = entry.n.substring(entry.n.lastIndexOf('.')).toLowerCase();
+
+            // Check extensions
             if (!VIDEO_EXTS.includes(ext)) {
-                return;
+                // If not in standard list, check if HLS allows it
+                if (!enableHLS || (ext !== '.m3u8' && ext !== '.mkv')) {
+                    return;
+                }
             }
             params.Component = VideoJsPlayer;
         });
