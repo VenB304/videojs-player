@@ -154,6 +154,14 @@
                     width: 100%;
                     bottom: 0;
                 }
+                /* FIX: Prevent phantom spacing/width issues */
+                .video-js .vjs-tech {
+                    display: block !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                }
             `));
         });
 
