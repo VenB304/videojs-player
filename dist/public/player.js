@@ -29,7 +29,7 @@
             loop: rawConfig.loop ?? false,
             muted: rawConfig.muted ?? false,
             controls: rawConfig.controls ?? true,
-            volume: rawConfig.volume ?? 1.0,
+            volume: (rawConfig.volume ?? 100) / 100,
             sizingMode: rawConfig.sizingMode || 'fit',
             fillContainer: rawConfig.fillContainer ?? false,
             playbackRates: rawConfig.playbackRates || "0.5, 1, 1.5, 2",

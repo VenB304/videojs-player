@@ -18,7 +18,7 @@ exports.config = {
     loop: { type: 'boolean', defaultValue: false, label: "Loop", frontend: true },
     muted: { type: 'boolean', defaultValue: false, label: "Start Muted", helperText: "Useful for browsers that block autoplay with sound", frontend: true },
     controls: { type: 'boolean', defaultValue: true, label: "Show Controls", frontend: true },
-    volume: { type: 'number', defaultValue: 1.0, min: 0, max: 1, step: 0.1, label: "Default Volume", helperText: "0.0 to 1.0", frontend: true },
+    volume: { type: 'number', defaultValue: 100, min: 0, max: 100, step: 5, label: "Default Volume (%)", helperText: "0 to 100", frontend: true },
     sizingMode: {
         type: 'select',
         defaultValue: 'fit',
