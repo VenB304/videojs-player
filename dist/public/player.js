@@ -154,13 +154,21 @@
                     width: 100%;
                     bottom: 0;
                 }
-                /* FIX: Prevent phantom spacing/width issues */
+                /* FIX 2: Circular Dependency Fix */
+                /* wrapper is width:auto (shrinks to child) */
+                /* child must NOT be width:100% (expands to parent) */
+                /* child must use intrinsic size OR max-width constraint */
                 .video-js .vjs-tech {
                     display: block !important;
                     margin: 0 !important;
                     padding: 0 !important;
-                    width: 100% !important;
-                    height: 100% !important;
+                    /* Let video be its natural size */
+                    width: auto !important; 
+                    height: auto !important;
+                    /* But constrain it if it's too big for the screen */
+                    max-width: 100%;
+                    max-height: 100%;
+                    position: relative !important;
                 }
             `));
         });
