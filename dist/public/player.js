@@ -42,9 +42,10 @@
                 const wrapperClass = rawClass.replace('showing', '').trim();
 
                 const videoElement = document.createElement('video');
-                // Standard classes + wrapper class
-                // vjs-big-play-centered: Centers the play button
-                videoElement.className = `video-js vjs-big-play-centered ${wrapperClass}`;
+                // Standard classes only. 
+                // We do NOT add wrapperClass/showing here to avoid double-application 
+                // or applying layout constraints to the inner video element.
+                videoElement.className = 'video-js vjs-big-play-centered';
                 videoElementRef.current = videoElement;
 
                 if (containerRef.current) {
@@ -68,9 +69,11 @@
                 });
                 playerRef.current = player;
 
-                // Add 'showing' to video element for HFS detection
-                if (isShowing) {
-                    videoElement.classList.add('showing');
+                // FIX: specific HFS classes (like .showing) must be applied to the 
+                // PLAYER WRAPPER, not the video element. 
+                // This ensures rules like max-width apply to the whole player.
+                if (props.className) {
+                    player.addClass(props.className);
                 }
 
                 if (ref) {
