@@ -120,18 +120,18 @@
             return h('div', {
                 'data-vjs-player': true,
                 ref: containerRef,
-                // style: {
-                //     width: '100%',
-                //     height: '100%',
-                //     display: 'flex',
-                //     justifyContent: 'center',
-                //     alignItems: 'center',
-                // }
+                style: {
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                }
             }, h('style', {}, `
-                // .video-js {
-                //     max-width: 100%;
-                //     max-height: 100%;
-                // }
+                .video-js {
+                    max-width: 100%;
+                    max-height: 100%;
+                }
             `));
         });
 
