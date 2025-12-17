@@ -2,6 +2,17 @@
 
 Upgrade your HFS streaming experience with [Video.js](https://videojs.com/) - a modern, responsive HTML5 video player.
 
+## Preview
+### Desktop
+<img width="1920" height="922" alt="image" src="https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c" />
+
+### Mobile
+<img width="383" height="828" alt="image" src="https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018" />
+
+### Admin
+<img width="890" height="861" alt="image" src="https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690" />
+
+
 ## 🌟 Why use this plugin?
 
 The default HFS player is functional but basic. This plugin replaces it with a professional-grade player used by millions of websites. It allows for:
