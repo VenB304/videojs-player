@@ -30,8 +30,18 @@
         class VideoJsPlayer extends React.Component {
             componentDidMount() {
                 console.log("VideoJS Plugin: Mounted with props:", this.props);
+
+                // Manual DOM creation to avoid Preact reconciliation conflicts
+                this.videoElement = document.createElement('video');
+                this.videoElement.className = `video-js vjs-big-play-centered ${this.props.className || ''}`;
+
+                // Append correctly to the container ref
+                if (this.containerRef) {
+                    this.containerRef.appendChild(this.videoElement);
+                }
+
                 // Initialize Video.js on the video node
-                this.player = videojs(this.videoNode, {
+                this.player = videojs(this.videoElement, {
                     controls: true,
                     autoplay: true, // Force autoplay to ensure video starts
                     preload: 'metadata',
@@ -75,10 +85,16 @@
                 // Clean up player when user closes the file or navigates away
                 if (this.player) {
                     this.player.dispose();
+                    this.player = null;
+                }
+                // Manually remove video element if it still exists (double safety)
+                if (this.videoElement && this.videoElement.parentNode) {
+                    this.videoElement.parentNode.removeChild(this.videoElement);
                 }
             }
 
             // Duck typing: Expose video element properties/methods for HFS
+            // Return safe defaults if player isn't ready
             get duration() { return this.player ? this.player.duration() : 0; }
             get currentTime() { return this.player ? this.player.currentTime() : 0; }
             set currentTime(t) { if (this.player) this.player.currentTime(t); }
@@ -96,15 +112,12 @@
             }
 
             render() {
-                // Render a simple <video> tag with the "video-js" class
-                // HFS props like className are passed in this.props
-                const { className } = this.props;
-                return h('div', { 'data-vjs-player': true },
-                    h('video', {
-                        ref: node => this.videoNode = node,
-                        className: `video-js vjs-big-play-centered ${className || ''}`
-                    })
-                );
+                // Render a static container that Preact controls.
+                // We manually append the video element into this.
+                return h('div', {
+                    'data-vjs-player': true,
+                    ref: el => this.containerRef = el
+                });
             }
         }
 
