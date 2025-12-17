@@ -1,0 +1,36 @@
+/* Backup of custom CSS injected into player.js (v1.16) */
+.video-js {
+    background-color: transparent !important;
+    display: inline-block !important;
+    width: auto !important;
+    height: auto !important;
+    max-width: 100%;
+    max-height: 100%;
+    overflow: visible !important;
+}
+
+.video-js .vjs-tech {
+    position: relative !important;
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    height: auto !important;
+}
+
+/* Ensure controls sit at the bottom of the visible video area */
+.video-js .vjs-control-bar {
+    width: 100%;
+    bottom: 0;
+}
+
+/* FIX 3: Revert Grid, use Width 100% on Tech to match Controls */
+.video-js .vjs-tech {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    /* Expand to fill the wrapper (which might have phantom width) */
+    width: 100% !important;
+    height: auto !important;
+    max-width: 100%;
+    position: relative !important;
+}

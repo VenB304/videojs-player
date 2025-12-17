@@ -114,14 +114,10 @@
                 }
             }, [props.src]);
 
+
+
             // Render container
-            // 1. Emulate Native Layout Strategy:
-            //    - .video-js wrapper -> inline-block, width: auto (shrinks to child).
-            //    - .vjs-tech (video) -> position: relative (drives the size).
-            //    - background: transparent (removes black bars).
-            // 2. Parent Container:
-            //    - Centered via Flexbox.
-            //    - 100% size to provide the canvas.
+            // Reverted to basic container without custom injected CSS.
             return h('div', {
                 'data-vjs-player': true,
                 ref: containerRef,
@@ -132,40 +128,7 @@
                     justifyContent: 'center',
                     alignItems: 'center',
                 }
-            }, h('style', {}, `
-                .video-js {
-                    background-color: transparent !important;
-                    display: inline-block !important;
-                    width: auto !important;
-                    height: auto !important;
-                    max-width: 100%;
-                    max-height: 100%;
-                    overflow: visible !important;
-                }
-                .video-js .vjs-tech {
-                    position: relative !important;
-                    top: 0;
-                    left: 0;
-                    width: 100% !important;
-                    height: auto !important;
-                }
-                /* Ensure controls sit at the bottom of the visible video area */
-                .video-js .vjs-control-bar {
-                    width: 100%;
-                    bottom: 0;
-                }
-                /* FIX 3: Revert Grid, use Width 100% on Tech to match Controls */
-                .video-js .vjs-tech {
-                    display: block !important;
-                    margin: 0 !important;
-                    padding: 0 !important;
-                    /* Expand to fill the wrapper (which might have phantom width) */
-                    width: 100% !important; 
-                    height: auto !important;
-                    max-width: 100%;
-                    position: relative !important;
-                }
-            `));
+            });
         });
 
         HFS.onEvent('fileShow', (params) => {
