@@ -26,103 +26,116 @@
         // Supported video extensions
         const VIDEO_EXTS = ['.mp4', '.mkv', '.webm', '.ogv', '.mov'];
 
-        // 1. Define the Video.js React Wrapper Component
-        class VideoJsPlayer extends React.Component {
-            componentDidMount() {
-                console.log("VideoJS Plugin: Mounted with props:", this.props);
-
-                // Manual DOM creation to avoid Preact reconciliation conflicts
-                this.videoElement = document.createElement('video');
-                this.videoElement.className = `video-js vjs-big-play-centered ${this.props.className || ''}`;
-
-                // Append correctly to the container ref
-                if (this.containerRef) {
-                    this.containerRef.appendChild(this.videoElement);
-                }
-
-                // Initialize Video.js on the video node
-                this.player = videojs(this.videoElement, {
-                    controls: true,
-                    autoplay: true, // Force autoplay to ensure video starts
-                    preload: 'metadata',
-                    fluid: true, // Responsive
-                    sources: [{
-                        src: this.props.src,
-                        type: this.determineMimeType(this.props.src)
-                    }]
-                });
-
-                // Hook into Video.js events to trigger HFS callbacks
-                this.player.on('play', () => {
-                    console.log("VideoJS Plugin: Play event");
-                    if (this.props.onPlay) this.props.onPlay();
-                });
-
-                this.player.on('ended', () => {
-                    console.log("VideoJS Plugin: Ended event");
-                    if (this.props.onEnded) this.props.onEnded();
-                });
-
-                this.player.on('error', () => {
-                    if (this.props.onError) this.props.onError(this.player.error());
-                });
-            }
-
-            componentDidUpdate(prevProps) {
-                if (this.props.src !== prevProps.src) {
-                    console.log("VideoJS Plugin: Source changed to", this.props.src);
-                    if (this.player) {
-                        this.player.src({
-                            src: this.props.src,
-                            type: this.determineMimeType(this.props.src)
-                        });
-                        this.player.play(); // Force play on source change
-                    }
-                }
-            }
-
-            componentWillUnmount() {
-                // Clean up player when user closes the file or navigates away
-                if (this.player) {
-                    this.player.dispose();
-                    this.player = null;
-                }
-                // Manually remove video element if it still exists (double safety)
-                if (this.videoElement && this.videoElement.parentNode) {
-                    this.videoElement.parentNode.removeChild(this.videoElement);
-                }
-            }
-
-            // Duck typing: Expose video element properties/methods for HFS
-            // Return safe defaults if player isn't ready
-            get duration() { return this.player ? this.player.duration() : 0; }
-            get currentTime() { return this.player ? this.player.currentTime() : 0; }
-            set currentTime(t) { if (this.player) this.player.currentTime(t); }
-            get paused() { return this.player ? this.player.paused() : true; }
-            get ended() { return this.player ? this.player.ended() : false; }
-            play() { if (this.player) this.player.play(); }
-            pause() { if (this.player) this.player.pause(); }
-
-            determineMimeType(src) {
-                const ext = src.substring(src.lastIndexOf('.')).toLowerCase();
-                if (ext === '.webm') return 'video/webm';
-                if (ext === '.ogv') return 'video/ogg';
-                if (ext === '.mkv') return 'video/x-matroska';
-                return 'video/mp4'; // Default
-            }
-
-            render() {
-                // Render a static container that Preact controls.
-                // We manually append the video element into this.
-                return h('div', {
-                    'data-vjs-player': true,
-                    ref: el => this.containerRef = el
-                });
-            }
+        function determineMimeType(src) {
+            const ext = src.substring(src.lastIndexOf('.')).toLowerCase();
+            if (ext === '.webm') return 'video/webm';
+            if (ext === '.ogv') return 'video/ogg';
+            if (ext === '.mkv') return 'video/x-matroska';
+            return 'video/mp4'; // Default
         }
 
+        // 1. Define the Video.js React Wrapper Component using Functional Component + forwardRef
+        // This is crucial: forwardRef allows us to pass the ACTUAL video element back to HFS
+        // satisfying HFS's "instanceof HTMLMediaElement" check for autoplay/slideshows.
+        const VideoJsPlayer = React.forwardRef((props, ref) => {
+            const containerRef = React.useRef(null);
+            const playerRef = React.useRef(null);
+            const videoElementRef = React.useRef(null);
+
+            // Mount / Unmount Logic
+            React.useEffect(() => {
+                console.log("VideoJS Plugin: Mounted with props:", props);
+
+                // Manual DOM creation to isolate VideoJS from Preact's reconciliation
+                // This prevents the "removeChild" crash when switching away from video.
+                const videoElement = document.createElement('video');
+                videoElement.className = `video-js vjs-big-play-centered ${props.className || ''}`;
+                videoElementRef.current = videoElement;
+
+                // Append video element to our container
+                if (containerRef.current) {
+                    containerRef.current.appendChild(videoElement);
+                }
+
+                // Initialize Video.js
+                const player = videojs(videoElement, {
+                    controls: true,
+                    autoplay: true, // Force autoplay on load
+                    preload: 'metadata',
+                    fluid: true,
+                    sources: [{
+                        src: props.src,
+                        type: determineMimeType(props.src)
+                    }]
+                });
+                playerRef.current = player;
+
+                // CRITICAL: Expose the real video element to HFS
+                // HFS expects an HTMLMediaElement. We give it exactly that.
+                if (ref) {
+                    if (typeof ref === 'function') {
+                        ref(videoElement);
+                    } else if (ref.hasOwnProperty('current')) {
+                        ref.current = videoElement;
+                    }
+                }
+
+                // Event Listeners
+                // Signal to HFS that playback has started/ended
+                player.on('play', () => {
+                    console.log("VideoJS Plugin: Play event");
+                    if (props.onPlay) props.onPlay();
+                });
+
+                player.on('ended', () => {
+                    console.log("VideoJS Plugin: Ended event");
+                    if (props.onEnded) props.onEnded();
+                    // Dispatch native event on the video element too, just in case HFS is listening directly
+                    videoElement.dispatchEvent(new Event('ended'));
+                });
+
+                player.on('error', () => {
+                    if (props.onError) props.onError(player.error());
+                });
+
+                // Cleanup function
+                return () => {
+                    if (player) {
+                        player.dispose();
+                    }
+                    // Manually remove video element if it still exists
+                    if (videoElement && videoElement.parentNode) {
+                        videoElement.parentNode.removeChild(videoElement);
+                    }
+                };
+            }, []); // Empty dependency array -> Run only on Mount
+
+            // Handle Source Changes (Playlist Navigation)
+            React.useEffect(() => {
+                const player = playerRef.current;
+                if (player && props.src) {
+                    // Check if src actually changed to avoid Redundant loads
+                    const currentSrc = player.currentSrc();
+                    // Simple check: if the new src is not contained in the current full URL
+                    if (!currentSrc || !currentSrc.includes(encodeURI(props.src))) {
+                        console.log("VideoJS Plugin: Source updating to", props.src);
+                        player.src({
+                            src: props.src,
+                            type: determineMimeType(props.src)
+                        });
+                        player.play(); // Ensure it plays immediately
+                    }
+                }
+            }, [props.src]);
+
+            // Render a static container for Preact to hold
+            return h('div', {
+                'data-vjs-player': true,
+                ref: containerRef
+            });
+        });
+
         // 2. Hook into the 'fileShow' event
-        // This event is triggered when HFS is about to display a file preview
         HFS.onEvent('fileShow', (params) => {
             const { entry } = params;
 
@@ -133,12 +146,9 @@
             }
 
             // Replace the default Component.
-            // HFS will instantiate it and pass props: { src, entry, className, onPlay, onError, ... }
             params.Component = VideoJsPlayer;
         });
     } else {
-        // This else block is now unreachable due to the early return above.
-        // It's kept for consistency with the original structure, but could be removed.
         console.error("VideoJS Plugin: React/Preact not found on window or HFS. Plugin execution aborted.");
     }
 }
