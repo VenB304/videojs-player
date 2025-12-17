@@ -33,7 +33,7 @@
                 // Initialize Video.js on the video node
                 this.player = videojs(this.videoNode, {
                     controls: true,
-                    autoplay: this.props.autoplay || false,
+                    autoplay: true, // Force autoplay to ensure video starts
                     preload: 'metadata',
                     fluid: true, // Responsive
                     sources: [{
@@ -66,6 +66,7 @@
                             src: this.props.src,
                             type: this.determineMimeType(this.props.src)
                         });
+                        this.player.play(); // Force play on source change
                     }
                 }
             }
