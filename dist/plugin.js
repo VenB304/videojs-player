@@ -1,11 +1,12 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 39;
+exports.version = 40;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
 // HFS allows loading external URLs directly in frontend_js/css
 exports.frontend_css = [
     'video-js.css', // Local Video.js Styles
+    'themes.css'    // Official Themes Bundle
 ];
 
 exports.frontend_js = [
@@ -42,6 +43,13 @@ exports.config = {
         defaultValue: 'overlay',
         options: { 'Player Overlay (Default)': 'overlay', 'System Notification': 'toast' },
         label: "HEVC Error Style",
+        frontend: true
+    },
+    theme: {
+        type: 'select',
+        defaultValue: 'default',
+        options: { 'Default (Skin)': 'default', 'City': 'city', 'Fantasy': 'fantasy', 'Forest': 'forest', 'Sea': 'sea' },
+        label: "Player Theme",
         frontend: true
     }
 };

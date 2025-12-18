@@ -37,6 +37,7 @@
             preload: rawConfig.preload || 'metadata',
             enableHLS: rawConfig.enableHLS ?? false,
             hevcErrorStyle: rawConfig.hevcErrorStyle || 'overlay',
+            theme: rawConfig.theme || 'default',
         };
 
         const VIDEO_EXTS = ['.mp4', '.webm', '.ogv', '.mov'];
@@ -67,7 +68,11 @@
                 console.log("VideoJS Plugin: Mounted with config:", C);
 
                 const videoElement = document.createElement('video');
-                videoElement.className = 'video-js vjs-big-play-centered';
+                let cssClasses = 'video-js vjs-big-play-centered';
+                if (C.theme !== 'default') {
+                    cssClasses += ` vjs-theme-${C.theme}`;
+                }
+                videoElement.className = cssClasses;
                 if (C.sizingMode === 'fill') {
                     videoElement.style.objectFit = 'cover';
                 }

@@ -67,6 +67,7 @@ You can customize the player behavior in **Admin Panel > Plugins > videojs-playe
 | **Preload Strategy** | • `Metadata`: Loads only duration/dimensions. Saves bandwidth.<br>• `Auto`: Browser chooses; typically buffers some segments immediately for faster start.<br>• `None`: No data loaded until user clicks play. | `Metadata` |
 | **Enable MKV/HLS** | Experimental toggle. • **MKV**: Treats `.mkv` as standard web video (Chrome supports this for H.264/VP9 codecs inside MKV).<br>• **HLS**: Passes `application/x-mpegURL` type for `.m3u8` files. | `Off` |
 | **HEVC Error Style** | Choose how to display unsupported HEVC/H.265 errors.<br>• **Player Overlay**: Shows a centered error message on top of the player.<br>• **System Notification**: Uses HFS native popup toast (top-right). | `Player Overlay` |
+| **Player Theme** | Choose an official Video.js skin.<br>• **Default**: Standard Video.js look.<br>• **City / Fantasy / Forest / Sea**: Official themes. | `Default` |
 
 ## 🛠️ Troubleshooting
 
