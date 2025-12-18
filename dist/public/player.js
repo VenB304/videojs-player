@@ -95,8 +95,11 @@
 
                         const p = playerRef.current;
                         if (p) {
-                            p.one('loadedmetadata', applyResume);
-                            if (p.readyState() > 0) applyResume();
+                            if (p.readyState() > 0) {
+                                applyResume();
+                            } else {
+                                p.one('loadedmetadata', applyResume);
+                            }
                         }
                     }
                 }
@@ -546,7 +549,11 @@
                             const dur = player.duration();
                             // Don't save if near end
                             if (cur > 0 && (!dur || (dur - cur > 10))) {
-                                localStorage.setItem(resumeKey, cur.toFixed(1));
+                                const src = player.currentSrc();
+                                if (src) {
+                                    const key = `vjs-resume-${src.split('/').pop()}`;
+                                    localStorage.setItem(key, cur.toFixed(1));
+                                }
                             }
                             lastSave = now;
                         }
@@ -583,7 +590,11 @@
                 });
                 player.on('ended', () => {
                     if (C.resumePlayback) {
-                        localStorage.removeItem(resumeKey);
+                        const src = player.currentSrc();
+                        if (src) {
+                            const key = `vjs-resume-${src.split('/').pop()}`;
+                            localStorage.removeItem(key);
+                        }
                     }
                     if (props.onEnded) props.onEnded();
                     dummyVideo.dispatchEvent(new Event('ended'));
