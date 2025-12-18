@@ -50,45 +50,52 @@ All settings can be tweaked in **Admin Panel > Plugins > videojs-player**.
 | **Autoplay** | Automatically start videos when the page loads. | `On` |
 | **Start Muted** | Forces video to start at 0% volume. *Required for autoplay in some browsers (Chrome/Safari).* | `Off` |
 | **Loop** | Automatically restart the video when it ends. | `Off` |
+| **Preload Strategy** | • `Metadata`: Saves bandwidth (loads only size/duration).<br>• `Auto`: Buffers immediately for faster start.<br>• `None`: No data loaded until play is clicked. | `Metadata` |
 | **Resume Playback** | Remembers your playback position and restores it if you leave and return to the video. | `On` |
 | **Remember Volume** | Saves your volume level between sessions. | `On` |
-| **Preload Strategy** | • `Metadata`: Saves bandwidth (loads only size/duration).<br>• `Auto`: Buffers immediately for faster start.<br>• `None`: No data loaded until play is clicked. | `Metadata` |
+| **Default Volume (%)** | Sets the initial volume (0 to 100). | `100` |
+| **Playback Rates** | Define the speed options in the menu (e.g., `0.5, 1, 1.5, 2`). | `0.5, 1, 1.5, 2` |
 
-### 2. Interface & Controls
+### 2. Player Controls
 | Setting | Description | Default |
 | :--- | :--- | :--- |
 | **Show Controls** | Toggle the entire bottom control bar. | `On` |
 | **Controls Hide Delay** | Time (ms) before controls fade out. Set to `0` to keep them always visible. | `2000` |
 | **Show Seek Buttons** | Adds **Rewind** and **Forward** buttons to the control bar. | `On` |
-| **Seek Step** | Seconds to skip when using the seek buttons. | `10` |
-| **Show Download** | Adds a download icon (⬇) to the control bar. | `On` |
+| **Seek Button Time (s)** | Seconds to skip when using the seek buttons. | `10` |
+| **Show Download Button** | Adds a download icon (⬇) to the control bar. | `On` |
 
-### 3. Mobile Experience
-| Setting | Description | Default |
-| :--- | :--- | :--- |
-| **Double Tap to Seek** | Double-tap left/right sides of the video to rewind/forward, like YouTube. | `On` |
-| **Double Tap Time** | Seconds to skip on double-tap. | `10` |
-| **Mobile Auto-Rotate** | Automatically locks screen to landscape when entering fullscreen on mobile (and unlocks on exit). | `On` |
-
-### 4. Keyboard Shortcuts
+### 3. Keyboard Shortcuts
 | Setting | Description | Default |
 | :--- | :--- | :--- |
 | **Enable Hotkeys** | Active when player is focused: `Space` (Play/Pause), `F` (Fullscreen), `M` (Mute), `Arrows` (Seek/Vol). | `On` |
-| **Hotkey Seek Step** | Seconds to skip with Left/Right arrows. | `5` |
-| **Hotkey Vol Step** | Volume percentage change with Up/Down arrows. | `10` |
+| **Hotkey Seek Time (s)** | Seconds to skip with Left/Right arrows. | `5` |
+| **Hotkey Volume Step (%)** | Volume percentage change with Up/Down arrows. | `10` |
 
-### 5. Layout & Sizing
+### 4. Layout & Sizing
 | Setting | Description | Default |
 | :--- | :--- | :--- |
 | **Sizing Mode** | • **Fluid** (Default): Responsive; fits width, calculates height based on aspect ratio.<br>• **Fixed / Native**: Hard pixel size (video's intrinsic size or custom).<br>• **Fill**: Fills parent container completely (object-fit: cover). | `Fluid` |
-| **Fixed Width/Height** | Overrides for **Fixed** mode. Set to `0` to use the video's actual resolution. | `640` / `360` |
+| **Fixed Width (px)** | Overrides for **Fixed** mode. Set to `0` to use the video's actual resolution. | `640` |
+| **Fixed Height (px)** | Overrides for **Fixed** mode. Set to `0` to use the video's actual resolution. | `360` |
 
-### 6. Appearance & Advanced
+### 5. Appearance
 | Setting | Description | Default |
 | :--- | :--- | :--- |
 | **Player Theme** | Choose an official Skin: `Default`, `City`, `Fantasy`, `Forest`, `Sea`. | `Default` |
 | **HEVC Error Style** | How to handle unsupported H.265 videos:<br>• **Overlay**: Shows error message on player.<br>• **Notification**: System toast message. | `Overlay` |
-| **Enable MKV/HLS** | **Experimental**. Tries to play `.mkv` (if codec supported) and HLS `.m3u8` streams. | `Off` |
+
+### 6. Mobile Experience
+| Setting | Description | Default |
+| :--- | :--- | :--- |
+| **Double Tap to Seek** | Double-tap left/right sides of the video to rewind/forward, like YouTube. | `On` |
+| **Double Tap Seek Time (s)** | Seconds to skip on double-tap. | `10` |
+| **Mobile Auto-Rotate** | Automatically locks screen to landscape when entering fullscreen on mobile (and unlocks on exit). | `On` |
+
+### 7. Advanced / Experimental
+| Setting | Description | Default |
+| :--- | :--- | :--- |
+| **Enable HLS Support** | **Experimental**. Tries to play HLS `.m3u8` streams. | `Off` |
 
 ---
 
