@@ -102,8 +102,8 @@ exports.config = {
     enableHLS: {
         type: 'boolean',
         defaultValue: false,
-        label: "Enable MKV / HLS Support",
-        helperText: "Experimental streaming for .mkv and .m3u8",
+        label: "Enable HLS Support",
+        helperText: "Experimental streaming for .m3u8",
         frontend: true
     }
 
