@@ -16,9 +16,33 @@ This plugin replaces the basic default player with a professional-grade alternat
 ## Preview
 
 ### Desktop
-
+<img width="1567" height="919" alt="image" src="https://github.com/user-attachments/assets/452f3a64-a5cf-4ae4-83f6-76f58faa298d" />
 
 ### Mobile
+<img width="385" height="828" alt="image" src="https://github.com/user-attachments/assets/32097ed1-1c42-4be7-ba3b-0ae9c979ba95" />
+
+### Admin Settings
+
+#### Core Playback
+<img width="452" height="746" alt="image" src="https://github.com/user-attachments/assets/890007d4-56e1-4ece-b4dc-898d06abbf02" />
+
+#### Player Controls
+<img width="455" height="557" alt="image" src="https://github.com/user-attachments/assets/2b03b828-6170-4617-ad94-b95653f52cb4" />
+
+#### Keyboard Shortcuts
+<img width="449" height="340" alt="image" src="https://github.com/user-attachments/assets/add78b6b-f9b6-4974-94d6-56deed3c705f" />
+
+#### Layout & Sizing
+<img width="364" height="185" alt="image" src="https://github.com/user-attachments/assets/7536fd64-3679-4502-90c6-119a68b3cd3c" />
+
+#### Appearance
+<img width="452" height="256" alt="image" src="https://github.com/user-attachments/assets/ae8501c2-a97f-4fc3-8f6e-a15a4e815923" />
+
+#### Mobile Experience
+<img width="455" height="368" alt="image" src="https://github.com/user-attachments/assets/e288eb92-ac04-4ff6-b4b9-b5ec4c738081" />
+
+#### Advanced / Transcoding
+<img width="460" height="485" alt="image" src="https://github.com/user-attachments/assets/13d034a6-a145-46d1-b1cf-5885b0700de7" />
 
 ---
 
