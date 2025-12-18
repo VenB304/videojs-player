@@ -127,40 +127,70 @@
                     player.ready(() => {
                         const skipTime = 10;
                         const controlBar = player.getChild('ControlBar');
-                        const playToggle = controlBar.getChild('PlayToggle');
-                        const insertIndex = controlBar.children().indexOf(playToggle) + 1;
+                        const progressControl = controlBar.getChild('ProgressControl');
 
-                        // Create Forward Button
-                        const btnFwd = controlBar.addChild('button', {
-                            controlText: `Forward ${skipTime}s`,
-                            className: 'vjs-visible-text vjs-seek-button vjs-seek-forward',
-                            clickHandler: () => {
-                                let newTime = player.currentTime() + skipTime;
-                                if (newTime > player.duration()) newTime = player.duration();
-                                player.currentTime(newTime);
-                            }
-                        }, insertIndex);
-                        btnFwd.el().innerHTML = `<span class="vjs-icon-placeholder" aria-hidden="true" style="font-family: 'VideoJS'; content: '\\f101'; font-size: 1.5em; line-height: 1.6;">+${skipTime}</span>`;
-                        btnFwd.el().style.fontSize = '0.8em';
-                        btnFwd.el().title = `Forward ${skipTime}s`;
+                        if (progressControl) {
+                            const progressIndex = controlBar.children().indexOf(progressControl);
 
-                        // Create Rewind Button
-                        const btnRw = controlBar.addChild('button', {
-                            controlText: `Rewind ${skipTime}s`,
-                            className: 'vjs-visible-text vjs-seek-button vjs-seek-backward',
-                            clickHandler: () => {
-                                let newTime = player.currentTime() - skipTime;
-                                if (newTime < 0) newTime = 0;
-                                player.currentTime(newTime);
-                            }
-                        }, insertIndex);
-                        // Insert Rewind BEFORE Forward (so it's Play -> Rewind -> Forward)
-                        // Note: addChild index is live, so inserting at same index pushes previous one right? No, standard array splice logic.
-                        // Actually VideoJS addChild index behavior: index is where it puts it.
-                        // If we want Play [Rew] [Fwd], we insert [Fwd] at index+1, then [Rew] at index+1.
-                        btnRw.el().innerHTML = `<span class="vjs-icon-placeholder" aria-hidden="true" style="font-family: 'VideoJS'; content: '\\f102'; font-size: 1.5em; line-height: 1.6;">-${skipTime}</span>`;
-                        btnRw.el().style.fontSize = '0.8em';
-                        btnRw.el().title = `Rewind ${skipTime}s`;
+                            // Create Rewind Button (Left of Seek Bar)
+                            const btnRw = controlBar.addChild('button', {
+                                controlText: `Rewind ${skipTime}s`,
+                                className: 'vjs-visible-text vjs-seek-button vjs-seek-backward',
+                                clickHandler: () => {
+                                    let newTime = player.currentTime() - skipTime;
+                                    if (newTime < 0) newTime = 0;
+                                    player.currentTime(newTime);
+                                }
+                            }, progressIndex); // Insert before ProgressControl
+
+                            btnRw.el().innerHTML = `
+                                <svg viewBox="0 0 24 24" fill="white" width="20" height="20" style="margin-top: 5px;">
+                                    <path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/>
+                                    <text x="12" y="18" font-size="0" fill="white" text-anchor="middle" font-weight="bold">10</text>
+                                </svg>
+                            `;
+                            btnRw.el().title = `Rewind ${skipTime}s`;
+                            btnRw.el().style.cursor = "pointer";
+
+                            // Create Forward Button (Right of Seek Bar)
+                            // Note: Inserting Rewind shifted ProgressControl to index + 1.
+                            // We want Forward AFTER ProgressControl, so at original index + 2.
+                            const btnFwd = controlBar.addChild('button', {
+                                controlText: `Forward ${skipTime}s`,
+                                className: 'vjs-visible-text vjs-seek-button vjs-seek-forward',
+                                clickHandler: () => {
+                                    let newTime = player.currentTime() + skipTime;
+                                    if (newTime > player.duration()) newTime = player.duration();
+                                    player.currentTime(newTime);
+                                }
+                            }, progressIndex + 2);
+
+                            btnFwd.el().innerHTML = `
+                                <svg viewBox="0 0 24 24" fill="white" width="20" height="20" style="margin-top: 5px;">
+                                    <path d="M10 8c4.65 0 8.58 3.03 9.96 7.22L17.6 16c-1.05-3.19-4.05-5.5-7.6-5.5-1.95 0-3.73.72-5.12 1.88L8.5 16H-0.5V7l3.6 3.6C5.95 8.99 7.85 8 10 8z" transform="scale(-1, 1) translate(-24, 0)"/>
+                                </svg>
+                            `;
+                            // Using "Redo" icon style path or similar. 
+                            // Let's use clean standard paths.
+                            // Back 10: Circular arrow counter-clockwise.
+                            // Fwd 10: Circular arrow clockwise.
+                            // Re-defining innerHTML for cleaner paths:
+
+                            btnRw.el().innerHTML = `
+                                <svg viewBox="0 0 24 24" fill="white" width="22" height="22" style="vertical-align: middle;">
+                                    <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                                    <text x="12" y="16" font-size="8" fill="white" text-anchor="middle" font-weight="bold" style="text-shadow: 1px 1px 1px black;">10</text>
+                                </svg>`;
+
+                            btnFwd.el().innerHTML = `
+                                <svg viewBox="0 0 24 24" fill="white" width="22" height="22" style="vertical-align: middle;">
+                                    <path d="M12 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z"/>
+                                    <text x="12" y="16" font-size="8" fill="white" text-anchor="middle" font-weight="bold" style="text-shadow: 1px 1px 1px black;">10</text>
+                                </svg>`;
+
+                            btnFwd.el().title = `Forward ${skipTime}s`;
+                            btnFwd.el().style.cursor = "pointer";
+                        }
                     });
                 }
 
