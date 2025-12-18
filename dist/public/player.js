@@ -61,6 +61,7 @@
             const playerRef = React.useRef(null);
             const videoElementRef = React.useRef(null);
             const hevcErrorShownRef = React.useRef(false);
+            const hevcTimeoutRef = React.useRef(null);
 
             React.useEffect(() => {
                 console.log("VideoJS Plugin: Mounted with config:", C);
@@ -156,8 +157,11 @@
                 // Event Listeners
                 player.on('playing', () => {
                     // Check for hidden HEVC playback failure (Audio plays, Video is 0x0)
-                    setTimeout(() => {
-                        if (!player || player.paused() || player.ended()) return;
+                    if (hevcTimeoutRef.current) clearTimeout(hevcTimeoutRef.current);
+
+                    hevcTimeoutRef.current = setTimeout(() => {
+                        // Safety check if player is destroyed or disposed
+                        if (!player || (player.isDisposed && player.isDisposed()) || player.paused() || player.ended()) return;
 
                         const w = player.videoWidth();
                         const h = player.videoHeight();
@@ -235,6 +239,7 @@
                 player.on('error', () => { if (props.onError) props.onError(player.error()); });
 
                 return () => {
+                    if (hevcTimeoutRef.current) clearTimeout(hevcTimeoutRef.current);
                     window.removeEventListener('resize', resizePlayer);
                     if (player) player.dispose();
                     if (videoElement && videoElement.parentNode) videoElement.parentNode.removeChild(videoElement);
