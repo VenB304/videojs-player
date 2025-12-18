@@ -37,8 +37,11 @@
             preload: rawConfig.preload || 'metadata',
             enableHLS: rawConfig.enableHLS ?? false,
             showSeekButtons: rawConfig.showSeekButtons ?? true,
+            seekButtonStep: parseInt(rawConfig.seekButtonStep) || 10,
             showDownloadButton: rawConfig.showDownloadButton ?? true,
             enableHotkeys: rawConfig.enableHotkeys ?? true,
+            hotkeySeekStep: parseInt(rawConfig.hotkeySeekStep) || 5,
+            hotkeyVolumeStep: (parseInt(rawConfig.hotkeyVolumeStep) || 10) / 100, // Convert to decimal 0.0-1.0
             persistentVolume: rawConfig.persistentVolume ?? true,
             resumePlayback: rawConfig.resumePlayback ?? true,
             autoRotate: rawConfig.autoRotate ?? true,
@@ -46,6 +49,7 @@
             doubleTapSeekSeconds: parseInt(rawConfig.doubleTapSeekSeconds) || 10,
             hevcErrorStyle: rawConfig.hevcErrorStyle || 'overlay',
             theme: rawConfig.theme || 'default',
+            inactivityTimeout: parseInt(rawConfig.inactivityTimeout) || 2000,
         };
 
         const VIDEO_EXTS = ['.mp4', '.webm', '.ogv', '.mov'];
@@ -148,11 +152,12 @@
                     autoplay: C.autoplay,
                     loop: C.loop,
                     muted: C.muted,
+                    muted: C.muted,
                     preload: C.preload,
                     fluid: isFluid,
                     fill: isFill,
                     playbackRates: rates.length ? rates : [0.5, 1, 1.5, 2],
-                    playbackRates: rates.length ? rates : [0.5, 1, 1.5, 2],
+                    inactivityTimeout: C.inactivityTimeout,
                     sources: [] // Initialize empty, let useEffect handle source
                 });
                 playerRef.current = player;
@@ -176,10 +181,9 @@
                 });
 
 
-                // --- Feature 1: Seek Buttons ---
                 if (C.showSeekButtons) {
                     player.ready(() => {
-                        const skipTime = 10;
+                        const skipTime = C.seekButtonStep;
                         const controlBar = player.getChild('ControlBar');
                         const progressControl = controlBar.getChild('ProgressControl');
 
@@ -198,11 +202,10 @@
                             }, progressIndex); // Insert before ProgressControl
 
                             btnRw.el().innerHTML = `
-                                <svg viewBox="0 0 24 24" fill="white" width="20" height="20" style="margin-top: 5px;">
-                                    <path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/>
-                                    <text x="12" y="18" font-size="0" fill="white" text-anchor="middle" font-weight="bold">10</text>
-                                </svg>
-                            `;
+                                <svg viewBox="0 0 24 24" fill="white" width="22" height="22" style="vertical-align: middle;">
+                                    <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                                    <text x="12" y="16" font-size="8" fill="white" text-anchor="middle" font-weight="bold" style="text-shadow: 1px 1px 1px black;">${skipTime}</text>
+                                </svg>`;
                             btnRw.el().title = `Rewind ${skipTime}s`;
                             btnRw.el().style.cursor = "pointer";
 
@@ -220,26 +223,9 @@
                             }, progressIndex + 2);
 
                             btnFwd.el().innerHTML = `
-                                <svg viewBox="0 0 24 24" fill="white" width="20" height="20" style="margin-top: 5px;">
-                                    <path d="M10 8c4.65 0 8.58 3.03 9.96 7.22L17.6 16c-1.05-3.19-4.05-5.5-7.6-5.5-1.95 0-3.73.72-5.12 1.88L8.5 16H-0.5V7l3.6 3.6C5.95 8.99 7.85 8 10 8z" transform="scale(-1, 1) translate(-24, 0)"/>
-                                </svg>
-                            `;
-                            // Using "Redo" icon style path or similar. 
-                            // Let's use clean standard paths.
-                            // Back 10: Circular arrow counter-clockwise.
-                            // Fwd 10: Circular arrow clockwise.
-                            // Re-defining innerHTML for cleaner paths:
-
-                            btnRw.el().innerHTML = `
-                                <svg viewBox="0 0 24 24" fill="white" width="22" height="22" style="vertical-align: middle;">
-                                    <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
-                                    <text x="12" y="16" font-size="8" fill="white" text-anchor="middle" font-weight="bold" style="text-shadow: 1px 1px 1px black;">10</text>
-                                </svg>`;
-
-                            btnFwd.el().innerHTML = `
                                 <svg viewBox="0 0 24 24" fill="white" width="22" height="22" style="vertical-align: middle;">
                                     <path d="M12 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z"/>
-                                    <text x="12" y="16" font-size="8" fill="white" text-anchor="middle" font-weight="bold" style="text-shadow: 1px 1px 1px black;">10</text>
+                                    <text x="12" y="16" font-size="8" fill="white" text-anchor="middle" font-weight="bold" style="text-shadow: 1px 1px 1px black;">${skipTime}</text>
                                 </svg>`;
 
                             btnFwd.el().title = `Forward ${skipTime}s`;
@@ -313,19 +299,19 @@
                                 break;
                             case 'ArrowLeft':
                                 e.preventDefault();
-                                player.currentTime(player.currentTime() - 5);
+                                player.currentTime(player.currentTime() - C.hotkeySeekStep);
                                 break;
                             case 'ArrowRight':
                                 e.preventDefault();
-                                player.currentTime(player.currentTime() + 5);
+                                player.currentTime(player.currentTime() + C.hotkeySeekStep);
                                 break;
                             case 'ArrowUp':
                                 e.preventDefault();
-                                player.volume(Math.min(player.volume() + 0.1, 1));
+                                player.volume(Math.min(player.volume() + C.hotkeyVolumeStep, 1));
                                 break;
                             case 'ArrowDown':
                                 e.preventDefault();
-                                player.volume(Math.max(player.volume() - 0.1, 0));
+                                player.volume(Math.max(player.volume() - C.hotkeyVolumeStep, 0));
                                 break;
                         }
                     };
