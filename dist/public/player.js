@@ -347,8 +347,13 @@
                     let lastTouchTime = 0;
                     const handleTouch = (e) => {
                         const now = Date.now();
-                        // Double tap threshold: 300ms
-                        if (now - lastTouchTime < 300) {
+                        const delta = now - lastTouchTime;
+
+                        // Debug: Always show delta
+                        HFS.toast(`Tap: ${delta}ms`, "info");
+
+                        // Double tap threshold: 500ms (Relaxed for testing)
+                        if (delta < 500) {
                             e.preventDefault(); // Prevent zoom/default browser actions
 
                             // Calculate touch position relative to the player
@@ -359,13 +364,14 @@
                             const pct = x / width;
 
                             // Sanity check
-                            if (width === 0) return;
+                            if (width === 0) {
+                                HFS.toast("Error: Width 0", "error");
+                                return;
+                            }
+
+                            HFS.toast(`Action: ${pct.toFixed(2)}`, "success");
 
                             const seekSeconds = C.doubleTapSeekSeconds;
-
-                            // Debug log for troubleshooting
-                            // console.log(`[DoubleTap] x:${x} w:${width} pct:${pct.toFixed(2)} target:${e.target.tagName}`);
-                            HFS.toast(`Double Tap: ${pct.toFixed(2)}`, "info");
 
                             if (pct < 0.3) {
                                 // Left 30%: Rewind
@@ -390,9 +396,6 @@
                             }
                         }
 
-                        // DEBUG: Log every end to see if it fires
-                        const delta = now - lastTouchTime;
-                        HFS.toast(`End: ${delta}ms`, "success");
 
                         lastTouchTime = now;
                     };
@@ -403,10 +406,6 @@
                         // Use capture phase to ensure we get the event before Video.js internals
                         const opts = { capture: true, passive: false };
                         el.addEventListener('touchend', handleTouch, opts);
-
-                        // DEBUG: Listen for start and pointer events to trace loss
-                        el.addEventListener('touchstart', () => HFS.toast("Start", "info"), opts);
-                        el.addEventListener('touchcancel', () => HFS.toast("Cancel", "error"), opts);
 
                         player.on('dispose', () => {
                             el.removeEventListener('touchend', handleTouch, opts);
