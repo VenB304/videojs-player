@@ -97,6 +97,11 @@ All settings can be tweaked in **Admin Panel > Plugins > videojs-player**.
 | :--- | :--- | :--- |
 | **Enable MKV / HLS Support** | **Experimental**. Tries to play MKV `.mkv` and HLS `.m3u8` streams. | `Off` |
 
+### 8. Integrations
+| Setting | Description | Default |
+| :--- | :--- | :--- |
+| **Use 'unsupported-videos' Plugin** | **Advanced**. Requires the [@rejetto/unsupported-videos](https://github.com/rejetto/unsupported-videos) plugin to be installed and configured on HFS. If enabled, the player will automatically ask the server to **transcode** unsupported videos (like HEVC) on the fly using FFmpeg. | `Off` |
+
 ---
 
 ## 🛠️ Troubleshooting
@@ -106,7 +111,11 @@ All settings can be tweaked in **Admin Panel > Plugins > videojs-player**.
 
 ### "Video format not supported" (HEVC/H.265)
 *   **Cause**: The video uses the HEVC codec, which many browsers (like Chrome on Windows) do not support natively without hardware extensions.
-*   **Solution**: The player will detect this and show an error (or toast notification). Users generally need to use a browser with support (Safari) or download the file.
+
+*   **Solution**:
+    1.  Enable **Use 'unsupported-videos' Plugin** in settings (requires installing that specific plugin first). This allows on-the-fly conversion.
+    2.  Use a browser with native support (Safari).
+    3.  Download the file instead of streaming.
 
 ### Video is cut off or too big
 *   Check your **Sizing Mode**.

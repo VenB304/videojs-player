@@ -78,19 +78,17 @@
             const hevcTimeoutRef = React.useRef(null);
 
             // --- Helper: Handle Playback Error (Conversion Integration) ---
+            const [conversionMode, setConversionMode] = React.useState(false);
+
+            // --- Helper: Handle Playback Error (Conversion Integration) ---
             const handlePlaybackError = (player, message = "Video format not supported.") => {
-                const src = player.currentSrc();
                 // Check if integration is enabled
-                if (C.integration_unsupported_videos && src) {
-                    if (src.indexOf('?ffmpeg') === -1) {
+                if (C.integration_unsupported_videos) {
+                    if (!conversionMode) {
                         // Attempt to switch to conversion stream
                         console.log("[VideoJS] Unsupported video detected. Switching to streaming conversion...");
                         HFS.toast("Unsupported format. Attempting conversion...", "info");
-                        player.src({
-                            src: src + '?ffmpeg',
-                            type: 'video/mp4' // Converted stream is always MP4
-                        });
-                        player.play();
+                        setConversionMode(true);
                         return;
                     } else {
                         // Already using ffmpeg, so conversion failed or timed out
@@ -120,7 +118,7 @@
                         errDiv.innerHTML = `
                              <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 8px;">Playback Error</div>
                              <div style="font-size: 0.9em;">${message}</div>
-                             ${C.integration_unsupported_videos ? '<div style="font-size: 0.8em; opacity: 0.7; margin-top: 5px;">Conversion failed.</div>' : ''}
+                             ${conversionMode ? '<div style="font-size: 0.8em; opacity: 0.7; margin-top: 5px;">Conversion failed. Check plugin config (ffmpeg).</div>' : ''}
                         `;
                         playerEl.appendChild(errDiv);
                     }
@@ -627,24 +625,40 @@
 
             React.useEffect(() => {
                 const player = playerRef.current;
-                if (player && props.src) {
-                    const currentSrc = player.currentSrc();
-                    if (!currentSrc || !currentSrc.includes(encodeURI(props.src))) {
-                        console.log("VideoJS Plugin: Source updating to", props.src);
-                        player.src({
-                            src: props.src,
-                            type: determineMimeType(props.src)
-                        });
-                        hevcErrorShownRef.current = false;
 
+                // Reset conversion mode when src changes to a new file
+                if (props.src) {
+                    const currentSrc = player && player.currentSrc();
+                    // If the base src is different, reset conversion
+                    if (currentSrc && !currentSrc.includes(encodeURI(props.src))) {
+                        setConversionMode(false);
+                    }
+                }
+
+                if (player && props.src) {
+                    const suffix = conversionMode ? '?ffmpeg' : '';
+                    const targetSrc = props.src + suffix;
+                    const currentSrc = player.currentSrc();
+
+                    const needsUpdate = !currentSrc || !currentSrc.includes(encodeURI(targetSrc));
+
+                    if (needsUpdate) {
+                        console.log(`VideoJS Plugin: Loading ${conversionMode ? 'CONVERTED' : 'STANDARD'} source:`, targetSrc);
+                        player.src({
+                            src: targetSrc,
+                            type: conversionMode ? 'video/mp4' : determineMimeType(props.src)
+                        });
+
+                        hevcErrorShownRef.current = false;
                         attemptResume(props.src);
 
-                        if (C.autoplay) {
-                            player.play();
+                        if (C.autoplay || conversionMode) {
+                            const p = player.play();
+                            if (p && p.catch) p.catch(e => console.warn("Auto-play blocked:", e));
                         }
                     }
                 }
-            }, [props.src]);
+            }, [props.src, conversionMode]);
 
             return h('div', {
                 'data-vjs-player': true,
