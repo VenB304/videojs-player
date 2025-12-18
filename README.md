@@ -7,21 +7,18 @@ Upgrade your HFS streaming experience with [Video.js](https://videojs.com/) - a 
 This plugin replaces the basic default player with a professional-grade alternative used by millions of websites.
 
 *   **📺 Modern & Responsive**: Looks stunning on any device, from desktops to mobile phones.
-*   **📱 Mobile Optimized**: Includes native-like gestures such as **double-tap to seek**, **auto-rotate**, and touch-friendly controls.
-*   **⏯️ Smart Playback**: Features **auto-resume** (remembers where you left off), **persistent volume**, and sequential playback support.
-*   **🎛️ Highly Configurable**: Customize everything from **themes** and **hotkeys** to **sizing modes** and **control timeout** directly in the HFS Admin Panel.
+*   **📱 Mobile Optimized**: Native-like gestures including **double-tap to seek**, **auto-rotate**, and touch-friendly controls.
+*   **🔁 Live Transcoding**: Integrated **FFmpeg support** to play unsupported formats (HEVC/H.265) on the fly.
+*   **⏯️ Smart Playback**: Features **auto-resume** (remembers where you left off), **persistent volume**, and sequential playback.
+*   **🎛️ Highly Configurable**: Organized settings menu in HFS Admin Panel to customize themes, hotkeys, sizing, and more.
 *   **🛠️ Advanced Format Support**: Experimental support for **MKV** containers and **HLS (.m3u8)** streaming.
 
 ## Preview
 
 ### Desktop
-<img width="1920" height="922" alt="image" src="https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c" />
+
 
 ### Mobile
-<img width="383" height="828" alt="image" src="https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018" />
-
-### Admin Settings
-<img width="406" height="633" alt="image" src="https://github.com/user-attachments/assets/935d257b-8fa6-4b09-b08b-ab2223b624d6" />
 
 ---
 
@@ -42,97 +39,90 @@ This plugin replaces the basic default player with a professional-grade alternat
 
 ## ⚙️ Configuration Guide
 
-All settings can be tweaked in **Admin Panel > Plugins > videojs-player**.
+Settings are organized into categories in **Admin Panel > Plugins > videojs-player**. Use the **Configuration Category** dropdown to filter options.
 
 ### 1. Core Playback
 | Setting | Description | Default |
 | :--- | :--- | :--- |
 | **Autoplay** | Automatically start videos when the page loads. | `On` |
-| **Start Muted** | Forces video to start at 0% volume. *Required for autoplay in some browsers (Chrome/Safari).* | `Off` |
+| **Start Muted** | Forces video to start at 0% volume. *Required for autoplay in some browsers.* | `Off` |
 | **Loop** | Automatically restart the video when it ends. | `Off` |
-| **Preload Strategy** | • `Metadata`: Saves bandwidth (loads only size/duration).<br>• `Auto`: Buffers immediately for faster start.<br>• `None`: No data loaded until play is clicked. | `Metadata` |
-| **Resume Playback** | Remembers your playback position and restores it if you leave and return to the video. | `On` |
+| **Preload Strategy** | • `Metadata` (Default): Loads size/duration.<br>• `Auto`: Buffers immediately.<br>• `None`: No data loaded until clicked. | `Metadata` |
+| **Resume Playback** | Remembers your playback position and restores it next time. | `On` |
 | **Remember Volume** | Saves your volume level between sessions. | `On` |
-| **Default Volume (%)** | Sets the initial volume (0 to 100). | `100` |
-| **Playback Rates** | Define the speed options in the menu (e.g., `0.5, 1, 1.5, 2`). | `0.5, 1, 1.5, 2` |
+| **Default Volume** | Sets the initial volume (0 to 100%). | `100` |
+| **Playback Rates** | Define speed options (e.g., `0.5, 1, 1.5, 2`). | `-` |
 
 ### 2. Player Controls
 | Setting | Description | Default |
 | :--- | :--- | :--- |
-| **Show Controls** | Toggle the entire bottom control bar. | `On` |
-| **Controls Hide Delay** | Time (ms) before controls fade out. Set to `0` to keep them always visible. | `2000` |
-| **Show Seek Buttons** | Adds **Rewind** and **Forward** buttons to the control bar. | `On` |
-| **Seek Button Time (s)** | Seconds to skip when using the seek buttons. | `10` |
-| **Show Download Button** | Adds a download icon (⬇) to the control bar. | `On` |
+| **Show Controls** | Toggle the control bar. | `On` |
+| **Controls Hide Delay** | Time (ms) before controls fade out. `0` = always visible. | `2000` |
+| **Show Seek Buttons** | Adds -10s / +10s buttons to the control bar. | `On` |
+| **Show Download Button** | Adds a download icon (⬇) to controls. | `On` |
 
 ### 3. Keyboard Shortcuts
 | Setting | Description | Default |
 | :--- | :--- | :--- |
-| **Enable Hotkeys** | Active when player is focused: `Space` (Play/Pause), `F` (Fullscreen), `M` (Mute), `Arrows` (Seek/Vol). | `On` |
-| **Hotkey Seek Time (s)** | Seconds to skip with Left/Right arrows. | `5` |
-| **Hotkey Volume Step (%)** | Volume percentage change with Up/Down arrows. | `10` |
+| **Enable Hotkeys** | `Space` (Play/Pause), `F` (Fullscreen), `M` (Mute), `Arrows` (Seek/Vol). | `On` |
+| **Hotkey Seek Time** | Seconds to skip with Left/Right arrows. | `5` |
+| **Hotkey Volume Step** | Percentage to change volume with Up/Down arrows. | `10` |
 
 ### 4. Layout & Sizing
 | Setting | Description | Default |
 | :--- | :--- | :--- |
-| **Sizing Mode** | • **Fluid** (Default): Responsive; fits width, calculates height based on aspect ratio.<br>• **Fixed / Native**: Hard pixel size (video's intrinsic size or custom).<br>• **Fill**: Fills parent container completely (object-fit: cover). | `Fluid` |
-| **Fixed Width (px)** | Overrides for **Fixed** mode. Set to `0` to use the video's actual resolution. | `640` |
-| **Fixed Height (px)** | Overrides for **Fixed** mode. Set to `0` to use the video's actual resolution. | `360` |
+| **Sizing Mode** | • `Fluid`: Responsive width, aspect-ratio height.<br>• `Fill`: Fills container (cover).<br>• `Fixed / Native`: Hard pixel size. | `Fluid` |
+| **Fixed Width/Height** | Overrides for **Fixed** mode. `0` = use video's intrinsic size. | `640` / `360` |
 
 ### 5. Appearance
 | Setting | Description | Default |
 | :--- | :--- | :--- |
-| **Player Theme** | Choose an official Skin: `Default`, `City`, `Fantasy`, `Forest`, `Sea`. | `Default` |
-| **HEVC Error Style** | How to handle unsupported H.265 videos:<br>• **Overlay**: Shows error message on player.<br>• **Notification**: System toast message. | `Overlay` |
+| **Player Theme** | Choose a skin: `Default`, `City`, `Fantasy`, `Forest`, `Sea`. | `Default` |
+| **HEVC Error Style** | How to handle unsupported formats (if transcoding is off):<br>• `Overlay`: Shows error on player.<br>• `System Notification`: Small toast popup. | `Overlay` |
 
 ### 6. Mobile Experience
 | Setting | Description | Default |
 | :--- | :--- | :--- |
-| **Double Tap to Seek** | Double-tap left/right sides of the video to rewind/forward, like YouTube. | `On` |
-| **Double Tap Seek Time (s)** | Seconds to skip on double-tap. | `10` |
-| **Mobile Auto-Rotate** | Automatically locks screen to landscape when entering fullscreen on mobile (and unlocks on exit). | `On` |
+| **Double Tap to Seek** | Double-tap sides of screen to seek. Center to toggle fullscreen. | `On` |
+| **Seek Time** | Seconds to skip on double-tap. | `10` |
+| **Auto-Rotate** | Automatically lock to landscape in fullscreen (mobile only). | `On` |
 
-### 7. Advanced / Experimental
+### 7. Advanced / Transcoding
 | Setting | Description | Default |
 | :--- | :--- | :--- |
-| **Enable MKV / HLS Support** | **Experimental**. Tries to play MKV `.mkv` and HLS `.m3u8` streams. | `Off` |
-
-### 8. Transcoding (FFmpeg)
-| Setting | Description | Default |
-| :--- | :--- | :--- |
-| **Use FFmpeg for unsupported videos** | **Advanced**. Automatically transcodes unsupported videos (like HEVC) on the fly using FFmpeg. | `Off` |
-| **FFmpeg Path** | Absolute path to your `ffmpeg.exe`. Leave empty if FFmpeg is already in your system PATH. | *Empty* |
-| **FFmpeg Parameters** | Optional extra flags for the transcoder (e.g. valid hardware acceleration flags). | *Empty* |
+| **Enable MKV / HLS** | Experimental support for .mkv and .m3u8 streaming. | `Off` |
+| **Use FFmpeg** | **Live Transcoding**. Automatically converts unsupported videos (like HEVC/H.265) to MP4 on the fly. | `Off` |
+| **FFmpeg Path** | Absolute path to `ffmpeg.exe`. Leave empty if in system PATH. | *Empty* |
+| **FFmpeg Parameters** | Extra flags for FFmpeg (e.g. hardware acceleration). | *Empty* |
 
 ---
 
 ## 🛠️ Troubleshooting
 
 ### Autoplay stops working
-*   Modern browsers (Chrome, Safari) block autoplay with sound. Enable **Start Muted** in settings to fix this.
+*   Modern browsers (Chrome, Safari) often block autoplay with sound. Enable **Start Muted** in settings to allow autoplay.
 
 ### "Video format not supported" (HEVC/H.265)
-*   **Cause**: The video uses the HEVC codec, which many browsers (like Chrome on Windows) do not support natively without hardware extensions.
-
+*   **Cause**: The video uses the HEVC codec, which browsers like Chrome (on Windows) do not natively support.
 *   **Solution**:
-    1.  Enable **Use FFmpeg for unsupported videos** in settings.
-    2.  Ensure you have **FFmpeg** installed and the path is correct.
-    3.  Use a browser with native support (Safari).
-    4.  Download the file instead of streaming.
+    1.  Go to **Admin / Plugins / videojs-player / "Advanced / Experimental"** settings.
+    2.  Enable **Use FFmpeg for unsupported videos**.
+    3.  Ensure **FFmpeg** is installed on your server.
+    4.  Point **FFmpeg Path** to the absolute path of `ffmpeg.exe`.
+    5.  (Optional) Add extra flags for FFmpeg (e.g. hardware acceleration) to **FFmpeg Parameters**.
+    6.  Save Configuration.
 
 ### Video is cut off or too big
-*   Check your **Sizing Mode**.
-*   **Fluid** is best for general use.
-*   **Fill** will crop the video if the aspect ratio doesn't match the container.
+*   Check your **Sizing Mode**. **Fluid** is best for general use. **Fill** acts like `object-fit: cover` and will crop if the aspect ratio doesn't match.
 
 ---
 
 ## 👨‍💻 Technical Details
 
-This plugin uses a **React ForwardRef** wrapper to integrate Video.js with the HFS frontend.
-*   **Event Proxy**: It injects a hidden dummy `<video>` element to proxy the `ended` event to HFS, ensuring "Play Next" functionality works without modifying HFS core files.
-*   **State Persistence**: Uses `localStorage` to handle `resumePlayback` and `persistentVolume` entirely client-side.
-*   **Framework**: Built on **Video.js 8.x**.
+This plugin uses a **React ForwardRef** wrapper to integrate Video.js 8.x with certain HFS-specific features:
+*   **Event Proxy**: Proxies the `ended` event to HFS so "Play Next" works automatically.
+*   **Client-Side Persistence**: Uses `localStorage` for volume and resume playback (no server database needed).
+*   **Middleware**: Intercepts requests with `?ffmpeg` query string to pipe FFmpeg output directly to the client.
 
 ---
 # Sponsored by Google's Antigravity, Gemini 3 Pro and 1 Year Google AI Pro for Students
