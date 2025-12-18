@@ -152,10 +152,8 @@
                     fluid: isFluid,
                     fill: isFill,
                     playbackRates: rates.length ? rates : [0.5, 1, 1.5, 2],
-                    sources: [{
-                        src: props.src,
-                        type: determineMimeType(props.src)
-                    }]
+                    playbackRates: rates.length ? rates : [0.5, 1, 1.5, 2],
+                    sources: [] // Initialize empty, let useEffect handle source
                 });
                 playerRef.current = player;
 
@@ -177,12 +175,6 @@
                     player.volume(startVolume);
                 });
 
-                // --- Feature: Resume Playback ---
-                if (C.resumePlayback) {
-                    player.ready(() => {
-                        attemptResume(props.src);
-                    });
-                }
 
                 // --- Feature 1: Seek Buttons ---
                 if (C.showSeekButtons) {
@@ -401,9 +393,10 @@
 
                     const el = player.el();
                     if (el) {
-                        el.addEventListener('touchend', handleTouch);
+                        // Use capture phase to ensure we get the event before Video.js internals
+                        el.addEventListener('touchend', handleTouch, { capture: true });
                         player.on('dispose', () => {
-                            el.removeEventListener('touchend', handleTouch);
+                            el.removeEventListener('touchend', handleTouch, { capture: true });
                         });
                     }
                 }
