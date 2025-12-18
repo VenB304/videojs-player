@@ -36,6 +36,9 @@
             playbackRates: rawConfig.playbackRates || "0.5, 1, 1.5, 2",
             preload: rawConfig.preload || 'metadata',
             enableHLS: rawConfig.enableHLS ?? false,
+            showSeekButtons: rawConfig.showSeekButtons ?? true,
+            showDownloadButton: rawConfig.showDownloadButton ?? true,
+            enableHotkeys: rawConfig.enableHotkeys ?? true,
             hevcErrorStyle: rawConfig.hevcErrorStyle || 'overlay',
             theme: rawConfig.theme || 'default',
         };
@@ -118,6 +121,156 @@
                 player.ready(() => {
                     player.volume(C.volume);
                 });
+
+                // --- Feature 1: Seek Buttons ---
+                if (C.showSeekButtons) {
+                    player.ready(() => {
+                        const skipTime = 10;
+                        const controlBar = player.getChild('ControlBar');
+                        const playToggle = controlBar.getChild('PlayToggle');
+                        const insertIndex = controlBar.children().indexOf(playToggle) + 1;
+
+                        // Create Forward Button
+                        const btnFwd = controlBar.addChild('button', {
+                            controlText: `Forward ${skipTime}s`,
+                            className: 'vjs-visible-text vjs-seek-button vjs-seek-forward',
+                            clickHandler: () => {
+                                let newTime = player.currentTime() + skipTime;
+                                if (newTime > player.duration()) newTime = player.duration();
+                                player.currentTime(newTime);
+                            }
+                        }, insertIndex);
+                        btnFwd.el().innerHTML = `<span class="vjs-icon-placeholder" aria-hidden="true" style="font-family: 'VideoJS'; content: '\\f101'; font-size: 1.5em; line-height: 1.6;">+${skipTime}</span>`;
+                        btnFwd.el().style.fontSize = '0.8em';
+                        btnFwd.el().title = `Forward ${skipTime}s`;
+
+                        // Create Rewind Button
+                        const btnRw = controlBar.addChild('button', {
+                            controlText: `Rewind ${skipTime}s`,
+                            className: 'vjs-visible-text vjs-seek-button vjs-seek-backward',
+                            clickHandler: () => {
+                                let newTime = player.currentTime() - skipTime;
+                                if (newTime < 0) newTime = 0;
+                                player.currentTime(newTime);
+                            }
+                        }, insertIndex);
+                        // Insert Rewind BEFORE Forward (so it's Play -> Rewind -> Forward)
+                        // Note: addChild index is live, so inserting at same index pushes previous one right? No, standard array splice logic.
+                        // Actually VideoJS addChild index behavior: index is where it puts it.
+                        // If we want Play [Rew] [Fwd], we insert [Fwd] at index+1, then [Rew] at index+1.
+                        btnRw.el().innerHTML = `<span class="vjs-icon-placeholder" aria-hidden="true" style="font-family: 'VideoJS'; content: '\\f102'; font-size: 1.5em; line-height: 1.6;">-${skipTime}</span>`;
+                        btnRw.el().style.fontSize = '0.8em';
+                        btnRw.el().title = `Rewind ${skipTime}s`;
+                    });
+                }
+
+                // --- Feature 2: Download Button ---
+                if (C.showDownloadButton) {
+                    player.ready(() => {
+                        const controlBar = player.getChild('ControlBar');
+                        if (controlBar) {
+                            const btnDl = controlBar.addChild('button', {
+                                controlText: "Download Video",
+                                className: 'vjs-download-button',
+                                clickHandler: () => {
+                                    const src = player.currentSrc();
+                                    if (src) {
+                                        const a = document.createElement('a');
+                                        a.href = src;
+                                        a.download = src.split('/').pop();
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        document.body.removeChild(a);
+                                    }
+                                }
+                            });
+                            // Use a standard download icon if available or text
+                            // VideoJS font char \f105 is download-alt in some versions, or standard download.
+                            // Let's use generic CSS or SVG if needed. VideoJS doesn't guarantee a download icon in default font.
+                            // We will use a simple unicode or SVG or generic icon.
+                            // Safe bet: text or standard icon. Let's try standard share/download.
+                            // Actually VideoJS 7+ usually has icons.
+                            btnDl.el().innerHTML = `<span class="vjs-icon-placeholder" aria-hidden="true" style="transform: scale(0.8);">⬇</span>`;
+                            btnDl.el().title = "Download";
+                        }
+                    });
+                }
+
+                // --- Feature 3: Hotkeys ---
+                if (C.enableHotkeys) {
+                    // We attach to the CONTAINER or Button, but global keys are risky if iframe?
+                    // Best scope is checking if player is active or has focus, or just global if user wants typical behavior.
+                    // VideoJS often handles focus. We'll attach to the videoElement's parent (focus-visible).
+                    // Or usually document 'keydown' but check if player is in view/active.
+                    // Simple approach: Document listener that checks if player has focus OR is playing.
+
+                    const handleKey = (e) => {
+                        // Ignore if typing in an input
+                        if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+
+                        // Check if player is visible/active (simple check)
+                        if (!player || player.isDisposed()) return;
+
+                        // optional: check if hover or active? For now, global enabled if focused or body.
+
+                        // Prevent default scrolling for arrows/space if we handle it
+
+                        switch (e.key) {
+                            case ' ':
+                            case 'k':
+                            case 'K':
+                                e.preventDefault();
+                                if (player.paused()) player.play(); else player.pause();
+                                break;
+                            case 'f':
+                            case 'F':
+                                e.preventDefault();
+                                if (player.isFullscreen()) player.exitFullscreen(); else player.requestFullscreen();
+                                break;
+                            case 'm':
+                            case 'M':
+                                e.preventDefault();
+                                player.muted(!player.muted());
+                                break;
+                            case 'ArrowLeft':
+                                e.preventDefault();
+                                player.currentTime(player.currentTime() - 5);
+                                break;
+                            case 'ArrowRight':
+                                e.preventDefault();
+                                player.currentTime(player.currentTime() + 5);
+                                break;
+                            case 'ArrowUp':
+                                e.preventDefault();
+                                player.volume(Math.min(player.volume() + 0.1, 1));
+                                break;
+                            case 'ArrowDown':
+                                e.preventDefault();
+                                player.volume(Math.max(player.volume() - 0.1, 0));
+                                break;
+                        }
+                    };
+                    // Attach to player.el() to capture keys when player is focused
+                    videoElement.parentElement.addEventListener('keydown', handleKey);
+                    // Also make sure player can be focused
+                    videoElement.parentElement.tabIndex = 0;
+                }
+
+                // --- Feature 4: Mobile Double-Tap Fullscreen ---
+                let lastTouch = 0;
+                const handleTouch = (e) => {
+                    const now = Date.now();
+                    if (now - lastTouch < 300) {
+                        // Double tap detected
+                        if (player.isFullscreen()) player.exitFullscreen(); else player.requestFullscreen();
+                    }
+                    lastTouch = now;
+                };
+                // Attach to video wrapper
+                if (videoElement.parentElement) {
+                    videoElement.parentElement.addEventListener('touchend', handleTouch);
+                }
+
 
                 // Apply HFS classes to wrapper (excluding .showing)
                 if (props.className) {
@@ -244,6 +397,17 @@
                 player.on('error', () => { if (props.onError) props.onError(player.error()); });
 
                 return () => {
+                    if (containerRef.current) {
+                        containerRef.current.removeEventListener('keydown', handleKey);
+                        containerRef.current.removeEventListener('touchend', handleTouch);
+                    }
+                    if (document.pictureInPictureElement === videoElementRef.current) {
+                        try {
+                            document.exitPictureInPicture();
+                        } catch (e) {
+                            // ignore
+                        }
+                    }
                     if (hevcTimeoutRef.current) clearTimeout(hevcTimeoutRef.current);
                     window.removeEventListener('resize', resizePlayer);
                     if (player) player.dispose();
