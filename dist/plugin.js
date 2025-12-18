@@ -23,10 +23,10 @@ exports.config = {
 
     // --- Interface & Controls ---
     controls: { type: 'boolean', defaultValue: true, label: "Show Controls", helperText: "Enables the control bar", frontend: true },
-    persistentVolume: { type: 'boolean', defaultValue: true, label: "Remember Volume", helperText: "Save volume between sessions", frontend: true },
-    resumePlayback: { type: 'boolean', defaultValue: true, label: "Resume Playback", helperText: "Continue from last position", frontend: true },
     showSeekButtons: { type: 'boolean', defaultValue: true, label: "Show Seek Buttons", helperText: "Adds +10s / -10s buttons to control bar", frontend: true },
     showDownloadButton: { type: 'boolean', defaultValue: true, label: "Show Download Button", helperText: "Adds a download icon to control bar", frontend: true },
+    persistentVolume: { type: 'boolean', defaultValue: true, label: "Remember Volume", helperText: "Save volume between sessions", frontend: true },
+    resumePlayback: { type: 'boolean', defaultValue: true, label: "Resume Playback", helperText: "Continue from last position", frontend: true },
     enableHotkeys: { type: 'boolean', defaultValue: true, label: "Enable Hotkeys", helperText: "Keyboard shortcuts (Space, F, Arrows, M)", frontend: true },
     autoRotate: { type: 'boolean', defaultValue: true, label: "Mobile Auto-Rotate", helperText: "Automatically rotate to landscape in fullscreen", frontend: true },
     enableDoubleTap: { type: 'boolean', defaultValue: true, label: "Double Tap to Seek", helperText: "Enable double tap gestures on mobile", frontend: true },
