@@ -220,8 +220,12 @@
                             // We will use a simple unicode or SVG or generic icon.
                             // Safe bet: text or standard icon. Let's try standard share/download.
                             // Actually VideoJS 7+ usually has icons.
-                            btnDl.el().innerHTML = `<span class="vjs-icon-placeholder" aria-hidden="true" style="transform: scale(0.8);">⬇</span>`;
+                            btnDl.el().innerHTML = `
+                                <svg viewBox="0 0 24 24" fill="white" width="22" height="22" style="vertical-align: middle;">
+                                    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                                </svg>`;
                             btnDl.el().title = "Download";
+                            btnDl.el().style.cursor = "pointer";
                         }
                     });
                 }
