@@ -22,7 +22,7 @@ exports.config = {
     volume: { type: 'number', defaultValue: 100, min: 0, max: 100, step: 5, label: "Default Volume (%)", helperText: "0 to 100", frontend: true },
 
     // --- Interface & Controls ---
-    controls: { type: 'boolean', defaultValue: true, label: "Show Controls", frontend: true },
+    controls: { type: 'boolean', defaultValue: true, label: "Show Controls", helperText: "Enables the control bar", frontend: true },
     persistentVolume: { type: 'boolean', defaultValue: true, label: "Remember Volume", helperText: "Save volume between sessions", frontend: true },
     resumePlayback: { type: 'boolean', defaultValue: true, label: "Resume Playback", helperText: "Continue from last position", frontend: true },
     showSeekButtons: { type: 'boolean', defaultValue: true, label: "Show Seek Buttons", helperText: "Adds +10s / -10s buttons to control bar", frontend: true },
