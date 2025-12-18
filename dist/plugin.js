@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 72;
+exports.version = 73;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -191,7 +191,16 @@ exports.init = api => {
                 // Matches quoted sequences or non-space sequences
                 const extraParams = extraParamsStr.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g)?.map(s => s.replace(/^['"]|['"]$/g, '')) || [];
 
-                const proc = spawn(ffmpegPath, [
+                // Check for seek parameter (time in seconds)
+                const seekMatch = ctx.querystring.match(/seek=([\d.]+)/);
+                const seekTime = seekMatch ? seekMatch[1] : null;
+
+                const args = [];
+                if (seekTime) {
+                    args.push('-ss', seekTime);
+                }
+
+                args.push(
                     '-i', src,
                     '-f', 'mp4',
                     '-movflags', 'frag_keyframe+empty_moov',
@@ -202,7 +211,9 @@ exports.init = api => {
                     '-preset', 'superfast',
                     ...extraParams,
                     'pipe:1'
-                ])
+                );
+
+                const proc = spawn(ffmpegPath, args)
 
                 running.set(proc, username)
 
