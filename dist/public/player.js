@@ -80,6 +80,10 @@
                 if (C.sizingMode === 'fill') {
                     videoElement.style.objectFit = 'cover';
                 }
+                if (C.sizingMode === 'fill') {
+                    videoElement.style.objectFit = 'cover';
+                }
+                videoElement.tabIndex = 0; // Ensure vjs-tech is focusable
                 videoElementRef.current = videoElement;
 
                 // --- Dummy Video Proxy for HFS Autoplay ---
@@ -358,10 +362,15 @@
                 // Event Listeners
                 player.on('playing', () => {
                     // Feature: Auto-Focus on Play
-                    const el = player.el();
-                    if (el) {
-                        el.focus();
-                    }
+                    // Focus the vjs-tech (video element) with a slight delay
+                    // Bubbling will allow player.el() listener to catch keydown
+                    setTimeout(() => {
+                        if (videoElementRef.current) {
+                            videoElementRef.current.focus();
+                        }
+                    }, 50);
+
+                    // Check for hidden HEVC playback failure (Audio plays, Video is 0x0)
 
                     // Check for hidden HEVC playback failure (Audio plays, Video is 0x0)
                     if (hevcTimeoutRef.current) clearTimeout(hevcTimeoutRef.current);
