@@ -227,7 +227,6 @@
                     autoplay: C.autoplay,
                     loop: C.loop,
                     muted: C.muted,
-                    muted: C.muted,
                     preload: C.preload,
                     fluid: isFluid,
                     fill: isFill,
@@ -243,16 +242,18 @@
                     playerEl.tabIndex = 0;
                 }
 
-                // Set Volume and optional Persistence
-                player.ready(() => {
-                    let startVolume = C.volume;
-                    if (C.persistentVolume) {
-                        const savedVol = localStorage.getItem('vjs-volume-level');
-                        if (savedVol !== null) {
-                            startVolume = parseFloat(savedVol);
-                        }
+                // Set Volume and optional Persistence (Set immediately to update UI)
+                let startVolume = C.volume;
+                if (C.persistentVolume) {
+                    const savedVol = localStorage.getItem('vjs-volume-level');
+                    if (savedVol !== null) {
+                        startVolume = parseFloat(savedVol);
                     }
-                    player.volume(startVolume);
+                }
+                player.volume(startVolume);
+
+                player.ready(() => {
+                    // Ready listeners if any (Volume set above)
                 });
 
 
