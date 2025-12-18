@@ -42,24 +42,24 @@ You can customize the player behavior in **Admin Panel > Plugins > videojs-playe
 ### Playback Settings
 | Setting | Description | Default |
 | :--- | :--- | :--- |
-| **Autoplay** | Start playing immediately when the file loads. Required for "Play All" folder viewing. | `On` |
-| **Loop** | Restart the video automatically when it ends. | `Off` |
-| **Start Muted** | Essential for browsers (like Chrome/Safari) that block autoplay with sound. Enable this if autoplay is inconsistent. | `Off` |
-| **Default Volume** | Set the startup volume from **0 to 100%**. | `100` |
-| **Show Controls** | Display the play/pause, volume, and seek bar. | `On` |
+| **Autoplay** | Automatically plays the video when loaded. Essential for HFS playslists ("Play All") to work seamlessly. | `On` |
+| **Loop** | Restarts the video from the beginning every time it finishes. | `Off` |
+| **Start Muted** | Forces the video to start at 0% volume. **Highly Recommended** if you experience autoplay issues, as many browsers block unmuted autoplay. | `Off` |
+| **Default Volume** | Sets the initial volume (0 to 100). | `100` |
+| **Show Controls** | Toggle the bottom control bar (play, volume, seek, fullscreen). | `On` |
 
 ### Layout & Visuals
-| Setting | Description |
-| :--- | :--- |
-| **Sizing Mode** | • `Fit to Container`: Best for most users. Ensures the whole video is visible.<br>• `Fluid`: Fills 100% width, maintaining aspect ratio.<br>• `Native Size`: Displays actual pixel dimensions. |
-| **Fill Container** | "Zooms to fill" (crops edges). Great for background videos or uniform grid layouts. |
+| Setting | Description | Logic Verified |
+| :--- | :--- | :--- |
+| **Sizing Mode** | Controls how the player adapts to the page:<br>• **Fit to Container**: (Default) Intelligently scales the video to fit within the available space without cropping. Does not distort aspect ratio.<br>• **Fluid**: Takes full width of the container and adjusts height automatically based on video aspect ratio (16:9, etc).<br>• **Native Size**: Displays the video at its actual file resolution (e.g. 1920x1080). May cause scrolling. | `Fit` |
+| **Fill Container** | **Overrules Sizing Mode**. Forces the player to expand to the exact width AND height of its container. Uses `object-fit: cover` to fill the space, which **will crop** the video edges if aspect ratios don't match. Ideal for full-screen / immersive layouts. | `Off` |
 
 ### Advanced
-| Setting | Description |
-| :--- | :--- |
-| **Playback Rates** | Comma-separated list of speeds available in the menu (e.g., `0.5, 1, 1.5, 2`). |
-| **Preload** | • `Metadata` (Recommended): Loads just headers. Saves bandwidth.<br>• `Auto`: Buffers video immediately.<br>• `None`: Loads nothing until played. |
-| **Enable MKV/HLS** | Attempts to play `.m3u8` and `.mkv` files natively. *Note: Client-side only. Does not transcode.* |
+| Setting | Description | Default |
+| :--- | :--- | :--- |
+| **Playback Rates** | Define the speed options in the menu (e.g., `0.5, 1, 1.5, 2`). Must be a comma-separated list of numbers. | `0.5, 1, 1.5, 2` |
+| **Preload Strategy** | • `Metadata`: Loads only duration/dimensions. Saves bandwidth.<br>• `Auto`: Browser chooses; typically buffers some segments immediately for faster start.<br>• `None`: No data loaded until user clicks play. | `Metadata` |
+| **Enable MKV/HLS** | Experimental toggle. • **MKV**: Treats `.mkv` as standard web video (Chrome supports this for H.264/VP9 codecs inside MKV).<br>• **HLS**: Passes `application/x-mpegURL` type for `.m3u8` files. | `Off` |
 
 ## 🛠️ Troubleshooting
 
