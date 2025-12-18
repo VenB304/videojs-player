@@ -50,6 +50,7 @@
             hevcErrorStyle: rawConfig.hevcErrorStyle || 'overlay',
             theme: rawConfig.theme || 'default',
             inactivityTimeout: parseInt(rawConfig.inactivityTimeout) || 2000,
+            integration_unsupported_videos: rawConfig.integration_unsupported_videos ?? false,
         };
 
         const VIDEO_EXTS = ['.mp4', '.webm', '.ogv', '.mov'];
@@ -75,6 +76,56 @@
             const videoElementRef = React.useRef(null);
             const hevcErrorShownRef = React.useRef(false);
             const hevcTimeoutRef = React.useRef(null);
+
+            // --- Helper: Handle Playback Error (Conversion Integration) ---
+            const handlePlaybackError = (player, message = "Video format not supported.") => {
+                const src = player.currentSrc();
+                // Check if integration is enabled
+                if (C.integration_unsupported_videos && src) {
+                    if (src.indexOf('?ffmpeg') === -1) {
+                        // Attempt to switch to conversion stream
+                        console.log("[VideoJS] Unsupported video detected. Switching to streaming conversion...");
+                        HFS.toast("Unsupported format. Attempting conversion...", "info");
+                        player.src({
+                            src: src + '?ffmpeg',
+                            type: 'video/mp4' // Converted stream is always MP4
+                        });
+                        player.play();
+                        return;
+                    } else {
+                        // Already using ffmpeg, so conversion failed or timed out
+                        console.error("[VideoJS] Streaming conversion failed or timed out.");
+                    }
+                }
+
+                // Fallback to standard error handling (Toast or Overlay)
+                if (C.hevcErrorStyle === 'toast') {
+                    if (!hevcErrorShownRef.current && HFS && HFS.toast) {
+                        HFS.toast(`${message} Audio playing...`, "error");
+                        hevcErrorShownRef.current = true;
+                    }
+                } else {
+                    // Option B: Player Overlay
+                    player.controls(true);
+                    const playerEl = player.el();
+                    if (playerEl) {
+                        // Remove existing
+                        const existing = playerEl.querySelector('.vjs-hevc-error-overlay');
+                        if (existing) existing.remove();
+
+                        const errDiv = document.createElement('div');
+                        errDiv.className = 'vjs-hevc-error-overlay';
+                        // Style it...
+                        errDiv.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:auto;max-width:80%;background:rgba(0,0,0,0.8);border-radius:8px;z-index:10;padding:20px;color:#fff;text-align:center;pointer-events:none;';
+                        errDiv.innerHTML = `
+                             <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 8px;">Playback Error</div>
+                             <div style="font-size: 0.9em;">${message}</div>
+                             ${C.integration_unsupported_videos ? '<div style="font-size: 0.8em; opacity: 0.7; margin-top: 5px;">Conversion failed.</div>' : ''}
+                        `;
+                        playerEl.appendChild(errDiv);
+                    }
+                }
+            };
 
             // --- Helper: Resume Playback ---
             const attemptResume = (src) => {
@@ -466,49 +517,7 @@
 
                             if (!hevcSupported) {
                                 // HEVC Failure Detected
-                                if (C.hevcErrorStyle === 'toast') {
-                                    // Option A: HFS System Notification
-                                    if (!hevcErrorShownRef.current && HFS && HFS.toast) {
-                                        HFS.toast("Video format not supported (HEVC). Audio playing...", "error");
-                                        hevcErrorShownRef.current = true;
-                                    }
-                                } else {
-                                    // Option B: Player Overlay (Default)
-                                    player.controls(true); // Ensure controls are visible
-
-                                    // Create custom error overlay (Centered Toast)
-                                    const errDiv = document.createElement('div');
-                                    errDiv.className = 'vjs-hevc-error-overlay';
-                                    errDiv.style.position = 'absolute';
-                                    errDiv.style.top = '50%';
-                                    errDiv.style.left = '50%';
-                                    errDiv.style.transform = 'translate(-50%, -50%)';
-                                    errDiv.style.width = 'auto';
-                                    errDiv.style.maxWidth = '80%';
-                                    errDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-                                    errDiv.style.borderRadius = '8px';
-                                    errDiv.style.zIndex = '10'; // Above video, below controls
-                                    errDiv.style.display = 'flex';
-                                    errDiv.style.flexDirection = 'column';
-                                    errDiv.style.alignItems = 'center';
-                                    errDiv.style.justifyContent = 'center';
-                                    errDiv.style.color = '#fff';
-                                    errDiv.style.textAlign = 'center';
-                                    errDiv.style.padding = '20px';
-                                    errDiv.style.pointerEvents = 'none'; // Click-through
-                                    errDiv.innerHTML = `
-                                    <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 8px;">Video Format Not Supported</div>
-                                    <div style="font-size: 0.9em;">HEVC video is not supported by your browser.</div>
-                                    <div style="font-size: 0.9em; opacity: 0.8; margin-top: 4px;">Audio playing...</div>
-                                `;
-
-                                    const playerEl = player.el();
-                                    if (playerEl) {
-                                        const existing = playerEl.querySelector('.vjs-hevc-error-overlay');
-                                        if (existing) existing.remove();
-                                        playerEl.appendChild(errDiv);
-                                    }
-                                }
+                                handlePlaybackError(player, "HEVC video is not supported by your browser.");
                             }
                         }
                     }, 1000);
@@ -584,7 +593,15 @@
                     if (props.onEnded) props.onEnded();
                     dummyVideo.dispatchEvent(new Event('ended'));
                 });
-                player.on('error', () => { if (props.onError) props.onError(player.error()); });
+                player.on('error', () => {
+                    // Intercept generic errors
+                    const code = player.error() ? player.error().code : 0;
+                    if (code === 4) { // MEDIA_ERR_SRC_NOT_SUPPORTED
+                        handlePlaybackError(player, "The media could not be loaded, either because the server or network failed or because the format is not supported.");
+                        return;
+                    }
+                    if (props.onError) props.onError(player.error());
+                });
 
                 return () => {
                     // Note: wrapper listeners (on containerRef) removed automatically by React unmount?

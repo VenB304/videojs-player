@@ -95,7 +95,7 @@ All settings can be tweaked in **Admin Panel > Plugins > videojs-player**.
 ### 7. Advanced / Experimental
 | Setting | Description | Default |
 | :--- | :--- | :--- |
-| **Enable HLS Support** | **Experimental**. Tries to play HLS `.m3u8` streams. | `Off` |
+| **Enable MKV / HLS Support** | **Experimental**. Tries to play MKV `.mkv` and HLS `.m3u8` streams. | `Off` |
 
 ---
 
