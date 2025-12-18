@@ -51,7 +51,12 @@ You can customize the player behavior in **Admin Panel > Plugins > videojs-playe
 ### Layout & Visuals
 | Setting | Description | Default |
 | :--- | :--- | :--- |
-| **Sizing Mode** | Controls how the player adapts to the page:<br>• **Fluid (Responsive)**: Best for most users. Takes full width of the container and adjusts height to maintain aspect ratio (no crop).<br>• **Fill (Crop to Fit)**: Forces the player to fill the *entire* width and height of the container. Zooms/crops the video if aspect ratios differ.<br>• **Native (Original Size)**: Displays video at its fixed pixel resolution (e.g. 1920x1080). | `Fluid` |
+| **Sizing Mode** | • **Fluid** (Default): Responsive. Matches container width, height matches aspect ratio.<br>• **Fixed / Native**: Player stays at fixed pixel dimensions (video's intrinsic size). Best for popups/sidebars.<br>• **Fill**: Forces match width AND height of container (cropping if needed). Requires container to have set height. | `Fluid` |
+
+### Sizing Modes Explained
+- **Fluid** (Standard): The player expands to fit the width of its container, but calculates its own height to maintain the correct aspect ratio (16:9, 4:3, etc.). Best for responsive layouts.
+- **Fixed / Native**: If you do not specify a layout mode, Video.js defaults to the dimensions set on the video file (intrinsic dimensions) or a fallback (300x150). The player stays at a fixed pixel width/height. Best for pop-ups, sidebars, or non-responsive layouts.
+- **Fill**: This mode forces the player to take the *exact* dimensions of its parent container. It assumes the container already has a specific height set by CSS.
 
 ### Advanced
 | Setting | Description | Default |
