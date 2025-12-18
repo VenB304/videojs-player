@@ -233,12 +233,6 @@
 
                 // --- Feature 3: Hotkeys ---
                 if (C.enableHotkeys) {
-                    // We attach to the CONTAINER or Button, but global keys are risky if iframe?
-                    // Best scope is checking if player is active or has focus, or just global if user wants typical behavior.
-                    // VideoJS often handles focus. We'll attach to the videoElement's parent (focus-visible).
-                    // Or usually document 'keydown' but check if player is in view/active.
-                    // Simple approach: Document listener that checks if player has focus OR is playing.
-
                     const handleKey = (e) => {
                         // Ignore if typing in an input
                         if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
@@ -246,10 +240,7 @@
                         // Check if player is visible/active (simple check)
                         if (!player || player.isDisposed()) return;
 
-                        // optional: check if hover or active? For now, global enabled if focused or body.
-
                         // Prevent default scrolling for arrows/space if we handle it
-
                         switch (e.key) {
                             case ' ':
                             case 'k':
@@ -285,10 +276,17 @@
                                 break;
                         }
                     };
-                    // Attach to player.el() to capture keys when player is focused
-                    videoElement.parentElement.addEventListener('keydown', handleKey);
-                    // Also make sure player can be focused
-                    videoElement.parentElement.tabIndex = 0;
+
+                    // Attach to player.el() (The main Video.js div)
+                    // We must wait for player to be ready or just attach now since initialized above
+                    const el = player.el();
+                    if (el) {
+                        el.addEventListener('keydown', handleKey);
+                        // Store handler for cleanup
+                        player.on('dispose', () => {
+                            el.removeEventListener('keydown', handleKey);
+                        });
+                    }
                 }
 
                 // --- Feature 4: Mobile Double-Tap Fullscreen ---
@@ -301,9 +299,13 @@
                     }
                     lastTouch = now;
                 };
-                // Attach to video wrapper
-                if (videoElement.parentElement) {
-                    videoElement.parentElement.addEventListener('touchend', handleTouch);
+
+                const el = player.el();
+                if (el) {
+                    el.addEventListener('touchend', handleTouch);
+                    player.on('dispose', () => {
+                        el.removeEventListener('touchend', handleTouch);
+                    });
                 }
 
 
@@ -350,8 +352,9 @@
                 // Event Listeners
                 player.on('playing', () => {
                     // Feature: Auto-Focus on Play
-                    if (videoElement.parentElement) {
-                        videoElement.parentElement.focus();
+                    const el = player.el();
+                    if (el) {
+                        el.focus();
                     }
 
                     // Check for hidden HEVC playback failure (Audio plays, Video is 0x0)
@@ -456,10 +459,11 @@
                 player.on('error', () => { if (props.onError) props.onError(player.error()); });
 
                 return () => {
-                    if (containerRef.current) {
-                        containerRef.current.removeEventListener('keydown', handleKey);
-                        containerRef.current.removeEventListener('touchend', handleTouch);
-                    }
+                    // Note: wrapper listeners (on containerRef) removed automatically by React unmount?
+                    // No, manual ones on containerRef needs removal if attached there.
+                    // But we moved them to player.el() which is disposed by player.dispose() -> player.on('dispose', ...) logic covers it.
+                    // However, just in case logic fails or we need cleaner unmount:
+
                     if (document.pictureInPictureElement === videoElementRef.current) {
                         try {
                             document.exitPictureInPicture();
