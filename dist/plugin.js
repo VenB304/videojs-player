@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 81;
+exports.version = 82;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -16,9 +16,8 @@ exports.frontend_js = [
 
 exports.config = {
 
-    // === Configuration Sections ===
-    header_core: { type: 'section', label: "1. Core Playback" },
-    autoplay: { type: 'boolean', defaultValue: true, label: "Autoplay", frontend: true },
+    // === 1. Core Playback ===
+    autoplay: { section: "1. Core Playback", type: 'boolean', defaultValue: true, label: "Autoplay", frontend: true },
     muted: { type: 'boolean', defaultValue: false, label: "Start Muted", helperText: "Useful for browsers that block autoplay with sound", frontend: true },
     loop: { type: 'boolean', defaultValue: false, label: "Loop", frontend: true },
 
@@ -37,8 +36,8 @@ exports.config = {
     playbackRates: { type: 'string', defaultValue: "0.5, 1, 1.5, 2", label: "Playback Rates", helperText: "Comma separated numbers", frontend: true },
 
 
-    header_controls: { type: 'section', label: "2. Player Controls" },
-    controls: { type: 'boolean', defaultValue: true, label: "Show Controls", helperText: "Enables the control bar", frontend: true },
+    // === 2. Player Controls ===
+    controls: { section: "2. Player Controls", type: 'boolean', defaultValue: true, label: "Show Controls", helperText: "Enables the control bar", frontend: true },
     inactivityTimeout: { type: 'number', defaultValue: 2000, min: 0, label: "Controls Hide Delay (ms)", helperText: "0 = always visible", frontend: true },
 
     showSeekButtons: { type: 'boolean', defaultValue: true, label: "Show Seek Buttons", helperText: "Adds +/- buttons to control bar", frontend: true },
@@ -47,14 +46,15 @@ exports.config = {
     showDownloadButton: { type: 'boolean', defaultValue: true, label: "Show Download Button", helperText: "Adds download icon to controls", frontend: true },
 
 
-    header_keys: { type: 'section', label: "3. Keyboard Shortcuts" },
-    enableHotkeys: { type: 'boolean', defaultValue: true, label: "Enable Hotkeys", helperText: "Space, F, Arrows, M", frontend: true },
+    // === 3. Keyboard Shortcuts ===
+    enableHotkeys: { section: "3. Keyboard Shortcuts", type: 'boolean', defaultValue: true, label: "Enable Hotkeys", helperText: "Space, F, Arrows, M", frontend: true },
     hotkeySeekStep: { type: 'number', defaultValue: 5, min: 1, label: "Hotkey Seek Time (s)", frontend: true },
     hotkeyVolumeStep: { type: 'number', defaultValue: 10, min: 1, max: 100, label: "Hotkey Volume Step (%)", frontend: true },
 
 
-    header_layout: { type: 'section', label: "4. Layout & Sizing" },
+    // === 4. Layout & Sizing ===
     sizingMode: {
+        section: "4. Layout & Sizing",
         type: 'select',
         defaultValue: 'fluid',
         options: { 'Fluid': 'fluid', 'Fill': 'fill', 'Fixed / Native': 'native' },
@@ -82,8 +82,9 @@ exports.config = {
     },
 
 
-    header_appearance: { type: 'section', label: "5. Appearance" },
+    // === 5. Appearance ===
     theme: {
+        section: "5. Appearance",
         type: 'select',
         defaultValue: 'default',
         options: {
@@ -109,14 +110,15 @@ exports.config = {
     },
 
 
-    header_mobile: { type: 'section', label: "6. Mobile Experience" },
-    enableDoubleTap: { type: 'boolean', defaultValue: true, label: "Double Tap to Seek", helperText: "Double tap at the sides of the screen to seek forward/backward", frontend: true },
+    // === 6. Mobile Experience ===
+    enableDoubleTap: { section: "6. Mobile Experience", type: 'boolean', defaultValue: true, label: "Double Tap to Seek", helperText: "Double tap at the sides of the screen to seek forward/backward", frontend: true },
     doubleTapSeekSeconds: { type: 'number', defaultValue: 10, min: 1, label: "Double Tap Seek Time (s)", helperText: "Seconds to seek on double tap", frontend: true },
     autoRotate: { type: 'boolean', defaultValue: true, label: "Mobile Auto-Landscape", helperText: "Automatically enter landscape mode when in fullscreen", frontend: true },
 
 
-    header_advanced: { type: 'section', label: "7. Advanced / Experimental" },
+    // === 7. Advanced / Experimental ===
     enableHLS: {
+        section: "7. Advanced / Experimental",
         type: 'boolean',
         defaultValue: false,
         label: "Enable MKV / HLS Support",
