@@ -83,9 +83,13 @@
             const isConvertingRef = React.useRef(false);
 
             // --- Helper: Reload Stream at specific time ---
+            const srcRef = React.useRef(props.src);
+            srcRef.current = props.src; // Keep fresh
+
             const performSeekRel = (secondsChange) => {
                 const player = playerRef.current;
-                if (!conversionMode || !player) {
+                // Use Ref for conversion status to avoid stale closure (since buttons are created once)
+                if (!isConvertingRef.current || !player) {
                     // Standard seek
                     if (player) {
                         let newTime = player.currentTime() + secondsChange;
@@ -103,8 +107,6 @@
                 let targetTime = absoluteTime + secondsChange;
                 if (targetTime < 0) targetTime = 0;
 
-                // console.log(`[VideoJS] Seek: Start=${startTimeRef.current} + Curr=${currentStreamTime} + Delta=${secondsChange} = Target=${targetTime}`);
-
                 HFS.toast(`Seeking to ${Math.floor(targetTime)}s...`, "info");
 
                 // Update state for next reload
@@ -113,7 +115,7 @@
                 // Cache buster to prevent browser from reusing previous seek request
                 const cb = Date.now();
                 const suffix = `?ffmpeg&seek=${targetTime.toFixed(2)}&_t=${cb}`;
-                const targetSrc = props.src + suffix;
+                const targetSrc = srcRef.current + suffix;
 
                 // Reload
                 console.log(`[VideoJS] Reloading stream: ${targetSrc}`);
