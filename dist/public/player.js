@@ -152,6 +152,30 @@
                 setTimeout(resizePlayer, 100);
 
                 // Event Listeners
+                player.on('playing', () => {
+                    // Check for hidden HEVC playback failure (Audio plays, Video is 0x0)
+                    setTimeout(() => {
+                        if (!player || player.paused() || player.ended()) return;
+
+                        const w = player.videoWidth();
+                        const h = player.videoHeight();
+                        const isVideo = determineMimeType(props.src).startsWith('video/');
+
+                        if (isVideo && (w === 0 || h === 0)) {
+                            // Check browser support for HEVC
+                            const hevcSupported = videoElement.canPlayType('video/mp4; codecs="hvc1"') !== "" ||
+                                videoElement.canPlayType('video/mp4; codecs="hev1"') !== "";
+
+                            if (!hevcSupported) {
+                                player.error({
+                                    code: 4,
+                                    message: "Playback Error: This video uses HEVC (H.265), which your browser does not support. Audio may play without video."
+                                });
+                            }
+                        }
+                    }, 1000);
+                });
+
                 player.on('play', () => { if (props.onPlay) props.onPlay(); });
                 player.on('ended', () => {
                     if (props.onEnded) props.onEnded();
