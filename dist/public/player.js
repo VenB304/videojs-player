@@ -347,29 +347,25 @@
                     let lastTouchTime = 0;
                     const handleTouch = (e) => {
                         const now = Date.now();
-                        const delta = now - lastTouchTime;
-
-                        // Debug: Always show delta
-                        HFS.toast(`Tap: ${delta}ms`, "info");
-
-                        // Double tap threshold: 500ms (Relaxed for testing)
-                        if (delta < 500) {
+                        // Double tap threshold: 300ms
+                        if (now - lastTouchTime < 300) {
                             e.preventDefault(); // Prevent zoom/default browser actions
 
                             // Calculate touch position relative to the player
                             const touch = e.changedTouches[0];
-                            const rect = e.currentTarget.getBoundingClientRect();
+                            let rect = e.currentTarget.getBoundingClientRect();
+
+                            // Fallback: If player wrapper has 0 width (e.g. display issues), try the video element itself
+                            if (rect.width === 0 && videoElementRef.current) {
+                                rect = videoElementRef.current.getBoundingClientRect();
+                            }
+
                             const x = touch.clientX - rect.left;
                             const width = rect.width;
                             const pct = x / width;
 
                             // Sanity check
-                            if (width === 0) {
-                                HFS.toast("Error: Width 0", "error");
-                                return;
-                            }
-
-                            HFS.toast(`Action: ${pct.toFixed(2)}`, "success");
+                            if (width === 0) return;
 
                             const seekSeconds = C.doubleTapSeekSeconds;
 
@@ -395,8 +391,6 @@
                                 HFS.toast(player.isFullscreen() ? "Exit Fullscreen" : "Fullscreen", "info");
                             }
                         }
-
-
                         lastTouchTime = now;
                     };
 
@@ -410,7 +404,6 @@
                         player.on('dispose', () => {
                             el.removeEventListener('touchend', handleTouch, opts);
                         });
-                        console.log("VideoJS Plugin: Attached double-tap listeners");
                     }
                 }
 
