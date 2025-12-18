@@ -110,10 +110,13 @@
                 // Update state for next reload
                 startTimeRef.current = targetTime;
 
-                const suffix = `?ffmpeg&seek=${targetTime}`;
+                // Cache buster to prevent browser from reusing previous seek request
+                const cb = Date.now();
+                const suffix = `?ffmpeg&seek=${targetTime.toFixed(2)}&_t=${cb}`;
                 const targetSrc = props.src + suffix;
 
                 // Reload
+                console.log(`[VideoJS] Reloading stream: ${targetSrc}`);
                 player.src({ src: targetSrc, type: 'video/mp4' });
                 player.play().catch(() => { });
             };
@@ -135,6 +138,19 @@
                         console.error("[VideoJS] Streaming conversion failed or timed out.");
                     }
                 }
+
+                // --- Helper: UI State for Transcoding ---
+                React.useEffect(() => {
+                    const controlBar = player.getChild('ControlBar');
+                    const progressControl = controlBar && controlBar.getChild('ProgressControl');
+                    if (progressControl) {
+                        if (conversionMode) {
+                            progressControl.hide();
+                        } else {
+                            progressControl.show();
+                        }
+                    }
+                }, [conversionMode]);
 
                 // Fallback to standard error handling (Toast or Overlay)
                 if (C.hevcErrorStyle === 'toast') {
