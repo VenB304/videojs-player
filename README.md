@@ -1,6 +1,6 @@
 # Video.js Player Plugin for HFS
 
-Upgrade your HFS streaming experience with [Video.js](https://videojs.com/) - a modern, responsive, and highly configurable HTML5 video player.
+Upgrade your HFS streaming experience with [Video.js](https://videojs.org/) - a modern, responsive, and highly configurable HTML5 video player.
 
 ## Preview
 unmute for audio
