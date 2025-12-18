@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 70; 
+exports.version = 71;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -107,12 +107,100 @@ exports.config = {
         frontend: true
     },
 
-    integration_unsupported_videos: {
+    enable_ffmpeg_transcoding: {
         type: 'boolean',
         defaultValue: false,
-        label: "Use 'unsupported-videos' Plugin",
-        helperText: "Requires @unsupported-videos plugin installed. Transcodes non-native formats.",
+        label: "Use FFmpeg for unsupported videos",
+        helperText: "Transcodes formats like HEVC on the fly. Requires FFmpeg installed.",
         frontend: true
+    },
+    ffmpeg_path: {
+        type: 'real_path',
+        fileMask: 'ffmpeg*',
+        helperText: "Path to ffmpeg executable. Leave empty if in system PATH.",
+        showIf: x => x.enable_ffmpeg_transcoding
+    },
+    ffmpeg_parameters: {
+        defaultValue: '',
+        helperText: "Additional FFmpeg params (e.g. for hardware accel)",
+        showIf: x => x.enable_ffmpeg_transcoding
     }
 
 };
+
+exports.init = api => {
+    const running = new Map() // key=process, value=username
+    const { spawn } = api.require('child_process')
+
+    function terminate(proc) {
+        proc.kill()
+        setTimeout(() => proc.kill('SIGKILL'), 10_000)
+    }
+
+    return {
+        unload() {
+            for (const proc of running.keys())
+                terminate(proc)
+        },
+        middleware: async ctx => {
+            return async () => { // wait for fileSource to be available
+                // Only intercept if we are enabled AND querystring is ffmpeg
+                const transcodingEnabled = api.getConfig('enable_ffmpeg_transcoding');
+                if (!transcodingEnabled) return;
+
+                const src = ctx.state.fileSource
+                if (ctx.querystring !== 'ffmpeg' || !src) return
+
+                const username = api.getCurrentUsername(ctx)
+
+                // Allow request to proceed (standard HFS auth checked this already)
+                // We just spawn the transcoder now.
+
+                await new Promise(res => setTimeout(res, 500)) // avoid short-lasting requests
+                if (ctx.socket.closed) return
+
+                // Max processes check could go here if we added those configs, 
+                // but keeping it simple as per user request to just "integrate it".
+
+                const ffmpegPath = api.getConfig('ffmpeg_path') || 'ffmpeg';
+                const extraParamsStr = api.getConfig('ffmpeg_parameters') || '';
+
+                // Naive argument parsing for extra params (handles basic spaces)
+                // Matches quoted sequences or non-space sequences
+                const extraParams = extraParamsStr.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g)?.map(s => s.replace(/^['"]|['"]$/g, '')) || [];
+
+                const proc = spawn(ffmpegPath, [
+                    '-i', src,
+                    '-f', 'mp4',
+                    '-movflags', 'frag_keyframe+empty_moov',
+                    '-vcodec', 'libx264',
+                    '-pix_fmt', 'yuv420p',
+                    '-acodec', 'aac',
+                    '-strict', '-2',
+                    '-preset', 'superfast',
+                    ...extraParams,
+                    'pipe:1'
+                ])
+
+                running.set(proc, username)
+
+                proc.on('error', (err) => {
+                    console.error("VideoJS FFmpeg Error:", err);
+                    running.delete(proc);
+                })
+                proc.on('exit', (code) => {
+                    if (code !== 0 && code !== null) console.log("VideoJS FFmpeg Exited with code:", code);
+                    running.delete(proc);
+                })
+
+                // Pipe stderr to console for debugging
+                proc.stderr.on('data', x => console.log('VideoJS FFmpeg:', String(x)))
+
+                ctx.type = 'video/mp4'
+                ctx.body = proc.stdout
+                ctx.req.on('end', () => terminate(proc))
+                return ctx.status = 200
+            }
+        }
+    }
+}

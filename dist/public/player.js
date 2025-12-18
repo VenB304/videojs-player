@@ -50,7 +50,7 @@
             hevcErrorStyle: rawConfig.hevcErrorStyle || 'overlay',
             theme: rawConfig.theme || 'default',
             inactivityTimeout: parseInt(rawConfig.inactivityTimeout) || 2000,
-            integration_unsupported_videos: rawConfig.integration_unsupported_videos ?? false,
+            enable_ffmpeg_transcoding: rawConfig.enable_ffmpeg_transcoding ?? false,
         };
 
         const VIDEO_EXTS = ['.mp4', '.webm', '.ogv', '.mov'];
@@ -84,7 +84,7 @@
             // --- Helper: Handle Playback Error (Conversion Integration) ---
             const handlePlaybackError = (player, message = "Video format not supported.") => {
                 // Check if integration is enabled
-                if (C.integration_unsupported_videos) {
+                if (C.enable_ffmpeg_transcoding) {
                     // Check if we already attempted conversion (via Ref to avoid closure staleness)
                     if (!isConvertingRef.current) {
                         // Attempt to switch to conversion stream
@@ -605,6 +605,7 @@
                     // Intercept generic errors
                     const code = player.error() ? player.error().code : 0;
                     if (code === 4) { // MEDIA_ERR_SRC_NOT_SUPPORTED
+                        player.error(null); // Dismiss default error to prevent blocking interaction
                         handlePlaybackError(player, "The media could not be loaded, either because the server or network failed or because the format is not supported.");
                         return;
                     }

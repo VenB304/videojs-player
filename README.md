@@ -97,10 +97,12 @@ All settings can be tweaked in **Admin Panel > Plugins > videojs-player**.
 | :--- | :--- | :--- |
 | **Enable MKV / HLS Support** | **Experimental**. Tries to play MKV `.mkv` and HLS `.m3u8` streams. | `Off` |
 
-### 8. Integrations
+### 8. Transcoding (FFmpeg)
 | Setting | Description | Default |
 | :--- | :--- | :--- |
-| **Use 'unsupported-videos' Plugin** | **Advanced**. Requires the [@rejetto/unsupported-videos](https://github.com/rejetto/unsupported-videos) plugin to be installed and configured on HFS. If enabled, the player will automatically ask the server to **transcode** unsupported videos (like HEVC) on the fly using FFmpeg. | `Off` |
+| **Use FFmpeg for unsupported videos** | **Advanced**. Automatically transcodes unsupported videos (like HEVC) on the fly using FFmpeg. | `Off` |
+| **FFmpeg Path** | Absolute path to your `ffmpeg.exe`. Leave empty if FFmpeg is already in your system PATH. | *Empty* |
+| **FFmpeg Parameters** | Optional extra flags for the transcoder (e.g. valid hardware acceleration flags). | *Empty* |
 
 ---
 
@@ -113,9 +115,10 @@ All settings can be tweaked in **Admin Panel > Plugins > videojs-player**.
 *   **Cause**: The video uses the HEVC codec, which many browsers (like Chrome on Windows) do not support natively without hardware extensions.
 
 *   **Solution**:
-    1.  Enable **Use 'unsupported-videos' Plugin** in settings (requires installing that specific plugin first). This allows on-the-fly conversion.
-    2.  Use a browser with native support (Safari).
-    3.  Download the file instead of streaming.
+    1.  Enable **Use FFmpeg for unsupported videos** in settings.
+    2.  Ensure you have **FFmpeg** installed and the path is correct.
+    3.  Use a browser with native support (Safari).
+    4.  Download the file instead of streaming.
 
 ### Video is cut off or too big
 *   Check your **Sizing Mode**.
