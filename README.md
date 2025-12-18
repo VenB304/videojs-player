@@ -17,9 +17,11 @@ Upgrade your HFS streaming experience with [Video.js](https://videojs.com/) - a 
 
 The default HFS player is functional but basic. This plugin replaces it with a professional-grade player used by millions of websites. It allows for:
 - **Sequential Playback**: Fully integrates with HFS's autoplay to play the next file automatically.
+- **Enhanced UX**: Includes **seek buttons (+/- 10s)**, **download button**, and **keyboard hotkeys**.
+- **Mobile Friendly**: Supports double-tap to fullscreen and touch gestures.
 - **Better Format Support**: Adds experimental support for **MKV** and **HLS (.m3u8)** streams.
 - **Responsive Design**: Looks great on mobile and desktop, with multiple sizing modes.
-- **Customizable**: extensive configuration options available directly in the HFS Admin Panel.
+- **Customizable**: Extensive configuration options available directly in the HFS Admin Panel.
 
 ## 🚀 Installation
 
@@ -46,9 +48,17 @@ You can customize the player behavior in **Admin Panel > Plugins > videojs-playe
 | **Loop** | Restarts the video from the beginning every time it finishes. | `Off` |
 | **Start Muted** | Forces the video to start at 0% volume. | `Off` |
 | **Default Volume** | Sets the initial volume (0 to 100). | `100` |
-| **Show Controls** | Toggle the bottom control bar (play, volume, seek, fullscreen). | `On` |
 
-### Layout & Visuals
+### Interface & Controls
+| Setting | Description | Default |
+| :--- | :--- | :--- |
+| **Show Controls** | Toggle the bottom control bar (play, volume, seek, fullscreen). | `On` |
+| **Show Seek Buttons** | Adds **+10s** and **-10s** buttons to the control bar. | `On` |
+| **Show Download** | Adds a download icon (⬇) to the control bar. | `On` |
+| **Enable Hotkeys** | Enables keyboard shortcuts (Space, F, M, Arrows). | `On` |
+| **Player Theme** | Choose an official Video.js skin (Default, City, Fantasy, Forest, Sea). | `Default` |
+
+### Layout & Sizing
 | Setting | Description | Default |
 | :--- | :--- | :--- |
 | **Sizing Mode** | • **Fluid** (Default): Responsive. Matches container width, height matches aspect ratio.<br>• **Fixed / Native**: Player stays at fixed pixel dimensions (video's intrinsic size). Best for popups/sidebars.<br>• **Fill**: Forces match width AND height of container (cropping if needed). Requires container to have set height. | `Fluid` |
@@ -67,7 +77,6 @@ You can customize the player behavior in **Admin Panel > Plugins > videojs-playe
 | **Preload Strategy** | • `Metadata`: Loads only duration/dimensions. Saves bandwidth.<br>• `Auto`: Browser chooses; typically buffers some segments immediately for faster start.<br>• `None`: No data loaded until user clicks play. | `Metadata` |
 | **Enable MKV/HLS** | Experimental toggle. • **MKV**: Treats `.mkv` as standard web video (Chrome supports this for H.264/VP9 codecs inside MKV).<br>• **HLS**: Passes `application/x-mpegURL` type for `.m3u8` files. | `Off` |
 | **HEVC Error Style** | Choose how to display unsupported HEVC/H.265 errors.<br>• **Player Overlay**: Shows a centered error message on top of the player.<br>• **System Notification**: Uses HFS native popup toast (top-right). | `Player Overlay` |
-| **Player Theme** | Choose an official Video.js skin.<br>• **Default**: Standard Video.js look.<br>• **City / Fantasy / Forest / Sea**: Official themes. | `Default` |
 
 ## 🛠️ Troubleshooting
 

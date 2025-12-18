@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 44;
+exports.version = 45;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -15,11 +15,26 @@ exports.frontend_js = [
 ];
 
 exports.config = {
+    // --- Core Playback ---
     autoplay: { type: 'boolean', defaultValue: true, label: "Autoplay", frontend: true },
     loop: { type: 'boolean', defaultValue: false, label: "Loop", frontend: true },
     muted: { type: 'boolean', defaultValue: false, label: "Start Muted", helperText: "Useful for browsers that block autoplay with sound", frontend: true },
-    controls: { type: 'boolean', defaultValue: true, label: "Show Controls", frontend: true },
     volume: { type: 'number', defaultValue: 100, min: 0, max: 100, step: 5, label: "Default Volume (%)", helperText: "0 to 100", frontend: true },
+
+    // --- Interface & Controls ---
+    controls: { type: 'boolean', defaultValue: true, label: "Show Controls", frontend: true },
+    showSeekButtons: { type: 'boolean', defaultValue: true, label: "Show Seek Buttons", helperText: "Adds +10s / -10s buttons to control bar", frontend: true },
+    showDownloadButton: { type: 'boolean', defaultValue: true, label: "Show Download Button", helperText: "Adds a download icon to control bar", frontend: true },
+    enableHotkeys: { type: 'boolean', defaultValue: true, label: "Enable Hotkeys", helperText: "Keyboard shortcuts (Space, F, Arrows, M)", frontend: true },
+    theme: {
+        type: 'select',
+        defaultValue: 'default',
+        options: { 'Standard (Default)': 'default', 'City': 'city', 'Fantasy': 'fantasy', 'Forest': 'forest', 'Sea': 'sea' },
+        label: "Player Theme",
+        frontend: true
+    },
+
+    // --- Layout & Sizing ---
     sizingMode: {
         type: 'select',
         defaultValue: 'fluid',
@@ -29,6 +44,8 @@ exports.config = {
     },
     fixedWidth: { type: 'number', defaultValue: 640, min: 0, label: "Fixed Width (px)", helperText: "Default 640. Set to 0 for Intrinsic/Native size", frontend: true },
     fixedHeight: { type: 'number', defaultValue: 360, min: 0, label: "Fixed Height (px)", helperText: "Default 360. Set to 0 for Intrinsic/Native size", frontend: true },
+
+    // --- Advanced ---
     playbackRates: { type: 'string', defaultValue: "0.5, 1, 1.5, 2", label: "Playback Rates", helperText: "Comma separated numbers", frontend: true },
     preload: {
         type: 'select',
@@ -38,21 +55,11 @@ exports.config = {
         frontend: true
     },
     enableHLS: { type: 'boolean', defaultValue: false, label: "Enable MKV/HLS Support", helperText: "Treat .mkv/.m3u8 as playable streams (experimental)", frontend: true },
-    showSeekButtons: { type: 'boolean', defaultValue: true, label: "Show Seek Buttons", helperText: "Adds +10s / -10s buttons to control bar", frontend: true },
-    showDownloadButton: { type: 'boolean', defaultValue: true, label: "Show Download Button", helperText: "Adds a download icon to control bar", frontend: true },
-    enableHotkeys: { type: 'boolean', defaultValue: true, label: "Enable Hotkeys", helperText: "Keyboard shortcuts (Space, F, Arrows, M)", frontend: true },
     hevcErrorStyle: {
         type: 'select',
         defaultValue: 'overlay',
         options: { 'Player Overlay (Default)': 'overlay', 'System Notification': 'toast' },
         label: "HEVC Error Style",
-        frontend: true
-    },
-    theme: {
-        type: 'select',
-        defaultValue: 'default',
-        options: { 'Standard (Default)': 'default', 'City': 'city', 'Fantasy': 'fantasy', 'Forest': 'forest', 'Sea': 'sea' },
-        label: "Player Theme",
         frontend: true
     }
 };
