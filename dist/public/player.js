@@ -396,10 +396,16 @@
                     if (el) {
                         el.style.touchAction = 'manipulation'; // Prevent double-tap to zoom
                         // Use capture phase to ensure we get the event before Video.js internals
-                        el.addEventListener('touchend', handleTouch, { capture: true });
+                        const opts = { capture: true, passive: false };
+                        el.addEventListener('touchend', handleTouch, opts);
+
+                        // DEBUG: Listen for start and pointer events to trace loss
+                        el.addEventListener('touchstart', () => HFS.toast("DEBUG: TouchStart", "info"), opts);
+
                         player.on('dispose', () => {
-                            el.removeEventListener('touchend', handleTouch, { capture: true });
+                            el.removeEventListener('touchend', handleTouch, opts);
                         });
+                        console.log("VideoJS Plugin: Attached double-tap listeners");
                     }
                 }
 
