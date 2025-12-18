@@ -668,7 +668,8 @@
                 if (props.src) {
                     const currentSrc = player && player.currentSrc();
                     // If the base src is different, reset conversion
-                    if (currentSrc && !currentSrc.includes(encodeURI(props.src))) {
+                    // Use decodeURI to ensure safe comparison regardless of encoding (fixes infinite loop on files with spaces)
+                    if (currentSrc && !decodeURI(currentSrc).includes(decodeURI(props.src))) {
                         setConversionMode(false);
                         isConvertingRef.current = false;
                     }
