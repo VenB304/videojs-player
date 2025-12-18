@@ -167,16 +167,55 @@
                                 videoElement.canPlayType('video/mp4; codecs="hev1"') !== "";
 
                             if (!hevcSupported) {
-                                player.error({
-                                    code: 4,
-                                    message: "Playback Error: This video uses HEVC (H.265), which your browser does not support. Audio may play without video."
-                                });
+                                // Non-blocking error handling to allow UI interaction
+                                player.pause();
+                                player.controls(true); // Ensure controls are visible
+
+                                // Create custom error overlay
+                                const errDiv = document.createElement('div');
+                                errDiv.className = 'vjs-hevc-error-overlay';
+                                errDiv.style.position = 'absolute';
+                                errDiv.style.top = '0';
+                                errDiv.style.left = '0';
+                                errDiv.style.width = '100%';
+                                errDiv.style.height = 'calc(100% - 3em)'; // Leave room for control bar
+                                errDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
+                                errDiv.style.zIndex = '1'; // Below control bar (usually z-index 4)
+                                errDiv.style.display = 'flex';
+                                errDiv.style.flexDirection = 'column';
+                                errDiv.style.alignItems = 'center';
+                                errDiv.style.justifyContent = 'center';
+                                errDiv.style.color = '#fff';
+                                errDiv.style.textAlign = 'center';
+                                errDiv.style.padding = '20px';
+                                errDiv.innerHTML = `
+                                    <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 10px;">Playback Error</div>
+                                    <div>This video uses HEVC (H.265), which your browser does not support.</div>
+                                    <div style="font-size: 0.9em; opacity: 0.8; margin-top: 5px;">Audio may play without video.</div>
+                                `;
+
+                                const playerEl = player.el();
+                                if (playerEl) {
+                                    // Remove existing error if any
+                                    const existing = playerEl.querySelector('.vjs-hevc-error-overlay');
+                                    if (existing) existing.remove();
+
+                                    playerEl.appendChild(errDiv);
+                                }
                             }
                         }
                     }, 1000);
                 });
 
-                player.on('play', () => { if (props.onPlay) props.onPlay(); });
+                player.on('play', () => {
+                    // Remove error overlay if retrying or playing new source
+                    const playerEl = player.el();
+                    if (playerEl) {
+                        const existing = playerEl.querySelector('.vjs-hevc-error-overlay');
+                        if (existing) existing.remove();
+                    }
+                    if (props.onPlay) props.onPlay();
+                });
                 player.on('ended', () => {
                     if (props.onEnded) props.onEnded();
                     dummyVideo.dispatchEvent(new Event('ended'));
