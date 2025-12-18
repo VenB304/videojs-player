@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 82;
+exports.version = 83;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -16,52 +16,111 @@ exports.frontend_js = [
 
 exports.config = {
 
-    // === 1. Core Playback ===
-    autoplay: { section: "1. Core Playback", type: 'boolean', defaultValue: true, label: "Autoplay", frontend: true },
-    muted: { type: 'boolean', defaultValue: false, label: "Start Muted", helperText: "Useful for browsers that block autoplay with sound", frontend: true },
-    loop: { type: 'boolean', defaultValue: false, label: "Loop", frontend: true },
+    // === Configuration Group Selector ===
+    config_tab: {
+        type: 'select',
+        defaultValue: 'all',
+        options: {
+            '0. All Settings': 'all',
+            '1. Core Playback': 'core',
+            '2. Player Controls': 'controls',
+            '3. Keyboard Shortcuts': 'keys',
+            '4. Layout & Sizing': 'layout',
+            '5. Appearance': 'appearance',
+            '6. Mobile Experience': 'mobile',
+            '7. Advanced / Experimental': 'advanced'
+        },
+        label: "Configuration Category",
+        helperText: "Select a category to view and edit settings.",
+        frontend: true // Needs to be sent to frontend? Actually only used in admin panel logic usually. keeping true just in case.
+    },
 
+    // === 1. Core Playback ===
+    autoplay: {
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
+        type: 'boolean', defaultValue: true, label: "Autoplay", frontend: true
+    },
+    muted: {
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
+        type: 'boolean', defaultValue: false, label: "Start Muted", helperText: "Useful for browsers that block autoplay with sound", frontend: true
+    },
+    loop: {
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
+        type: 'boolean', defaultValue: false, label: "Loop", frontend: true
+    },
     preload: {
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
         type: 'select',
         defaultValue: 'metadata',
         options: { 'Metadata': 'metadata', 'Auto': 'auto', 'None': 'none' },
         label: "Preload Strategy",
         frontend: true
     },
-
-    resumePlayback: { type: 'boolean', defaultValue: true, label: "Resume Playback", helperText: "Continue from last position", frontend: true },
-    persistentVolume: { type: 'boolean', defaultValue: true, label: "Remember Volume", helperText: "Save volume between sessions", frontend: true },
-
-    volume: { type: 'number', defaultValue: 100, min: 0, max: 100, step: 5, label: "Default Volume (%)", helperText: "0 to 100", frontend: true },
-    playbackRates: { type: 'string', defaultValue: "0.5, 1, 1.5, 2", label: "Playback Rates", helperText: "Comma separated numbers", frontend: true },
+    resumePlayback: {
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
+        type: 'boolean', defaultValue: true, label: "Resume Playback", helperText: "Continue from last position", frontend: true
+    },
+    persistentVolume: {
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
+        type: 'boolean', defaultValue: true, label: "Remember Volume", helperText: "Save volume between sessions", frontend: true
+    },
+    volume: {
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
+        type: 'number', defaultValue: 100, min: 0, max: 100, step: 5, label: "Default Volume (%)", helperText: "0 to 100", frontend: true
+    },
+    playbackRates: {
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
+        type: 'string', defaultValue: "0.5, 1, 1.5, 2", label: "Playback Rates", helperText: "Comma separated numbers", frontend: true
+    },
 
 
     // === 2. Player Controls ===
-    controls: { section: "2. Player Controls", type: 'boolean', defaultValue: true, label: "Show Controls", helperText: "Enables the control bar", frontend: true },
-    inactivityTimeout: { type: 'number', defaultValue: 2000, min: 0, label: "Controls Hide Delay (ms)", helperText: "0 = always visible", frontend: true },
-
-    showSeekButtons: { type: 'boolean', defaultValue: true, label: "Show Seek Buttons", helperText: "Adds +/- buttons to control bar", frontend: true },
-    seekButtonStep: { type: 'number', defaultValue: 10, min: 1, label: "Seek Button Time (s)", helperText: "Seconds per tap", frontend: true },
-
-    showDownloadButton: { type: 'boolean', defaultValue: true, label: "Show Download Button", helperText: "Adds download icon to controls", frontend: true },
+    controls: {
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'controls',
+        type: 'boolean', defaultValue: true, label: "Show Controls", helperText: "Enables the control bar", frontend: true
+    },
+    inactivityTimeout: {
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'controls',
+        type: 'number', defaultValue: 2000, min: 0, label: "Controls Hide Delay (ms)", helperText: "0 = always visible", frontend: true
+    },
+    showSeekButtons: {
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'controls',
+        type: 'boolean', defaultValue: true, label: "Show Seek Buttons", helperText: "Adds +/- buttons to control bar", frontend: true
+    },
+    seekButtonStep: {
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'controls',
+        type: 'number', defaultValue: 10, min: 1, label: "Seek Button Time (s)", helperText: "Seconds per tap", frontend: true
+    },
+    showDownloadButton: {
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'controls',
+        type: 'boolean', defaultValue: true, label: "Show Download Button", helperText: "Adds download icon to controls", frontend: true
+    },
 
 
     // === 3. Keyboard Shortcuts ===
-    enableHotkeys: { section: "3. Keyboard Shortcuts", type: 'boolean', defaultValue: true, label: "Enable Hotkeys", helperText: "Space, F, Arrows, M", frontend: true },
-    hotkeySeekStep: { type: 'number', defaultValue: 5, min: 1, label: "Hotkey Seek Time (s)", frontend: true },
-    hotkeyVolumeStep: { type: 'number', defaultValue: 10, min: 1, max: 100, label: "Hotkey Volume Step (%)", frontend: true },
+    enableHotkeys: {
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'keys',
+        type: 'boolean', defaultValue: true, label: "Enable Hotkeys", helperText: "Space, F, Arrows, M", frontend: true
+    },
+    hotkeySeekStep: {
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'keys',
+        type: 'number', defaultValue: 5, min: 1, label: "Hotkey Seek Time (s)", frontend: true
+    },
+    hotkeyVolumeStep: {
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'keys',
+        type: 'number', defaultValue: 10, min: 1, max: 100, label: "Hotkey Volume Step (%)", frontend: true
+    },
 
 
     // === 4. Layout & Sizing ===
     sizingMode: {
-        section: "4. Layout & Sizing",
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'layout',
         type: 'select',
         defaultValue: 'fluid',
         options: { 'Fluid': 'fluid', 'Fill': 'fill', 'Fixed / Native': 'native' },
         label: "Sizing Mode",
         frontend: true
     },
-
     fixedWidth: {
         type: 'number',
         defaultValue: 640,
@@ -69,7 +128,7 @@ exports.config = {
         label: "Fixed Width (px)",
         helperText: "0 = intrinsic size",
         frontend: true,
-        showIf: x => x.sizingMode === 'native'
+        showIf: x => (x.config_tab === 'all' || x.config_tab === 'layout') && x.sizingMode === 'native'
     },
     fixedHeight: {
         type: 'number',
@@ -78,13 +137,13 @@ exports.config = {
         label: "Fixed Height (px)",
         helperText: "0 = intrinsic size",
         frontend: true,
-        showIf: x => x.sizingMode === 'native'
+        showIf: x => (x.config_tab === 'all' || x.config_tab === 'layout') && x.sizingMode === 'native'
     },
 
 
     // === 5. Appearance ===
     theme: {
-        section: "5. Appearance",
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'appearance',
         type: 'select',
         defaultValue: 'default',
         options: {
@@ -97,8 +156,8 @@ exports.config = {
         label: "Player Theme",
         frontend: true
     },
-
     hevcErrorStyle: {
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'appearance',
         type: 'select',
         defaultValue: 'overlay',
         options: {
@@ -111,22 +170,31 @@ exports.config = {
 
 
     // === 6. Mobile Experience ===
-    enableDoubleTap: { section: "6. Mobile Experience", type: 'boolean', defaultValue: true, label: "Double Tap to Seek", helperText: "Double tap at the sides of the screen to seek forward/backward", frontend: true },
-    doubleTapSeekSeconds: { type: 'number', defaultValue: 10, min: 1, label: "Double Tap Seek Time (s)", helperText: "Seconds to seek on double tap", frontend: true },
-    autoRotate: { type: 'boolean', defaultValue: true, label: "Mobile Auto-Landscape", helperText: "Automatically enter landscape mode when in fullscreen", frontend: true },
+    enableDoubleTap: {
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'mobile',
+        type: 'boolean', defaultValue: true, label: "Double Tap to Seek", helperText: "Double tap at the sides of the screen to seek forward/backward", frontend: true
+    },
+    doubleTapSeekSeconds: {
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'mobile',
+        type: 'number', defaultValue: 10, min: 1, label: "Double Tap Seek Time (s)", helperText: "Seconds to seek on double tap", frontend: true
+    },
+    autoRotate: {
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'mobile',
+        type: 'boolean', defaultValue: true, label: "Mobile Auto-Landscape", helperText: "Automatically enter landscape mode when in fullscreen", frontend: true
+    },
 
 
     // === 7. Advanced / Experimental ===
     enableHLS: {
-        section: "7. Advanced / Experimental",
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'advanced',
         type: 'boolean',
         defaultValue: false,
         label: "Enable MKV / HLS Support",
         helperText: "Experimental streaming for .mkv and .m3u8",
         frontend: true
     },
-
     enable_ffmpeg_transcoding: {
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'advanced',
         type: 'boolean',
         defaultValue: false,
         label: "Use FFmpeg for unsupported videos",
@@ -137,12 +205,12 @@ exports.config = {
         type: 'real_path',
         fileMask: 'ffmpeg*',
         helperText: "Path to ffmpeg executable. Leave empty if in system PATH.",
-        showIf: x => x.enable_ffmpeg_transcoding
+        showIf: x => (x.config_tab === 'all' || x.config_tab === 'advanced') && x.enable_ffmpeg_transcoding
     },
     ffmpeg_parameters: {
         defaultValue: '',
         helperText: "Additional FFmpeg params (e.g. for hardware accel)",
-        showIf: x => x.enable_ffmpeg_transcoding
+        showIf: x => (x.config_tab === 'all' || x.config_tab === 'advanced') && x.enable_ffmpeg_transcoding
     }
 
 };
