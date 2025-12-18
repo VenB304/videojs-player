@@ -39,6 +39,8 @@
             showSeekButtons: rawConfig.showSeekButtons ?? true,
             showDownloadButton: rawConfig.showDownloadButton ?? true,
             enableHotkeys: rawConfig.enableHotkeys ?? true,
+            persistentVolume: rawConfig.persistentVolume ?? true,
+            resumePlayback: rawConfig.resumePlayback ?? true,
             autoRotate: rawConfig.autoRotate ?? true,
             hevcErrorStyle: rawConfig.hevcErrorStyle || 'overlay',
             theme: rawConfig.theme || 'default',
@@ -128,10 +130,37 @@
                     playerEl.tabIndex = 0;
                 }
 
-                // Set Volume
+                // Set Volume and optional Persistence
                 player.ready(() => {
-                    player.volume(C.volume);
+                    let startVolume = C.volume;
+                    if (C.persistentVolume) {
+                        const savedVol = localStorage.getItem('vjs-volume-level');
+                        if (savedVol !== null) {
+                            startVolume = parseFloat(savedVol);
+                        }
+                    }
+                    player.volume(startVolume);
                 });
+
+                // --- Feature: Resume Playback ---
+                // We use the file name as a key. 
+                const resumeKey = `vjs-resume-${props.src ? props.src.split('/').pop() : 'video'}`;
+
+                if (C.resumePlayback) {
+                    player.ready(() => {
+                        const savedTime = localStorage.getItem(resumeKey);
+                        if (savedTime) {
+                            const t = parseFloat(savedTime);
+                            // Only resume if valid and not near the end (95% or < 5s remaining)
+                            // We can't know duration exactly until metadata loaded, but we can try slightly delayed or just set it.
+                            // VideoJS handles setting currentTime before metadata well usually.
+                            if (!isNaN(t) && t > 1) {
+                                // console.log("Resuming at", t);
+                                player.currentTime(t);
+                            }
+                        }
+                    });
+                }
 
                 // --- Feature 1: Seek Buttons ---
                 if (C.showSeekButtons) {
@@ -439,6 +468,33 @@
                     }, 1000);
                 });
 
+                // Persistence Listeners
+                if (C.persistentVolume) {
+                    player.on('volumechange', () => {
+                        // debounce slightly or just save? volumechange fires rapidly. LocalStorage is sync but fast enough.
+                        localStorage.setItem('vjs-volume-level', player.volume());
+                    });
+                }
+
+                if (C.resumePlayback) {
+                    // Save progress every few seconds
+                    // Throttle manually or just use timeupdate (fires 3-4 times a second)
+                    // We can save every second.
+                    let lastSave = 0;
+                    player.on('timeupdate', () => {
+                        const now = Date.now();
+                        if (now - lastSave > 2000) {
+                            const cur = player.currentTime();
+                            const dur = player.duration();
+                            // Don't save if near end
+                            if (cur > 0 && (!dur || (dur - cur > 10))) {
+                                localStorage.setItem(resumeKey, cur.toFixed(1));
+                            }
+                            lastSave = now;
+                        }
+                    });
+                }
+
                 // Feature: Auto-Rotate on Mobile Fullscreen
                 player.on('fullscreenchange', () => {
                     if (C.autoRotate && screen.orientation && screen.orientation.lock) {
@@ -468,6 +524,9 @@
                     if (props.onPlay) props.onPlay();
                 });
                 player.on('ended', () => {
+                    if (C.resumePlayback) {
+                        localStorage.removeItem(resumeKey);
+                    }
                     if (props.onEnded) props.onEnded();
                     dummyVideo.dispatchEvent(new Event('ended'));
                 });
