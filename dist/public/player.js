@@ -535,11 +535,16 @@
                     const hevcSupported = videoElement.canPlayType('video/mp4; codecs="hvc1"') !== "" ||
                         videoElement.canPlayType('video/mp4; codecs="hev1"') !== "";
 
-                    // Condition 1: Browser explicitly says partial/no support, and video is definitely hevc-like extension
+                    // Condition 1: REMOVED.
+                    // We cannot assume .mp4 is HEVC just because browser doesn't support HEVC.
+                    // Standard H.264 .mp4 files would fail this check if we just check extensions.
+
+                    /*
                     if (!hevcSupported && (currentSrc.endsWith('.mp4') || currentSrc.endsWith('.mov') || currentSrc.endsWith('.mkv'))) {
                         handlePlaybackError(player, "HEVC/Unsupported format detected.");
                         return;
-                    }
+                    } 
+                    */
 
                     // Condition 2: Dimensions are 0x0 while playing (classic hevc black screen)
                     if (isVideo && (w === 0 || h === 0)) {
