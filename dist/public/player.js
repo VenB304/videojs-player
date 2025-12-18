@@ -364,7 +364,8 @@
                             const seekSeconds = C.doubleTapSeekSeconds;
 
                             // Debug log for troubleshooting
-                            console.log(`[DoubleTap] x:${x} w:${width} pct:${pct.toFixed(2)} target:${e.target.tagName}`);
+                            // console.log(`[DoubleTap] x:${x} w:${width} pct:${pct.toFixed(2)} target:${e.target.tagName}`);
+                            HFS.toast(`Double Tap: ${pct.toFixed(2)}`, "info");
 
                             if (pct < 0.3) {
                                 // Left 30%: Rewind
@@ -393,6 +394,7 @@
 
                     const el = player.el();
                     if (el) {
+                        el.style.touchAction = 'manipulation'; // Prevent double-tap to zoom
                         // Use capture phase to ensure we get the event before Video.js internals
                         el.addEventListener('touchend', handleTouch, { capture: true });
                         player.on('dispose', () => {
