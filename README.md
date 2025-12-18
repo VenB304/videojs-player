@@ -51,8 +51,7 @@ You can customize the player behavior in **Admin Panel > Plugins > videojs-playe
 ### Layout & Visuals
 | Setting | Description | Default |
 | :--- | :--- | :--- |
-| **Sizing Mode** | Controls how the player adapts to the page:<br>• **Fit to Container**: (Default) Intelligently scales the video to fit within the available space without cropping. Does not distort aspect ratio.<br>• **Fluid**: Takes full width of the container and adjusts height automatically based on video aspect ratio (16:9, etc).<br>• **Native Size**: Displays the video at its actual file resolution (e.g. 1920x1080). May cause scrolling. | `Fit to Container` |
-| **Fill Container** | **Overrules Sizing Mode**. Forces the player to expand to the exact width AND height of its container. Uses `object-fit: cover` to fill the space, which **will crop** the video edges if aspect ratios don't match. Ideal for full-screen / immersive layouts. | `Off` |
+| **Sizing Mode** | Controls how the player adapts to the page:<br>• **Fluid (Responsive)**: Best for most users. Takes full width of the container and adjusts height to maintain aspect ratio (no crop).<br>• **Fill (Crop to Fit)**: Forces the player to fill the *entire* width and height of the container. Zooms/crops the video if aspect ratios differ.<br>• **Native (Original Size)**: Displays video at its fixed pixel resolution (e.g. 1920x1080). | `Fluid` |
 
 ### Advanced
 | Setting | Description | Default |

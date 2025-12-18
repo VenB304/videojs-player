@@ -30,8 +30,7 @@
             muted: rawConfig.muted ?? false,
             controls: rawConfig.controls ?? true,
             volume: (rawConfig.volume ?? 100) / 100,
-            sizingMode: rawConfig.sizingMode || 'fit',
-            fillContainer: rawConfig.fillContainer ?? false,
+            sizingMode: rawConfig.sizingMode || 'fluid',
             playbackRates: rawConfig.playbackRates || "0.5, 1, 1.5, 2",
             preload: rawConfig.preload || 'metadata',
             enableHLS: rawConfig.enableHLS ?? false,
@@ -60,7 +59,7 @@
 
                 const videoElement = document.createElement('video');
                 videoElement.className = 'video-js vjs-big-play-centered';
-                if (C.fillContainer) {
+                if (C.sizingMode === 'fill') {
                     videoElement.style.objectFit = 'cover';
                 }
                 videoElementRef.current = videoElement;
@@ -80,8 +79,9 @@
                 const rates = C.playbackRates.split(',').map(r => parseFloat(r.trim())).filter(n => !isNaN(n));
 
                 // Determine Video.js sizing options
-                const isPyramid = C.fillContainer; // Fill Container takes precedence
-                const isFluid = !isPyramid && C.sizingMode === 'fluid';
+                const mode = C.sizingMode;
+                const isFluid = mode === 'fluid';
+                const isFill = mode === 'fill';
 
                 // Initialize Video.js
                 const player = videojs(videoElement, {
@@ -91,7 +91,7 @@
                     muted: C.muted,
                     preload: C.preload,
                     fluid: isFluid,
-                    fill: isPyramid,
+                    fill: isFill,
                     playbackRates: rates.length ? rates : [0.5, 1, 1.5, 2],
                     sources: [{
                         src: props.src,
@@ -121,9 +121,9 @@
                     }
                 }
 
-                // --- Custom Sizing Logic ---
+                // --- Custom Sizing Logic (Native Mode Only) ---
                 const resizePlayer = () => {
-                    if (isFluid || isPyramid) return; // Video.js handles these
+                    if (C.sizingMode !== 'native') return;
 
                     const el = player.el();
                     if (!el) return;
@@ -132,24 +132,9 @@
                     const vidH = player.videoHeight();
                     if (!vidW || !vidH) return;
 
-                    if (C.sizingMode === 'native') {
-                        player.width(vidW);
-                        player.height(vidH);
-                        return;
-                    }
-
-                    // Fit to Container (Default)
-                    const container = el.closest('.showing-container') || document.body;
-                    const rect = container.getBoundingClientRect();
-                    const maxW = rect.width;
-                    const maxH = rect.height;
-
-                    const scale = Math.min(maxW / vidW, maxH / vidH, 1);
-                    const finalW = Math.floor(vidW * scale);
-                    const finalH = Math.floor(vidH * scale);
-
-                    player.width(finalW);
-                    player.height(finalH);
+                    // Force strict native dimensions
+                    player.width(vidW);
+                    player.height(vidH);
                 };
 
                 // Listeners for resizing
