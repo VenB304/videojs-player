@@ -118,6 +118,12 @@
                 });
                 playerRef.current = player;
 
+                // Ensure player wrapper is focusable for hotkeys
+                const playerEl = player.el();
+                if (playerEl) {
+                    playerEl.tabIndex = 0;
+                }
+
                 // Set Volume
                 player.ready(() => {
                     player.volume(C.volume);
