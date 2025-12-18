@@ -167,20 +167,21 @@
                                 videoElement.canPlayType('video/mp4; codecs="hev1"') !== "";
 
                             if (!hevcSupported) {
-                                // Non-blocking error handling to allow UI interaction
-                                player.pause();
+                                // Non-blocking monitoring: video 0x0 but audio playing
                                 player.controls(true); // Ensure controls are visible
 
-                                // Create custom error overlay
+                                // Create custom error overlay (Centered Toast)
                                 const errDiv = document.createElement('div');
                                 errDiv.className = 'vjs-hevc-error-overlay';
                                 errDiv.style.position = 'absolute';
-                                errDiv.style.top = '0';
-                                errDiv.style.left = '0';
-                                errDiv.style.width = '100%';
-                                errDiv.style.height = 'calc(100% - 3em)'; // Leave room for control bar
-                                errDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
-                                errDiv.style.zIndex = '1'; // Below control bar (usually z-index 4)
+                                errDiv.style.top = '50%';
+                                errDiv.style.left = '50%';
+                                errDiv.style.transform = 'translate(-50%, -50%)';
+                                errDiv.style.width = 'auto';
+                                errDiv.style.maxWidth = '80%';
+                                errDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+                                errDiv.style.borderRadius = '8px';
+                                errDiv.style.zIndex = '10'; // Above video, below controls
                                 errDiv.style.display = 'flex';
                                 errDiv.style.flexDirection = 'column';
                                 errDiv.style.alignItems = 'center';
@@ -188,10 +189,11 @@
                                 errDiv.style.color = '#fff';
                                 errDiv.style.textAlign = 'center';
                                 errDiv.style.padding = '20px';
+                                errDiv.style.pointerEvents = 'none'; // Click-through to be safe, or auto if text selection needed
                                 errDiv.innerHTML = `
-                                    <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 10px;">Playback Error</div>
-                                    <div>This video uses HEVC (H.265), which your browser does not support.</div>
-                                    <div style="font-size: 0.9em; opacity: 0.8; margin-top: 5px;">Audio may play without video.</div>
+                                    <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 8px;">Video Format Not Supported</div>
+                                    <div style="font-size: 0.9em;">HEVC video is not supported by your browser.</div>
+                                    <div style="font-size: 0.9em; opacity: 0.8; margin-top: 4px;">Audio playing...</div>
                                 `;
 
                                 const playerEl = player.el();
