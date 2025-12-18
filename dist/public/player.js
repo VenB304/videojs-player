@@ -36,6 +36,7 @@
             playbackRates: rawConfig.playbackRates || "0.5, 1, 1.5, 2",
             preload: rawConfig.preload || 'metadata',
             enableHLS: rawConfig.enableHLS ?? false,
+            hevcErrorStyle: rawConfig.hevcErrorStyle || 'overlay',
         };
 
         const VIDEO_EXTS = ['.mp4', '.webm', '.ogv', '.mov'];
@@ -59,6 +60,7 @@
             const containerRef = React.useRef(null);
             const playerRef = React.useRef(null);
             const videoElementRef = React.useRef(null);
+            const hevcErrorShownRef = React.useRef(false);
 
             React.useEffect(() => {
                 console.log("VideoJS Plugin: Mounted with config:", C);
@@ -159,7 +161,8 @@
 
                         const w = player.videoWidth();
                         const h = player.videoHeight();
-                        const isVideo = determineMimeType(props.src).startsWith('video/');
+                        const currentSrc = player.currentSrc();
+                        const isVideo = currentSrc ? determineMimeType(currentSrc).startsWith('video/') : false;
 
                         if (isVideo && (w === 0 || h === 0)) {
                             // Check browser support for HEVC
@@ -167,42 +170,49 @@
                                 videoElement.canPlayType('video/mp4; codecs="hev1"') !== "";
 
                             if (!hevcSupported) {
-                                // Non-blocking monitoring: video 0x0 but audio playing
-                                player.controls(true); // Ensure controls are visible
+                                // HEVC Failure Detected
+                                if (C.hevcErrorStyle === 'toast') {
+                                    // Option A: HFS System Notification
+                                    if (!hevcErrorShownRef.current && HFS && HFS.toast) {
+                                        HFS.toast("Video format not supported (HEVC). Audio playing...", "error");
+                                        hevcErrorShownRef.current = true;
+                                    }
+                                } else {
+                                    // Option B: Player Overlay (Default)
+                                    player.controls(true); // Ensure controls are visible
 
-                                // Create custom error overlay (Centered Toast)
-                                const errDiv = document.createElement('div');
-                                errDiv.className = 'vjs-hevc-error-overlay';
-                                errDiv.style.position = 'absolute';
-                                errDiv.style.top = '50%';
-                                errDiv.style.left = '50%';
-                                errDiv.style.transform = 'translate(-50%, -50%)';
-                                errDiv.style.width = 'auto';
-                                errDiv.style.maxWidth = '80%';
-                                errDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-                                errDiv.style.borderRadius = '8px';
-                                errDiv.style.zIndex = '10'; // Above video, below controls
-                                errDiv.style.display = 'flex';
-                                errDiv.style.flexDirection = 'column';
-                                errDiv.style.alignItems = 'center';
-                                errDiv.style.justifyContent = 'center';
-                                errDiv.style.color = '#fff';
-                                errDiv.style.textAlign = 'center';
-                                errDiv.style.padding = '20px';
-                                errDiv.style.pointerEvents = 'none'; // Click-through to be safe, or auto if text selection needed
-                                errDiv.innerHTML = `
+                                    // Create custom error overlay (Centered Toast)
+                                    const errDiv = document.createElement('div');
+                                    errDiv.className = 'vjs-hevc-error-overlay';
+                                    errDiv.style.position = 'absolute';
+                                    errDiv.style.top = '50%';
+                                    errDiv.style.left = '50%';
+                                    errDiv.style.transform = 'translate(-50%, -50%)';
+                                    errDiv.style.width = 'auto';
+                                    errDiv.style.maxWidth = '80%';
+                                    errDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+                                    errDiv.style.borderRadius = '8px';
+                                    errDiv.style.zIndex = '10'; // Above video, below controls
+                                    errDiv.style.display = 'flex';
+                                    errDiv.style.flexDirection = 'column';
+                                    errDiv.style.alignItems = 'center';
+                                    errDiv.style.justifyContent = 'center';
+                                    errDiv.style.color = '#fff';
+                                    errDiv.style.textAlign = 'center';
+                                    errDiv.style.padding = '20px';
+                                    errDiv.style.pointerEvents = 'none'; // Click-through
+                                    errDiv.innerHTML = `
                                     <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 8px;">Video Format Not Supported</div>
                                     <div style="font-size: 0.9em;">HEVC video is not supported by your browser.</div>
                                     <div style="font-size: 0.9em; opacity: 0.8; margin-top: 4px;">Audio playing...</div>
                                 `;
 
-                                const playerEl = player.el();
-                                if (playerEl) {
-                                    // Remove existing error if any
-                                    const existing = playerEl.querySelector('.vjs-hevc-error-overlay');
-                                    if (existing) existing.remove();
-
-                                    playerEl.appendChild(errDiv);
+                                    const playerEl = player.el();
+                                    if (playerEl) {
+                                        const existing = playerEl.querySelector('.vjs-hevc-error-overlay');
+                                        if (existing) existing.remove();
+                                        playerEl.appendChild(errDiv);
+                                    }
                                 }
                             }
                         }
@@ -242,6 +252,7 @@
                             src: props.src,
                             type: determineMimeType(props.src)
                         });
+                        hevcErrorShownRef.current = false;
                         if (C.autoplay) {
                             player.play();
                         }
