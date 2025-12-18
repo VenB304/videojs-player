@@ -389,6 +389,11 @@
                                 HFS.toast(player.isFullscreen() ? "Exit Fullscreen" : "Fullscreen", "info");
                             }
                         }
+
+                        // DEBUG: Log every end to see if it fires
+                        const delta = now - lastTouchTime;
+                        HFS.toast(`End: ${delta}ms`, "success");
+
                         lastTouchTime = now;
                     };
 
@@ -400,7 +405,8 @@
                         el.addEventListener('touchend', handleTouch, opts);
 
                         // DEBUG: Listen for start and pointer events to trace loss
-                        el.addEventListener('touchstart', () => HFS.toast("DEBUG: TouchStart", "info"), opts);
+                        el.addEventListener('touchstart', () => HFS.toast("Start", "info"), opts);
+                        el.addEventListener('touchcancel', () => HFS.toast("Cancel", "error"), opts);
 
                         player.on('dispose', () => {
                             el.removeEventListener('touchend', handleTouch, opts);
