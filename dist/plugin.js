@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 77;
+exports.version = 78;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -171,14 +171,12 @@ exports.init = api => {
                  */
 
                 const src = ctx.state.fileSource
-                if (!ctx.querystring.startsWith('ffmpeg') || !src) return
+                if (ctx.querystring !== 'ffmpeg' || !src) return
 
                 const username = api.getCurrentUsername(ctx)
 
                 // Allow request to proceed (standard HFS auth checked this already)
                 // We just spawn the transcoder now.
-
-                console.log(`[VideoJS] Incoming FFmpeg request. QS: "${ctx.querystring}"`);
 
                 await new Promise(res => setTimeout(res, 500)) // avoid short-lasting requests
                 if (ctx.socket.closed) return
@@ -193,22 +191,7 @@ exports.init = api => {
                 // Matches quoted sequences or non-space sequences
                 const extraParams = extraParamsStr.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g)?.map(s => s.replace(/^['"]|['"]$/g, '')) || [];
 
-                // Check for seek parameter (time in seconds)
-                // Try ctx.query first (Koa parser), fall back to regex on string
-                let seekTime = ctx.query && ctx.query.seek;
-                if (!seekTime) {
-                    const seekMatch = ctx.querystring.match(/seek=([\d.]+)/);
-                    seekTime = seekMatch ? seekMatch[1] : null;
-                }
-
-                if (seekTime) console.log(`[VideoJS] Seek detected: ${seekTime}`);
-
-                const args = [];
-                if (seekTime) {
-                    args.push('-ss', seekTime);
-                }
-
-                args.push(
+                const proc = spawn(ffmpegPath, [
                     '-i', src,
                     '-f', 'mp4',
                     '-movflags', 'frag_keyframe+empty_moov',
@@ -219,11 +202,7 @@ exports.init = api => {
                     '-preset', 'superfast',
                     ...extraParams,
                     'pipe:1'
-                );
-
-                console.log(`[VideoJS] Spawning FFmpeg. Src: ${src}, Args:`, args);
-
-                const proc = spawn(ffmpegPath, args)
+                ])
 
                 running.set(proc, username)
 

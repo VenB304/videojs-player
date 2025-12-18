@@ -76,52 +76,10 @@
             const videoElementRef = React.useRef(null);
             const hevcErrorShownRef = React.useRef(false);
             const hevcTimeoutRef = React.useRef(null);
-            const startTimeRef = React.useRef(0); // Track start offset for transcoding
 
             // --- Helper: Handle Playback Error (Conversion Integration) ---
             const [conversionMode, setConversionMode] = React.useState(false);
             const isConvertingRef = React.useRef(false);
-
-            // --- Helper: Reload Stream at specific time ---
-            const srcRef = React.useRef(props.src);
-            srcRef.current = props.src; // Keep fresh
-
-            const performSeekRel = (secondsChange) => {
-                const player = playerRef.current;
-                // Use Ref for conversion status to avoid stale closure (since buttons are created once)
-                if (!isConvertingRef.current || !player) {
-                    // Standard seek
-                    if (player) {
-                        let newTime = player.currentTime() + secondsChange;
-                        if (newTime < 0) newTime = 0;
-                        const dur = player.duration();
-                        if (dur && newTime > dur) newTime = dur;
-                        player.currentTime(newTime);
-                    }
-                    return;
-                }
-
-                // Transcoding Seek
-                const currentStreamTime = player.currentTime();
-                const absoluteTime = startTimeRef.current + currentStreamTime;
-                let targetTime = absoluteTime + secondsChange;
-                if (targetTime < 0) targetTime = 0;
-
-                HFS.toast(`Seeking to ${Math.floor(targetTime)}s...`, "info");
-
-                // Update state for next reload
-                startTimeRef.current = targetTime;
-
-                // Cache buster to prevent browser from reusing previous seek request
-                const cb = Date.now();
-                const suffix = `?ffmpeg&seek=${targetTime.toFixed(2)}&_t=${cb}`;
-                const targetSrc = srcRef.current + suffix;
-
-                // Reload
-                console.log(`[VideoJS] Reloading stream: ${targetSrc}`);
-                player.src({ src: targetSrc, type: 'video/mp4' });
-                player.play().catch(() => { });
-            };
 
             // --- Helper: Handle Playback Error (Conversion Integration) ---
             const handlePlaybackError = (player, message = "Video format not supported.") => {
@@ -143,6 +101,9 @@
 
                 // --- Helper: UI State for Transcoding ---
                 React.useEffect(() => {
+                    const player = playerRef.current;
+                    if (!player) return;
+
                     const controlBar = player.getChild('ControlBar');
                     const progressControl = controlBar && controlBar.getChild('ProgressControl');
                     if (progressControl) {
@@ -308,7 +269,11 @@
                             const btnRw = controlBar.addChild('button', {
                                 controlText: `Rewind ${skipTime}s`,
                                 className: 'vjs-visible-text vjs-seek-button vjs-seek-backward',
-                                clickHandler: () => performSeekRel(-skipTime)
+                                clickHandler: () => {
+                                    let newTime = player.currentTime() - skipTime;
+                                    if (newTime < 0) newTime = 0;
+                                    player.currentTime(newTime);
+                                }
                             }, progressIndex); // Insert before ProgressControl
 
                             btnRw.el().innerHTML = `
@@ -325,7 +290,11 @@
                             const btnFwd = controlBar.addChild('button', {
                                 controlText: `Forward ${skipTime}s`,
                                 className: 'vjs-visible-text vjs-seek-button vjs-seek-forward',
-                                clickHandler: () => performSeekRel(skipTime)
+                                clickHandler: () => {
+                                    let newTime = player.currentTime() + skipTime;
+                                    if (newTime > player.duration()) newTime = player.duration();
+                                    player.currentTime(newTime);
+                                }
                             }, progressIndex + 2);
 
                             btnFwd.el().innerHTML = `
@@ -540,63 +509,51 @@
                 window.addEventListener('resize', resizePlayer);
                 setTimeout(resizePlayer, 100);
 
-                // Event Listeners
-                // Check for HEVC failure immediately on metadata load AND on playing
-                const checkHevc = () => {
-                    // Safety check
-                    if (!player || (player.isDisposed && player.isDisposed()) || player.paused() || player.ended()) return;
-
-                    // Only check if we are NOT already converting
-                    if (isConvertingRef.current) return;
-
-                    const w = player.videoWidth();
-                    const h = player.videoHeight();
-
-                    // If dimensions are present, it's likely fine.
-                    if (w > 0 && h > 0) return;
-
-                    const currentSrc = player.currentSrc();
-                    const isVideo = currentSrc ? determineMimeType(currentSrc).startsWith('video/') : false;
-
-                    if (isVideo) {
-                        // Double check browser support purely by string if width is 0
-                        const hevcSupported = videoElement.canPlayType('video/mp4; codecs="hvc1"') !== "" ||
-                            videoElement.canPlayType('video/mp4; codecs="hev1"') !== "";
-
-                        // If we have 0x0 and we suspect HEVC or it's just failing to render
-                        // We wait a tiny bit to be sure it's not just a race condition (metadata vs render)
-                        // But user complained about "1 second delay".
-                        // So we check: if 0x0 and played for > 0.5s ?
-                        // Or just strict: if hevcSupported is false and we are playing mp4 -> FAIL FAST.
-
-                        // Actually, we can check `videoElement.webkitDecodedFrameCount` or similar if available, 
-                        // but `canPlayType` is the best predictor.
-
-                        if (!hevcSupported && (currentSrc.endsWith('.mp4') || currentSrc.endsWith('.mov'))) {
-                            handlePlaybackError(player, "HEVC/Unsupported format detected.");
-                        } else if (w === 0 || h === 0) {
-                            // If ostensibly supported but still 0x0 after a delay
-                            // We re-check in a moment
-                            if (!hevcTimeoutRef.current) {
-                                hevcTimeoutRef.current = setTimeout(() => {
-                                    checkHevc();
-                                }, 250); // Faster check 250ms
-                            }
-                        }
-                    }
-                };
-
-                player.on('loadedmetadata', checkHevc);
+                // Feature: Auto-Focus on Play
                 player.on('playing', () => {
-                    // Feature: Auto-Focus on Play
                     setTimeout(() => {
                         if (videoElementRef.current) {
                             videoElementRef.current.focus();
                         }
                     }, 50);
-
                     checkHevc();
                 });
+
+                // Helper: Check for HEVC failure faster
+                const checkHevc = () => {
+                    if (!player || (player.isDisposed && player.isDisposed()) || player.ended()) return;
+
+                    // Don't check if we are already converting
+                    if (isConvertingRef.current) return;
+
+                    const w = player.videoWidth();
+                    const h = player.videoHeight();
+                    const currentSrc = player.currentSrc();
+                    const isVideo = currentSrc ? determineMimeType(currentSrc).startsWith('video/') : false;
+
+                    // Browser support check
+                    const hevcSupported = videoElement.canPlayType('video/mp4; codecs="hvc1"') !== "" ||
+                        videoElement.canPlayType('video/mp4; codecs="hev1"') !== "";
+
+                    // Condition 1: Browser explicitly says partial/no support, and video is definitely hevc-like extension
+                    if (!hevcSupported && (currentSrc.endsWith('.mp4') || currentSrc.endsWith('.mov') || currentSrc.endsWith('.mkv'))) {
+                        handlePlaybackError(player, "HEVC/Unsupported format detected.");
+                        return;
+                    }
+
+                    // Condition 2: Dimensions are 0x0 while playing (classic hevc black screen)
+                    if (isVideo && (w === 0 || h === 0)) {
+                        // Retry briefly to be sure it's not just loading
+                        if (hevcTimeoutRef.current) clearTimeout(hevcTimeoutRef.current);
+                        hevcTimeoutRef.current = setTimeout(() => {
+                            if (player.videoWidth() === 0) {
+                                handlePlaybackError(player, "HEVC/Unsupported format detected.");
+                            }
+                        }, 250); // Fast check (was 1000)
+                    }
+                };
+
+                player.on('loadedmetadata', checkHevc);
 
                 // Persistence Listeners
                 if (C.persistentVolume) {
@@ -612,6 +569,9 @@
                     // We can save every second.
                     let lastSave = 0;
                     player.on('timeupdate', () => {
+                        // DISABLE RESUME SAVE FOR TRANSCODING
+                        if (isConvertingRef.current) return;
+
                         const now = Date.now();
                         if (now - lastSave > 2000) {
                             const cur = player.currentTime();
@@ -714,93 +674,25 @@
                     }
                 }
 
-                // --- Helper: Reload Stream at specific time (for seeking in converted mode) ---
-                const performSeek = (time) => {
-                    if (!conversionMode || !props.src) return;
-
-                    console.log(`[VideoJS] Seek requested to ${time}s in conversion mode.`);
-                    HFS.toast(`Seeking to ${Math.floor(time)}s...`, "info");
-
-                    const suffix = `?ffmpeg&seek=${time}`;
-                    const targetSrc = props.src + suffix;
-
-                    // Force reload
-                    player.src({
-                        src: targetSrc,
-                        type: 'video/mp4'
-                    });
-                    player.play().catch(e => console.warn("Seek-play blocked:", e));
-                };
-
-                // Listen for seeking event
-                // We need to debounce this to avoid reloading on every scrub tick
-                let seekDebounce = null;
-                const onSeek = () => {
-                    // If we are in conversion mode, standard seeking doesn't work well (stream is just a pipe).
-                    // We intercept it.
-                    if (conversionMode) {
-                        const t = player.currentTime();
-                        // The player UI might let them drag the handle. 
-                        // But wait, if the stream is a pipe, does VideoJS know the duration?
-                        // Usually no, duration is Infinity. So the seek bar might be disabled or infinite.
-                        // IF the browser parsed the MP4 metadata from the pipe, it might have duration.
-
-                        // If duration is Infinity, user can't really seek via UI easily.
-                        // But if they trigger it (e.g. via hotkeys or doubletap), we handle it.
-
-                        // HOWEVER: If we reloaded the stream with `?ffmpeg&seek=X`, the new stream starts at 0.
-                        // So `currentTime` reported by player is relative to the NEW start.
-                        // This makes "seeking to 2:00" difficult if we don't know we are already at 1:00.
-                        // For now, simpler approach:
-                        // We assume the user creates a "new" seek request.
-                        // But since we can't easily track absolute time across reloads without a lot of state, 
-                        // we might rely on the user inputting/pressing seek.
-
-                        // Actually, there is a limit to how good this can be without HLS.
-                        // Let's rely on the user hotkeys/interface. 
-
-                        // CRITICAL: DoubleTap and Hotkeys call player.currentTime(t).
-                        // We need to intercept that method or the event.
-                    }
-                };
-
-                // We override the perform-seek logic in the DoubleTap/Hotkeys to use reload if converting
-
-                // ... (Logic continues in effects)
-
                 if (player && props.src) {
-                    // Check if this is a "seek" reload or standard load
-                    // If we just entered conversion mode, we load standard ffmpeg 
-                    // unless we want to resume?
-
-                    // Helper to build src
-                    const buildSrc = () => {
-                        if (!conversionMode) return props.src;
-                        // default start
-                        return props.src + '?ffmpeg';
-                    };
-
-                    const targetSrc = buildSrc();
-                    // We check currentSrc to avoid loop if URL params match
-                    // But we must be careful about the 'seek' param if we added it manually?
-                    // The state `conversionMode` changes the base strategy. 
-                    // Use `setConversionMode` to trigger this effect.
-
+                    const suffix = conversionMode ? '?ffmpeg' : '';
+                    const targetSrc = props.src + suffix;
                     const currentSrc = player.currentSrc();
-                    const isMatch = currentSrc && currentSrc.includes(encodeURI(props.src)) &&
-                        (conversionMode ? currentSrc.includes('ffmpeg') : !currentSrc.includes('ffmpeg'));
 
-                    if (!isMatch) {
+                    const needsUpdate = !currentSrc || !currentSrc.includes(encodeURI(targetSrc));
+
+                    if (needsUpdate) {
                         console.log(`VideoJS Plugin: Loading ${conversionMode ? 'CONVERTED' : 'STANDARD'} source:`, targetSrc);
                         player.src({
-                            src: targetSrc, // We start at beginning unless notified otherwise
+                            src: targetSrc,
                             type: conversionMode ? 'video/mp4' : determineMimeType(props.src)
                         });
 
                         hevcErrorShownRef.current = false;
-
-                        // Only resume if NOT converting, or if we have a smart way (omitted for stability for now)
-                        if (!conversionMode) attemptResume(props.src);
+                        // Don't resume playback for converted streams as seeking is disabled
+                        if (!conversionMode) {
+                            attemptResume(props.src);
+                        }
 
                         if (C.autoplay || conversionMode) {
                             const p = player.play();
