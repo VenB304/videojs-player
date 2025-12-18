@@ -31,6 +31,8 @@
             controls: rawConfig.controls ?? true,
             volume: (rawConfig.volume ?? 100) / 100,
             sizingMode: rawConfig.sizingMode || 'fluid',
+            fixedWidth: parseInt(rawConfig.fixedWidth) || 0,
+            fixedHeight: parseInt(rawConfig.fixedHeight) || 0,
             playbackRates: rawConfig.playbackRates || "0.5, 1, 1.5, 2",
             preload: rawConfig.preload || 'metadata',
             enableHLS: rawConfig.enableHLS ?? false,
@@ -40,11 +42,15 @@
 
         function determineMimeType(src) {
             const ext = src.substring(src.lastIndexOf('.')).toLowerCase();
-            if (ext === '.webm') return 'video/webm';
-            if (ext === '.ogv') return 'video/ogg';
+            if (ext === '.webm')
+                return 'video/webm';
+            if (ext === '.ogv')
+                return 'video/ogg';
             if (C.enableHLS) {
-                if (ext === '.mkv') return 'video/webm'; // Trick for MKV
-                if (ext === '.m3u8') return 'application/x-mpegURL'; // HLS
+                if (ext === '.mkv')
+                    return 'video/webm'; // Trick for MKV
+                if (ext === '.m3u8')
+                    return 'application/x-mpegURL'; // HLS
             }
             return 'video/mp4';
         }
@@ -132,9 +138,12 @@
                     const vidH = player.videoHeight();
                     if (!vidW || !vidH) return;
 
-                    // Force strict native dimensions
-                    player.width(vidW);
-                    player.height(vidH);
+                    // Force strict native dimensions or custom fixed override
+                    const finalW = C.fixedWidth > 0 ? C.fixedWidth : vidW;
+                    const finalH = C.fixedHeight > 0 ? C.fixedHeight : vidH;
+
+                    player.width(finalW);
+                    player.height(finalH);
                 };
 
                 // Listeners for resizing

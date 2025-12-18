@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 32;
+exports.version = 33;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -26,6 +26,8 @@ exports.config = {
         label: "Sizing Mode",
         frontend: true
     },
+    fixedWidth: { type: 'number', defaultValue: 0, min: 0, label: "Fixed Width (px)", helperText: "Only for Fixed mode. 0 = intrinsic video width", frontend: true },
+    fixedHeight: { type: 'number', defaultValue: 0, min: 0, label: "Fixed Height (px)", helperText: "Only for Fixed mode. 0 = intrinsic video height", frontend: true },
     playbackRates: { type: 'string', defaultValue: "0.5, 1, 1.5, 2", label: "Playback Rates", helperText: "Comma separated numbers", frontend: true },
     preload: {
         type: 'select',
