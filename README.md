@@ -3,7 +3,7 @@
 Upgrade your HFS streaming experience with [Video.js](https://videojs.com/) - a modern, responsive, and highly configurable HTML5 video player.
 
 ## Preview
-
+unmute for audio
 <video src="https://github.com/user-attachments/assets/bf499c4d-008e-4f81-a5c5-c79fc7e523ee" controls="controls" width="100%"></video>
 
 ## 🌟 Capabilities
@@ -43,9 +43,9 @@ This plugin replaces the basic default player with a professional-grade alternat
 | :---: | :---: |
 | <img src="https://github.com/user-attachments/assets/ae8501c2-a97f-4fc3-8f6e-a15a4e815923" width="400" /> | <img src="https://github.com/user-attachments/assets/e288eb92-ac04-4ff6-b4b9-b5ec4c738081" width="400" /> |
 
-| **7. Advanced** | |
-| :---: | :--- |
-| <img src="https://github.com/user-attachments/assets/13d034a6-a145-46d1-b1cf-5885b0700de7" width="400" /> | |
+| **7. Advanced** | **8. Transcoding** |
+| :---: | :---: |
+| <img src="https://github.com/user-attachments/assets/13d034a6-a145-46d1-b1cf-5885b0700de7" width="400" /> | <img src="https://github.com/user-attachments/assets/871ffe8f-59a1-4f06-b56e-11241bf514d0" width="400" /> |
 
 </details>
 
@@ -88,8 +88,8 @@ Settings are organized into categories in **Admin Panel > Plugins > videojs-play
 | :--- | :--- | :--- |
 | **Show Controls** | Toggle the control bar. | `On` |
 | **Controls Hide Delay** | Time (ms) before controls fade out. `0` = always visible. | `2000` |
-| **Show Seek Buttons** | Adds -10s / +10s buttons to the control bar. | `On` |
-| **Show Download Button** | Adds a download icon (⬇) to controls. | `On` |
+| **Show Seek Buttons** | Adds Rewind/Forward buttons to the control bar. | `On` |
+| **Show Download Button** | Adds a Download button to the control bar. | `On` |
 
 ### 3. Keyboard Shortcuts
 | Setting | Description | Default |
@@ -107,7 +107,7 @@ Settings are organized into categories in **Admin Panel > Plugins > videojs-play
 ### 5. Appearance
 | Setting | Description | Default |
 | :--- | :--- | :--- |
-| **Player Theme** | Choose a skin: `Default`, `City`, `Fantasy`, `Forest`, `Sea`. | `Default` |
+| **Player Theme** | Choose a skin: `Standard`, `City`, `Fantasy`, `Forest`, `Sea`. | `Standard` |
 | **HEVC Error Style** | How to handle unsupported formats (if transcoding is off):<br>• `Overlay`: Shows error on player.<br>• `System Notification`: Small toast popup. | `Overlay` |
 
 ### 6. Mobile Experience
@@ -115,7 +115,7 @@ Settings are organized into categories in **Admin Panel > Plugins > videojs-play
 | :--- | :--- | :--- |
 | **Double Tap to Seek** | Double-tap sides of screen to seek. Center to toggle fullscreen. | `On` |
 | **Seek Time** | Seconds to skip on double-tap. | `10` |
-| **Auto-Rotate** | Automatically lock to landscape in fullscreen (mobile only). | `On` |
+| **Auto-Rotate** | Automatically lock to landscape in fullscreen (android only). | `On` |
 
 ### 7. Advanced / Transcoding
 | Setting | Description | Default |
@@ -129,30 +129,40 @@ Settings are organized into categories in **Admin Panel > Plugins > videojs-play
 
 ## 🛠️ Troubleshooting
 
-### Autoplay stops working
-*   Modern browsers (Chrome, Safari) often block autoplay with sound. Enable **Start Muted** in settings to allow autoplay.
+### Common Playback Issues
+*   **"The media could not be loaded..."**: This generic error usually means the file type is unsupported by your browser (e.g. HEVC in Chrome Windows) or the network connection failed.
+*   **Autoplay Blocked**: Browsers often block autoplay with sound. Enable **Start Muted** in settings to fix this.
 
-### "Video format not supported" (HEVC/H.265)
-*   **Cause**: The video uses the HEVC codec, which browsers like Chrome (on Windows) do not natively support.
-*   **Solution**:
-    1.  Go to **Admin / Plugins / videojs-player / "Advanced / Experimental"** settings.
-    2.  Enable **Use FFmpeg for unsupported videos**.
-    3.  Ensure **FFmpeg** is installed on your server.
-    4.  Point **FFmpeg Path** to the absolute path of `ffmpeg.exe`.
-    5.  (Optional) Add extra flags for FFmpeg (e.g. hardware acceleration) to **FFmpeg Parameters**.
-    6.  Save Configuration.
+### Transcoding / FFmpeg Issues
+If "Use FFmpeg" is enabled but videos still fail:
+1.  **Check Permissions**: If you are not logged in, ensure **Allow Guest Transcoding** is enabled in the plugin settings.
+2.  **Rate Limiting (Error 429)**: The server limits the number of simultaneous conversions (Default: 3 global, 1 per user). Pass videojs-player config to increase this if your server is powerful.
+3.  **Performance**: High CPU usage? Add hardware acceleration flags (e.g., `-hwaccel auto`) to **FFmpeg Parameters**.
+4.  **Error Logs**: Check the server console (HFS terminal) for `VideoJS FFmpeg Error` messages.
 
-### Video is cut off or too big
-*   Check your **Sizing Mode**. **Fluid** is best for general use. **Fill** acts like `object-fit: cover` and will crop if the aspect ratio doesn't match.
+### Mobile & Touch
+*   **Double Tap**: Works on the left/right 30% of the screen. The center area toggles fullscreen.
+*   **Auto-Rotate**: Only works on Android devices playing in Fullscreen. Requires correct HTTPS context in some browsers.
+
+### Layout Problems
+*   **Video Cut Off**: Switch **Sizing Mode** to `Fluid` or `Native`. `Fill` mode crops video to cover the container (like Instagram stories).
 
 ---
 
 ## 👨‍💻 Technical Details
 
-This plugin uses a **React ForwardRef** wrapper to integrate Video.js 8.x with certain HFS-specific features:
-*   **Event Proxy**: Proxies the `ended` event to HFS so "Play Next" works automatically.
-*   **Client-Side Persistence**: Uses `localStorage` for volume and resume playback (no server database needed).
-*   **Middleware**: Intercepts requests with `?ffmpeg` query string to pipe FFmpeg output directly to the client.
+### Architecture
+This plugin bridges **HFS (Server)** and **Video.js (Client)** using a hybrid approach:
+*   **Backend (`plugin.js`)**: A Koa middleware intercepts requests containing `?ffmpeg`. It spawns a native `ffmpeg` process and pipes the output (`stdout`) directly to the HTTP response as an MP4 stream.
+    *   *Security*: Input parameters are sanitized. Processes are strictly managed and killed if the request ends or the client disconnects.
+*   **Frontend (`player.js`)**: A **React** component wraps the Video.js instance.
+    *   *Proxy*: A hidden "dummy" video element exists to satisfy HFS's playlist logic (handling `ended` events to trigger "Play Next").
+    *   *State*: Volume and playback position are saved to `localStorage`, enabling persistent settings without server-side databases.
+
+### FFmpeg Integration
+The transcoding pipeline is **on-demand (Live)**:
+`Source Video` -> `FFmpeg Process` -> `Pipe` -> `Browser`
+No temporary files are created on disk. This ensures low latency but requires a stable CPU.
 
 ---
-# Sponsored by Google's Antigravity, Gemini 3 Pro and 1 Year Google AI Pro for Students
+## Sponsored by Google's Antigravity, Gemini 3 Pro and 1 Year Google AI Pro for Students
