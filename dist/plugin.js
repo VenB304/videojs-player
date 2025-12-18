@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 71;
+exports.version = 72;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -61,8 +61,24 @@ exports.config = {
         frontend: true
     },
 
-    fixedWidth: { type: 'number', defaultValue: 640, min: 0, label: "Fixed Width (px)", helperText: "0 = intrinsic size", frontend: true },
-    fixedHeight: { type: 'number', defaultValue: 360, min: 0, label: "Fixed Height (px)", helperText: "0 = intrinsic size", frontend: true },
+    fixedWidth: {
+        type: 'number',
+        defaultValue: 640,
+        min: 0,
+        label: "Fixed Width (px)",
+        helperText: "0 = intrinsic size",
+        frontend: true,
+        showIf: x => x.sizingMode === 'native'
+    },
+    fixedHeight: {
+        type: 'number',
+        defaultValue: 360,
+        min: 0,
+        label: "Fixed Height (px)",
+        helperText: "0 = intrinsic size",
+        frontend: true,
+        showIf: x => x.sizingMode === 'native'
+    },
 
 
     // === 5. Appearance ===
@@ -93,9 +109,9 @@ exports.config = {
 
 
     // === 6. Mobile Experience ===
-    enableDoubleTap: { type: 'boolean', defaultValue: true, label: "Double Tap to Seek", frontend: true },
-    doubleTapSeekSeconds: { type: 'number', defaultValue: 10, min: 1, label: "Double Tap Seek Time (s)", frontend: true },
-    autoRotate: { type: 'boolean', defaultValue: true, label: "Mobile Auto-Rotate", frontend: true },
+    enableDoubleTap: { type: 'boolean', defaultValue: true, label: "Double Tap to Seek", helperText: "Double tap at the sides of the screen to seek forward/backward", frontend: true },
+    doubleTapSeekSeconds: { type: 'number', defaultValue: 10, min: 1, label: "Double Tap Seek Time (s)", helperText: "Seconds to seek on double tap", frontend: true },
+    autoRotate: { type: 'boolean', defaultValue: true, label: "Mobile Auto-Landscape", helperText: "Automatically enter landscape mode when in fullscreen", frontend: true },
 
 
     // === 7. Advanced / Experimental ===
@@ -147,6 +163,12 @@ exports.init = api => {
                 // Only intercept if we are enabled AND querystring is ffmpeg
                 const transcodingEnabled = api.getConfig('enable_ffmpeg_transcoding');
                 if (!transcodingEnabled) return;
+
+                /* 
+                 * LIVE TRANSCODING LOGIC
+                 * Adapted from @rejetto/unsupported-videos plugin
+                 * Credits to Rejetto for the original implementation.
+                 */
 
                 const src = ctx.state.fileSource
                 if (ctx.querystring !== 'ffmpeg' || !src) return
