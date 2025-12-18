@@ -79,6 +79,10 @@
                 // Parse playback rates
                 const rates = C.playbackRates.split(',').map(r => parseFloat(r.trim())).filter(n => !isNaN(n));
 
+                // Determine Video.js sizing options
+                const isPyramid = C.fillContainer; // Fill Container takes precedence
+                const isFluid = !isPyramid && C.sizingMode === 'fluid';
+
                 // Initialize Video.js
                 const player = videojs(videoElement, {
                     controls: C.controls,
@@ -86,8 +90,8 @@
                     loop: C.loop,
                     muted: C.muted,
                     preload: C.preload,
-                    fluid: C.sizingMode === 'fluid', // Built-in fluid mode
-                    fill: C.sizingMode === 'fluid',
+                    fluid: isFluid,
+                    fill: isPyramid,
                     playbackRates: rates.length ? rates : [0.5, 1, 1.5, 2],
                     sources: [{
                         src: props.src,
@@ -119,7 +123,7 @@
 
                 // --- Custom Sizing Logic ---
                 const resizePlayer = () => {
-                    if (C.sizingMode === 'fluid') return; // Video.js handles this
+                    if (isFluid || isPyramid) return; // Video.js handles these
 
                     const el = player.el();
                     if (!el) return;
