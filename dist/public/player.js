@@ -79,15 +79,18 @@
 
             // --- Helper: Handle Playback Error (Conversion Integration) ---
             const [conversionMode, setConversionMode] = React.useState(false);
+            const isConvertingRef = React.useRef(false);
 
             // --- Helper: Handle Playback Error (Conversion Integration) ---
             const handlePlaybackError = (player, message = "Video format not supported.") => {
                 // Check if integration is enabled
                 if (C.integration_unsupported_videos) {
-                    if (!conversionMode) {
+                    // Check if we already attempted conversion (via Ref to avoid closure staleness)
+                    if (!isConvertingRef.current) {
                         // Attempt to switch to conversion stream
                         console.log("[VideoJS] Unsupported video detected. Switching to streaming conversion...");
                         HFS.toast("Unsupported format. Attempting conversion...", "info");
+                        isConvertingRef.current = true;
                         setConversionMode(true);
                         return;
                     } else {
@@ -115,10 +118,17 @@
                         errDiv.className = 'vjs-hevc-error-overlay';
                         // Style it...
                         errDiv.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:auto;max-width:80%;background:rgba(0,0,0,0.8);border-radius:8px;z-index:10;padding:20px;color:#fff;text-align:center;pointer-events:none;';
+
+                        // Custom message for generic network/unsupported error
+                        let displayMessage = message;
+                        if (message.includes("The media could not be loaded")) {
+                            displayMessage = "Playback Failed: Format not supported or network error.";
+                        }
+
                         errDiv.innerHTML = `
                              <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 8px;">Playback Error</div>
-                             <div style="font-size: 0.9em;">${message}</div>
-                             ${conversionMode ? '<div style="font-size: 0.8em; opacity: 0.7; margin-top: 5px;">Conversion failed. Check plugin config (ffmpeg).</div>' : ''}
+                             <div style="font-size: 0.9em;">${displayMessage}</div>
+                             ${isConvertingRef.current ? '<div style="font-size: 0.8em; opacity: 0.7; margin-top: 5px;">Conversion failed. Check plugin config (ffmpeg).</div>' : ''}
                         `;
                         playerEl.appendChild(errDiv);
                     }
@@ -632,6 +642,7 @@
                     // If the base src is different, reset conversion
                     if (currentSrc && !currentSrc.includes(encodeURI(props.src))) {
                         setConversionMode(false);
+                        isConvertingRef.current = false;
                     }
                 }
 
