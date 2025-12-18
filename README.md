@@ -10,7 +10,8 @@ Upgrade your HFS streaming experience with [Video.js](https://videojs.com/) - a 
 <img width="383" height="828" alt="image" src="https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018" />
 
 ### Admin
-<img width="890" height="861" alt="image" src="https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690" />
+<img width="406" height="633" alt="image" src="https://github.com/user-attachments/assets/935d257b-8fa6-4b09-b08b-ab2223b624d6" />
+<img width="405" height="638" alt="image" src="https://github.com/user-attachments/assets/90b56696-db79-4000-acab-5a5ea86c0e3b" />
 
 
 ## 🌟 Why use this plugin?
@@ -18,7 +19,7 @@ Upgrade your HFS streaming experience with [Video.js](https://videojs.com/) - a 
 The default HFS player is functional but basic. This plugin replaces it with a professional-grade player used by millions of websites. It allows for:
 - **Sequential Playback**: Fully integrates with HFS's autoplay to play the next file automatically.
 - **Enhanced UX**: Includes **seek buttons (+/- 10s)**, **download button**, and **keyboard hotkeys**.
-- **Mobile Friendly**: Supports double-tap to fullscreen and touch gestures.
+- **Mobile Friendly**: Supports double-tap to fullscreen.
 - **Better Format Support**: Adds experimental support for **MKV** and **HLS (.m3u8)** streams.
 - **Responsive Design**: Looks great on mobile and desktop, with multiple sizing modes.
 - **Customizable**: Extensive configuration options available directly in the HFS Admin Panel.
