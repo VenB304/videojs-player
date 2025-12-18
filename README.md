@@ -42,9 +42,9 @@ You can customize the player behavior in **Admin Panel > Plugins > videojs-playe
 ### Playback Settings
 | Setting | Description | Default |
 | :--- | :--- | :--- |
-| **Autoplay** | Automatically plays the video when loaded. Essential for HFS playslists ("Play All") to work seamlessly. | `On` |
+| **Autoplay** | Automatically plays the video when loaded. | `On` |
 | **Loop** | Restarts the video from the beginning every time it finishes. | `Off` |
-| **Start Muted** | Forces the video to start at 0% volume. **Highly Recommended** if you experience autoplay issues, as many browsers block unmuted autoplay. | `Off` |
+| **Start Muted** | Forces the video to start at 0% volume. | `Off` |
 | **Default Volume** | Sets the initial volume (0 to 100). | `100` |
 | **Show Controls** | Toggle the bottom control bar (play, volume, seek, fullscreen). | `On` |
 
