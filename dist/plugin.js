@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 84;
+exports.version = 85;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -211,6 +211,24 @@ exports.config = {
         defaultValue: '',
         helperText: "Additional FFmpeg params (e.g. for hardware accel)",
         showIf: x => (x.config_tab === 'all' || x.config_tab === 'advanced') && x.enable_ffmpeg_transcoding
+    },
+
+    // === 8. Transcoding Limits & Security ===
+    transcoding_concurrency: {
+        showIf: x => (x.config_tab === 'all' || x.config_tab === 'advanced') && x.enable_ffmpeg_transcoding,
+        type: 'number', defaultValue: 3, min: 1, max: 50, label: "Max Global Concurrent Streams", helperText: "Limit total number of active conversions", frontend: true
+    },
+    transcoding_allow_anonymous: {
+        showIf: x => (x.config_tab === 'all' || x.config_tab === 'advanced') && x.enable_ffmpeg_transcoding,
+        type: 'boolean', defaultValue: true, label: "Allow Guest Transcoding", helperText: "If disabled, only logged-in users can stream", frontend: true
+    },
+    transcoding_rate_limit_per_user: {
+        showIf: x => (x.config_tab === 'all' || x.config_tab === 'advanced') && x.enable_ffmpeg_transcoding && !x.transcoding_allow_anonymous,
+        type: 'number', defaultValue: 1, min: 1, max: 10, label: "Max Streams Per User", helperText: "Limit active conversions per account", frontend: true
+    },
+    transcoding_allowed_users: {
+        showIf: x => (x.config_tab === 'all' || x.config_tab === 'advanced') && x.enable_ffmpeg_transcoding && !x.transcoding_allow_anonymous,
+        type: 'username', multiple: true, label: "Allowed Users (Whitelist)", helperText: "Leave empty to allow all logged-in users", frontend: true
     }
 
 };
@@ -252,10 +270,37 @@ exports.init = api => {
                 const src = ctx.state.fileSource
                 if (ctx.querystring !== 'ffmpeg' || !src) return
 
-                const username = api.getCurrentUsername(ctx)
+                const username = api.getCurrentUsername(ctx);
 
-                // Allow request to proceed (standard HFS auth checked this already)
-                // We just spawn the transcoder now.
+                // --- Access Control ---
+                const allowAnonymous = api.getConfig('transcoding_allow_anonymous');
+                if (!allowAnonymous) {
+                    if (!username) return ctx.status = 401; // Unauthorized
+
+                    const allowedUsers = api.getConfig('transcoding_allowed_users');
+                    if (allowedUsers && allowedUsers.length > 0 && !api.ctxBelongsTo(ctx, allowedUsers)) {
+                        return ctx.status = 403; // Forbidden
+                    }
+                }
+
+                // --- Concurrency Limits ---
+                const maxGlobal = api.getConfig('transcoding_concurrency');
+                const maxPerUser = !allowAnonymous ? api.getConfig('transcoding_rate_limit_per_user') : 0;
+
+                // Count active processes
+                if (running.size >= maxGlobal) {
+                    return ctx.status = 429; // Too Many Requests
+                }
+
+                if (maxPerUser > 0) {
+                    let userCount = 0;
+                    for (const u of running.values()) {
+                        if (u === username) userCount++;
+                    }
+                    if (userCount >= maxPerUser) {
+                        return ctx.status = 429; // Too Many Requests
+                    }
+                }
 
                 await new Promise(res => setTimeout(res, 500)) // Debounce: avoid short-lasting requests spawning ffmpeg
                 if (ctx.socket.closed) return

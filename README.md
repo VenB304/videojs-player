@@ -2,20 +2,20 @@
 
 Upgrade your HFS streaming experience with [Video.js](https://videojs.com/) - a modern, responsive, and highly configurable HTML5 video player.
 
+## Preview
+
+<video src="https://github.com/user-attachments/assets/bf499c4d-008e-4f81-a5c5-c79fc7e523ee" controls="controls" width="100%"></video>
+
 ## 🌟 Capabilities
 
 This plugin replaces the basic default player with a professional-grade alternative used by millions of websites.
 
 *   **📺 Modern & Responsive**: Looks stunning on any device, from desktops to mobile phones.
 *   **📱 Mobile Optimized**: Native-like gestures including **double-tap to seek**, **auto-rotate**, and touch-friendly controls.
-*   **🔁 Live Transcoding**: Integrated **FFmpeg support** to play unsupported formats (HEVC/H.265) on the fly.
+*   **🔁 Live Transcoding**: Integrated **FFmpeg support** to play unsupported formats (HEVC/H.265) on the fly. Thanks to @rejetto for the original code from their [unsupported-videos](https://github.com/rejetto/unsupported-videos) plugin.
 *   **⏯️ Smart Playback**: Features **auto-resume** (remembers where you left off), **persistent volume**, and sequential playback.
 *   **🎛️ Highly Configurable**: Organized settings menu in HFS Admin Panel to customize themes, hotkeys, sizing, and more.
 *   **🛠️ Advanced Format Support**: Experimental support for **MKV** containers and **HLS (.m3u8)** streaming.
-
-## Preview
-
-<video src="https://github.com/user-attachments/assets/bf499c4d-008e-4f81-a5c5-c79fc7e523ee" controls="controls" width="100%"></video>
 
 <details>
 <summary><b>📸 Click to view Photo Preview</b></summary>
