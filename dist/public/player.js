@@ -328,15 +328,42 @@
                     }
                 }
 
-                // --- Feature 4: Mobile Double-Tap Fullscreen ---
-                let lastTouch = 0;
+                // --- Feature 4: Mobile Double-Tap Gestures ---
+                let lastTouchTime = 0;
                 const handleTouch = (e) => {
                     const now = Date.now();
-                    if (now - lastTouch < 300) {
-                        // Double tap detected
-                        if (player.isFullscreen()) player.exitFullscreen(); else player.requestFullscreen();
+                    // Double tap threshold: 300ms
+                    if (now - lastTouchTime < 300) {
+                        e.preventDefault(); // Prevent zoom/default
+
+                        // Calculate touch position
+                        const touch = e.changedTouches[0];
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const x = touch.clientX - rect.left;
+                        const width = rect.width;
+                        const pct = x / width;
+
+                        if (pct < 0.3) {
+                            // Left 30%: Rewind 10s
+                            let newTime = player.currentTime() - 10;
+                            if (newTime < 0) newTime = 0;
+                            player.currentTime(newTime);
+
+                            // Visual feedback? (Optional, maybe just seek is enough)
+                            HFS.toast("Rewind 10s", "info");
+                        } else if (pct > 0.7) {
+                            // Right 30%: Forward 10s
+                            let newTime = player.currentTime() + 10;
+                            if (newTime > player.duration()) newTime = player.duration();
+                            player.currentTime(newTime);
+
+                            HFS.toast("Forward 10s", "info");
+                        } else {
+                            // Center 40%: Fullscreen Toggle
+                            if (player.isFullscreen()) player.exitFullscreen(); else player.requestFullscreen();
+                        }
                     }
-                    lastTouch = now;
+                    lastTouchTime = now;
                 };
 
                 const el = player.el();
