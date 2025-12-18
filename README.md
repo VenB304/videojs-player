@@ -15,7 +15,17 @@ This plugin replaces the basic default player with a professional-grade alternat
 
 ## Preview
 
-https://github.com/user-attachments/assets/bf499c4d-008e-4f81-a5c5-c79fc7e523ee
+<video src="https://github.com/user-attachments/assets/bf499c4d-008e-4f81-a5c5-c79fc7e523ee" controls="controls" width="100%"></video>
+
+<details>
+<summary><b>📸 Click to view Photo Preview</b></summary>
+<br>
+
+| Desktop | Mobile |
+| :---: | :---: |
+| <img src="https://github.com/user-attachments/assets/452f3a64-a5cf-4ae4-83f6-76f58faa298d" width="100%" /> | <img src="https://github.com/user-attachments/assets/32097ed1-1c42-4be7-ba3b-0ae9c979ba95" width="100%" /> |
+
+</details>
 
 <details>
 <summary><b>📸 Click to view Admin Settings</b></summary>
