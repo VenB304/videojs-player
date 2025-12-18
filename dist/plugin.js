@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 83;
+exports.version = 84;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -219,6 +219,10 @@ exports.init = api => {
     const running = new Map() // key=process, value=username
     const { spawn } = api.require('child_process')
 
+    /**
+     * Terminate a process safely
+     * @param {import('child_process').ChildProcess} proc 
+     */
     function terminate(proc) {
         proc.kill()
         setTimeout(() => proc.kill('SIGKILL'), 10_000)
@@ -229,6 +233,10 @@ exports.init = api => {
             for (const proc of running.keys())
                 terminate(proc)
         },
+        /**
+         * Middleware to intercept ?ffmpeg requests and stream converted video
+         * @param {object} ctx - Koa context
+         */
         middleware: async ctx => {
             return async () => { // wait for fileSource to be available
                 // Only intercept if we are enabled AND querystring is ffmpeg
@@ -249,18 +257,20 @@ exports.init = api => {
                 // Allow request to proceed (standard HFS auth checked this already)
                 // We just spawn the transcoder now.
 
-                await new Promise(res => setTimeout(res, 500)) // avoid short-lasting requests
+                await new Promise(res => setTimeout(res, 500)) // Debounce: avoid short-lasting requests spawning ffmpeg
                 if (ctx.socket.closed) return
 
-                // Max processes check could go here if we added those configs, 
-                // but keeping it simple as per user request to just "integrate it".
-
+                // SECURITY NOTE: These configs are Admin-only.
+                // We assume the Admin does not want to hack their own server.
+                // However, we should be careful about injection if we ever expose this to non-admins.
                 const ffmpegPath = api.getConfig('ffmpeg_path') || 'ffmpeg';
                 const extraParamsStr = api.getConfig('ffmpeg_parameters') || '';
 
-                // Naive argument parsing for extra params (handles basic spaces)
-                // Matches quoted sequences or non-space sequences
+                // Naive argument parsing for extra params (handles basic spaces and quotes)
                 const extraParams = extraParamsStr.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g)?.map(s => s.replace(/^['"]|['"]$/g, '')) || [];
+
+                // Sanitize src? HFS usually provides a clean absolute path in fileSource.
+                // But just in case, we trust the `spawn` array method to handle argument escaping for the shell.
 
                 const proc = spawn(ffmpegPath, [
                     '-i', src,

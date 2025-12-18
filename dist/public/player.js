@@ -70,16 +70,31 @@
             return 'video/mp4';
         }
 
+        /**
+         * Video.js Player Component
+         * Wraps the Video.js library in a React component.
+         */
         const VideoJsPlayer = React.forwardRef((props, ref) => {
             const containerRef = React.useRef(null);
             const playerRef = React.useRef(null);
             const videoElementRef = React.useRef(null);
+            const dummyVideoRef = React.useRef(null); // PROXY for HFS Play Next
             const hevcErrorShownRef = React.useRef(false);
             const hevcTimeoutRef = React.useRef(null);
 
             // --- Helper: Handle Playback Error (Conversion Integration) ---
             const [conversionMode, setConversionMode] = React.useState(false);
             const isConvertingRef = React.useRef(false);
+
+            // Calculate styles for Render
+            let cssClasses = 'video-js vjs-big-play-centered';
+            if (C.theme !== 'default') {
+                cssClasses += ` vjs-theme-${C.theme}`;
+            }
+            const videoStyle = {};
+            if (C.sizingMode === 'fill') {
+                videoStyle.objectFit = 'cover';
+            }
 
             // --- Helper: Handle Playback Error (Conversion Integration) ---
             const handlePlaybackError = (player, message = "Video format not supported.") => {
@@ -187,31 +202,14 @@
             React.useEffect(() => {
                 console.log("VideoJS Plugin: Mounted with config:", C);
 
-                const videoElement = document.createElement('video');
-                let cssClasses = 'video-js vjs-big-play-centered';
-                if (C.theme !== 'default') {
-                    cssClasses += ` vjs-theme-${C.theme}`;
-                }
-                videoElement.className = cssClasses;
-                if (C.sizingMode === 'fill') {
-                    videoElement.style.objectFit = 'cover';
-                }
-                if (C.sizingMode === 'fill') {
-                    videoElement.style.objectFit = 'cover';
-                }
-                videoElement.tabIndex = 0; // Ensure vjs-tech is focusable
-                videoElementRef.current = videoElement;
+                const videoElement = videoElementRef.current;
+                const dummyVideo = dummyVideoRef.current;
 
-                // --- Dummy Video Proxy for HFS Autoplay ---
-                const dummyVideo = document.createElement('video');
-                dummyVideo.className = 'showing';
-                dummyVideo.style.display = 'none';
+                if (!videoElement || !dummyVideo) return; // Should not happen
+
+                // --- Dummy Video Settings ---
+                // Monkey patch play to satisfy HFS checking
                 dummyVideo.play = () => Promise.resolve();
-
-                if (containerRef.current) {
-                    containerRef.current.appendChild(videoElement);
-                    containerRef.current.appendChild(dummyVideo);
-                }
 
                 // Parse playback rates
                 const rates = C.playbackRates.split(',').map(r => parseFloat(r.trim())).filter(n => !isNaN(n));
@@ -222,6 +220,7 @@
                 const isFill = mode === 'fill';
 
                 // Initialize Video.js
+                // Pass existing element ref
                 const player = videojs(videoElement, {
                     controls: C.controls,
                     autoplay: C.autoplay,
@@ -331,11 +330,6 @@
                                 }
                             });
                             // Use a standard download icon if available or text
-                            // VideoJS font char \f105 is download-alt in some versions, or standard download.
-                            // Let's use generic CSS or SVG if needed. VideoJS doesn't guarantee a download icon in default font.
-                            // We will use a simple unicode or SVG or generic icon.
-                            // Safe bet: text or standard icon. Let's try standard share/download.
-                            // Actually VideoJS 7+ usually has icons.
                             btnDl.el().innerHTML = `
                                 <svg viewBox="0 0 24 24" fill="white" width="22" height="22" style="vertical-align: middle;">
                                     <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
@@ -536,17 +530,6 @@
                     const hevcSupported = videoElement.canPlayType('video/mp4; codecs="hvc1"') !== "" ||
                         videoElement.canPlayType('video/mp4; codecs="hev1"') !== "";
 
-                    // Condition 1: REMOVED.
-                    // We cannot assume .mp4 is HEVC just because browser doesn't support HEVC.
-                    // Standard H.264 .mp4 files would fail this check if we just check extensions.
-
-                    /*
-                    if (!hevcSupported && (currentSrc.endsWith('.mp4') || currentSrc.endsWith('.mov') || currentSrc.endsWith('.mkv'))) {
-                        handlePlaybackError(player, "HEVC/Unsupported format detected.");
-                        return;
-                    } 
-                    */
-
                     // Condition 2: Dimensions are 0x0 while playing (classic hevc black screen)
                     if (isVideo && (w === 0 || h === 0)) {
                         // Retry briefly to be sure it's not just loading
@@ -632,7 +615,11 @@
                         }
                     }
                     if (props.onEnded) props.onEnded();
-                    dummyVideo.dispatchEvent(new Event('ended'));
+
+                    // Dispatch ended on proxy for HFS
+                    if (dummyVideoRef.current) {
+                        dummyVideoRef.current.dispatchEvent(new Event('ended'));
+                    }
                 });
                 player.on('error', () => {
                     // Intercept generic errors
@@ -646,11 +633,7 @@
                 });
 
                 return () => {
-                    // Note: wrapper listeners (on containerRef) removed automatically by React unmount?
-                    // No, manual ones on containerRef needs removal if attached there.
-                    // But we moved them to player.el() which is disposed by player.dispose() -> player.on('dispose', ...) logic covers it.
-                    // However, just in case logic fails or we need cleaner unmount:
-
+                    // Cleanup
                     if (document.pictureInPictureElement === videoElementRef.current) {
                         try {
                             document.exitPictureInPicture();
@@ -661,8 +644,7 @@
                     if (hevcTimeoutRef.current) clearTimeout(hevcTimeoutRef.current);
                     window.removeEventListener('resize', resizePlayer);
                     if (player) player.dispose();
-                    if (videoElement && videoElement.parentNode) videoElement.parentNode.removeChild(videoElement);
-                    if (dummyVideo && dummyVideo.parentNode) dummyVideo.parentNode.removeChild(dummyVideo);
+                    // React removes the video elements automatically since we render them
                 };
             }, []);
 
@@ -709,11 +691,31 @@
                 }
             }, [props.src, conversionMode]);
 
+            // Render with valid Structure
             return h('div', {
                 'data-vjs-player': true,
-                ref: containerRef,
+                ref: containerRef, // Still strictly needed? VideoJS might move the video element.
+                // Actually VideoJS replaces the <video> tag with a wrapper div if not standard.
+                // Modern React practice: <div data-vjs-player><video ref /></div>
+                // The ref {containerRef} was likely used to append child manually.
+                // We can keep it or remove it. Better keep it for safety if styling relies on it.
                 style: { display: 'contents' }
-            });
+            }, [
+                h('video', {
+                    ref: videoElementRef,
+                    className: cssClasses,
+                    style: videoStyle,
+                    tabIndex: 0
+                    // Props like controls/autoplay handled by VJS init, but good to mirror? 
+                    // No, VJS init handles them.
+                }),
+                // Dummy video for HFS
+                h('video', {
+                    ref: dummyVideoRef,
+                    className: 'showing',
+                    style: { display: 'none' }
+                })
+            ]);
         });
 
         HFS.onEvent('fileShow', (params) => {
