@@ -29,6 +29,8 @@ exports.config = {
     showDownloadButton: { type: 'boolean', defaultValue: true, label: "Show Download Button", helperText: "Adds a download icon to control bar", frontend: true },
     enableHotkeys: { type: 'boolean', defaultValue: true, label: "Enable Hotkeys", helperText: "Keyboard shortcuts (Space, F, Arrows, M)", frontend: true },
     autoRotate: { type: 'boolean', defaultValue: true, label: "Mobile Auto-Rotate", helperText: "Automatically rotate to landscape in fullscreen", frontend: true },
+    enableDoubleTap: { type: 'boolean', defaultValue: true, label: "Double Tap to Seek", helperText: "Enable double tap gestures on mobile", frontend: true },
+    doubleTapSeekSeconds: { type: 'number', defaultValue: 10, min: 1, label: "Double Tap Seek Time (s)", helperText: "Seconds to seek on double tap", frontend: true },
     theme: {
         type: 'select',
         defaultValue: 'default',

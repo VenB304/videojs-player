@@ -42,6 +42,8 @@
             persistentVolume: rawConfig.persistentVolume ?? true,
             resumePlayback: rawConfig.resumePlayback ?? true,
             autoRotate: rawConfig.autoRotate ?? true,
+            enableDoubleTap: rawConfig.enableDoubleTap ?? true,
+            doubleTapSeekSeconds: parseInt(rawConfig.doubleTapSeekSeconds) || 10,
             hevcErrorStyle: rawConfig.hevcErrorStyle || 'overlay',
             theme: rawConfig.theme || 'default',
         };
@@ -329,49 +331,52 @@
                 }
 
                 // --- Feature 4: Mobile Double-Tap Gestures ---
-                let lastTouchTime = 0;
-                const handleTouch = (e) => {
-                    const now = Date.now();
-                    // Double tap threshold: 300ms
-                    if (now - lastTouchTime < 300) {
-                        e.preventDefault(); // Prevent zoom/default
+                if (C.enableDoubleTap) {
+                    let lastTouchTime = 0;
+                    const handleTouch = (e) => {
+                        const now = Date.now();
+                        // Double tap threshold: 300ms
+                        if (now - lastTouchTime < 300) {
+                            e.preventDefault(); // Prevent zoom/default
 
-                        // Calculate touch position
-                        const touch = e.changedTouches[0];
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        const x = touch.clientX - rect.left;
-                        const width = rect.width;
-                        const pct = x / width;
+                            // Calculate touch position
+                            const touch = e.changedTouches[0];
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const x = touch.clientX - rect.left;
+                            const width = rect.width;
+                            const pct = x / width;
 
-                        if (pct < 0.3) {
-                            // Left 30%: Rewind 10s
-                            let newTime = player.currentTime() - 10;
-                            if (newTime < 0) newTime = 0;
-                            player.currentTime(newTime);
+                            const seekSeconds = C.doubleTapSeekSeconds;
 
-                            // Visual feedback? (Optional, maybe just seek is enough)
-                            HFS.toast("Rewind 10s", "info");
-                        } else if (pct > 0.7) {
-                            // Right 30%: Forward 10s
-                            let newTime = player.currentTime() + 10;
-                            if (newTime > player.duration()) newTime = player.duration();
-                            player.currentTime(newTime);
+                            if (pct < 0.3) {
+                                // Left 30%: Rewind
+                                let newTime = player.currentTime() - seekSeconds;
+                                if (newTime < 0) newTime = 0;
+                                player.currentTime(newTime);
 
-                            HFS.toast("Forward 10s", "info");
-                        } else {
-                            // Center 40%: Fullscreen Toggle
-                            if (player.isFullscreen()) player.exitFullscreen(); else player.requestFullscreen();
+                                HFS.toast(`Rewind ${seekSeconds}s`, "info");
+                            } else if (pct > 0.7) {
+                                // Right 30%: Forward
+                                let newTime = player.currentTime() + seekSeconds;
+                                if (newTime > player.duration()) newTime = player.duration();
+                                player.currentTime(newTime);
+
+                                HFS.toast(`Forward ${seekSeconds}s`, "info");
+                            } else {
+                                // Center 40%: Fullscreen Toggle
+                                if (player.isFullscreen()) player.exitFullscreen(); else player.requestFullscreen();
+                            }
                         }
-                    }
-                    lastTouchTime = now;
-                };
+                        lastTouchTime = now;
+                    };
 
-                const el = player.el();
-                if (el) {
-                    el.addEventListener('touchend', handleTouch);
-                    player.on('dispose', () => {
-                        el.removeEventListener('touchend', handleTouch);
-                    });
+                    const el = player.el();
+                    if (el) {
+                        el.addEventListener('touchend', handleTouch);
+                        player.on('dispose', () => {
+                            el.removeEventListener('touchend', handleTouch);
+                        });
+                    }
                 }
 
 
