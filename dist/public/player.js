@@ -39,6 +39,7 @@
             showSeekButtons: rawConfig.showSeekButtons ?? true,
             showDownloadButton: rawConfig.showDownloadButton ?? true,
             enableHotkeys: rawConfig.enableHotkeys ?? true,
+            autoRotate: rawConfig.autoRotate ?? true,
             hevcErrorStyle: rawConfig.hevcErrorStyle || 'overlay',
             theme: rawConfig.theme || 'default',
         };
@@ -348,6 +349,11 @@
 
                 // Event Listeners
                 player.on('playing', () => {
+                    // Feature: Auto-Focus on Play
+                    if (videoElement.parentElement) {
+                        videoElement.parentElement.focus();
+                    }
+
                     // Check for hidden HEVC playback failure (Audio plays, Video is 0x0)
                     if (hevcTimeoutRef.current) clearTimeout(hevcTimeoutRef.current);
 
@@ -413,6 +419,25 @@
                             }
                         }
                     }, 1000);
+                });
+
+                // Feature: Auto-Rotate on Mobile Fullscreen
+                player.on('fullscreenchange', () => {
+                    if (C.autoRotate && screen.orientation && screen.orientation.lock) {
+                        if (player.isFullscreen()) {
+                            // Only rotate if video is wider than tall (Landscape-ish)
+                            const vidW = player.videoWidth();
+                            const vidH = player.videoHeight();
+                            if (vidW > vidH) {
+                                screen.orientation.lock("landscape").catch((err) => {
+                                    // Expected on desktop or unsupported devices, silent ignore
+                                    // console.log("Orientation lock failed:", err);
+                                });
+                            }
+                        } else {
+                            screen.orientation.unlock();
+                        }
+                    }
                 });
 
                 player.on('play', () => {
