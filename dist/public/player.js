@@ -72,6 +72,36 @@
             const hevcErrorShownRef = React.useRef(false);
             const hevcTimeoutRef = React.useRef(null);
 
+            // --- Helper: Resume Playback ---
+            const attemptResume = (src) => {
+                if (!C.resumePlayback || !src) return;
+
+                const resumeKey = `vjs-resume-${src.split('/').pop()}`;
+                const savedTime = localStorage.getItem(resumeKey);
+
+                if (savedTime) {
+                    const t = parseFloat(savedTime);
+                    if (!isNaN(t) && t > 1) {
+                        // console.log(`[Resume] Found saved time for ${src}: ${t}`);
+                        const applyResume = () => {
+                            const p = playerRef.current;
+                            if (!p) return;
+                            const dur = p.duration();
+                            if (!dur || (dur - t > 5)) { // Don't resume if near end
+                                p.currentTime(t);
+                                HFS.toast(`Resumed playback`, "info");
+                            }
+                        };
+
+                        const p = playerRef.current;
+                        if (p) {
+                            p.one('loadedmetadata', applyResume);
+                            if (p.readyState() > 0) applyResume();
+                        }
+                    }
+                }
+            };
+
             React.useEffect(() => {
                 console.log("VideoJS Plugin: Mounted with config:", C);
 
@@ -145,22 +175,9 @@
                 });
 
                 // --- Feature: Resume Playback ---
-                // We use the file name as a key. 
-                const resumeKey = `vjs-resume-${props.src ? props.src.split('/').pop() : 'video'}`;
-
                 if (C.resumePlayback) {
                     player.ready(() => {
-                        const savedTime = localStorage.getItem(resumeKey);
-                        if (savedTime) {
-                            const t = parseFloat(savedTime);
-                            // Only resume if valid and not near the end (95% or < 5s remaining)
-                            // We can't know duration exactly until metadata loaded, but we can try slightly delayed or just set it.
-                            // VideoJS handles setting currentTime before metadata well usually.
-                            if (!isNaN(t) && t > 1) {
-                                // console.log("Resuming at", t);
-                                player.currentTime(t);
-                            }
-                        }
+                        attemptResume(props.src);
                     });
                 }
 
@@ -337,34 +354,43 @@
                         const now = Date.now();
                         // Double tap threshold: 300ms
                         if (now - lastTouchTime < 300) {
-                            e.preventDefault(); // Prevent zoom/default
+                            e.preventDefault(); // Prevent zoom/default browser actions
 
-                            // Calculate touch position
+                            // Calculate touch position relative to the player
                             const touch = e.changedTouches[0];
                             const rect = e.currentTarget.getBoundingClientRect();
                             const x = touch.clientX - rect.left;
                             const width = rect.width;
                             const pct = x / width;
 
+                            // Sanity check
+                            if (width === 0) return;
+
                             const seekSeconds = C.doubleTapSeekSeconds;
+
+                            // Debug log for troubleshooting
+                            console.log(`[DoubleTap] x:${x} w:${width} pct:${pct.toFixed(2)} target:${e.target.tagName}`);
 
                             if (pct < 0.3) {
                                 // Left 30%: Rewind
                                 let newTime = player.currentTime() - seekSeconds;
                                 if (newTime < 0) newTime = 0;
                                 player.currentTime(newTime);
-
                                 HFS.toast(`Rewind ${seekSeconds}s`, "info");
                             } else if (pct > 0.7) {
                                 // Right 30%: Forward
                                 let newTime = player.currentTime() + seekSeconds;
                                 if (newTime > player.duration()) newTime = player.duration();
                                 player.currentTime(newTime);
-
                                 HFS.toast(`Forward ${seekSeconds}s`, "info");
                             } else {
                                 // Center 40%: Fullscreen Toggle
-                                if (player.isFullscreen()) player.exitFullscreen(); else player.requestFullscreen();
+                                if (player.isFullscreen()) {
+                                    player.exitFullscreen();
+                                } else {
+                                    player.requestFullscreen();
+                                }
+                                HFS.toast(player.isFullscreen() ? "Exit Fullscreen" : "Fullscreen", "info");
                             }
                         }
                         lastTouchTime = now;
@@ -585,6 +611,7 @@
                 };
             }, []);
 
+
             React.useEffect(() => {
                 const player = playerRef.current;
                 if (player && props.src) {
@@ -596,6 +623,9 @@
                             type: determineMimeType(props.src)
                         });
                         hevcErrorShownRef.current = false;
+
+                        attemptResume(props.src);
+
                         if (C.autoplay) {
                             player.play();
                         }
