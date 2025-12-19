@@ -54,16 +54,22 @@
             theme: rawConfig.theme || 'default',
             inactivityTimeout: parseInt(rawConfig.inactivityTimeout) || 2000,
             enable_ffmpeg_transcoding: rawConfig.enable_ffmpeg_transcoding ?? false,
+            enableAudio: rawConfig.enableAudio ?? false,
         };
 
         const VIDEO_EXTS = ['.mp4', '.webm', '.ogv', '.mov'];
+        const AUDIO_EXTS = ['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac'];
 
         function determineMimeType(src) {
             const ext = src.substring(src.lastIndexOf('.')).toLowerCase();
-            if (ext === '.webm')
-                return 'video/webm';
-            if (ext === '.ogv')
-                return 'video/ogg';
+            if (ext === '.webm') return 'video/webm';
+            if (ext === '.ogv' || ext === '.ogg') return 'video/ogg';
+            if (ext === '.mp3') return 'audio/mpeg';
+            if (ext === '.wav') return 'audio/wav';
+            if (ext === '.m4a') return 'audio/mp4';
+            if (ext === '.aac') return 'audio/aac';
+            if (ext === '.flac') return 'audio/flac';
+
             if (C.enableHLS) {
                 if (ext === '.mkv')
                     return 'video/webm'; // Trick for MKV
@@ -774,8 +780,12 @@
 
             // Check extensions
             if (!VIDEO_EXTS.includes(ext)) {
+                // Check Audio
+                if (C.enableAudio && AUDIO_EXTS.includes(ext)) {
+                    // Allowed
+                }
                 // If not in standard list, check if HLS allows it
-                if (!enableHLS || (ext !== '.m3u8' && ext !== '.mkv')) {
+                else if (!enableHLS || (ext !== '.m3u8' && ext !== '.mkv')) {
                     return;
                 }
             }
