@@ -46,6 +46,9 @@
             resumePlayback: rawConfig.resumePlayback ?? true,
             autoRotate: rawConfig.autoRotate ?? true,
             enableDoubleTap: rawConfig.enableDoubleTap ?? true,
+            enableScrollVolume: rawConfig.enableScrollVolume ?? true,
+            enablePiP: rawConfig.enablePiP ?? true,
+            doubleTapSeekSeconds: parseInt(rawConfig.doubleTapSeekSeconds) || 10,
             doubleTapSeekSeconds: parseInt(rawConfig.doubleTapSeekSeconds) || 10,
             hevcErrorStyle: rawConfig.hevcErrorStyle || 'overlay',
             theme: rawConfig.theme || 'default',
@@ -231,6 +234,9 @@
                     fill: isFill,
                     playbackRates: rates.length ? rates : [0.5, 1, 1.5, 2],
                     inactivityTimeout: C.inactivityTimeout,
+                    controlBar: {
+                        pictureInPictureToggle: C.enablePiP
+                    },
                     sources: [] // Initialize empty, let useEffect handle source
                 });
                 playerRef.current = player;
@@ -314,6 +320,10 @@
                     player.ready(() => {
                         const controlBar = player.getChild('ControlBar');
                         if (controlBar) {
+                            // Find FullscreenToggle to insert before it
+                            const fsToggle = controlBar.getChild('FullscreenToggle');
+                            const insertIndex = fsToggle ? controlBar.children().indexOf(fsToggle) : undefined;
+
                             const btnDl = controlBar.addChild('button', {
                                 controlText: "Download Video",
                                 className: 'vjs-download-button',
@@ -328,7 +338,8 @@
                                         document.body.removeChild(a);
                                     }
                                 }
-                            });
+                            }, insertIndex);
+
                             // Use a standard download icon if available or text
                             btnDl.el().innerHTML = `
                                 <svg viewBox="0 0 24 24" fill="white" width="22" height="22" style="vertical-align: middle;">
@@ -459,6 +470,42 @@
 
                         player.on('dispose', () => {
                             el.removeEventListener('touchend', handleTouch, opts);
+                        });
+                    }
+                }
+
+                // --- Feature 5: Scroll for Volume ---
+                if (C.enableScrollVolume) {
+                    const handleWheel = (e) => {
+                        // Only handle vertical scroll
+                        if (e.deltaY === 0) return;
+
+                        e.preventDefault();
+
+                        // Determine direction
+                        const step = C.hotkeyVolumeStep;
+                        const currentVol = player.volume();
+                        let newVol = currentVol;
+
+                        if (e.deltaY < 0) {
+                            // Scroll Up -> Increase Volume
+                            newVol = Math.min(currentVol + step, 1);
+                        } else {
+                            // Scroll Down -> Decrease Volume
+                            newVol = Math.max(currentVol - step, 0);
+                        }
+
+                        if (newVol !== currentVol) {
+                            player.volume(newVol);
+                            player.userActive(true); // Wake up controls so volume bar is seen
+                        }
+                    };
+
+                    const el = player.el();
+                    if (el) {
+                        el.addEventListener('wheel', handleWheel, { passive: false });
+                        player.on('dispose', () => {
+                            el.removeEventListener('wheel', handleWheel);
                         });
                     }
                 }
@@ -634,7 +681,7 @@
 
                 return () => {
                     // Cleanup
-                    if (document.pictureInPictureElement === videoElementRef.current) {
+                    if (videoElementRef.current && document.pictureInPictureElement === videoElementRef.current) {
                         try {
                             document.exitPictureInPicture();
                         } catch (e) {
