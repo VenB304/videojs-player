@@ -96,6 +96,7 @@
             // --- Helper: Handle Playback Error (Conversion Integration) ---
             const [conversionMode, setConversionMode] = React.useState(false);
             const isConvertingRef = React.useRef(false);
+            const [seekOffset, setSeekOffset] = React.useState(0);  // Track virtual start time for transcoding
 
             const [overlayState, setOverlayState] = React.useState(null); // { message, type, show }
 
@@ -797,11 +798,19 @@
                     if (currentSrc && !decodeURI(currentSrc).includes(decodeURI(props.src))) {
                         setConversionMode(false);
                         isConvertingRef.current = false;
+                        setSeekOffset(0);
                     }
                 }
 
                 if (player && props.src) {
-                    const suffix = conversionMode ? '?ffmpeg' : '';
+                    let suffix = '';
+                    if (conversionMode) {
+                        suffix = '?ffmpeg';
+                        if (seekOffset > 0) {
+                            suffix += `&startTime=${seekOffset}`;
+                        }
+                    }
+
                     const targetSrc = props.src + suffix;
                     const currentSrc = player.currentSrc();
 
@@ -840,7 +849,34 @@
                         }
                     }
                 }
-            }, [props.src, conversionMode]);
+
+                // Listen for seeking in conversion mode to trigger virtual seek (reload)
+                if (conversionMode) {
+                    const handleSeeking = () => {
+                        const currentTime = player.currentTime();
+                        // Ignore seek to 0 (initial load)
+                        if (currentTime === 0) return;
+
+                        // Debounce seek
+                        if (player._seekTimeout) clearTimeout(player._seekTimeout);
+                        player._seekTimeout = setTimeout(() => {
+                            console.log("[VideoJS] Transcoding seek detected to relative:", currentTime);
+                            const newOffset = seekOffset + currentTime;
+                            setSeekOffset(newOffset);
+                            notify(player, `Seeking to ${Math.round(newOffset)}s...`, "info", 2000);
+                        }, 500);
+                    };
+
+                    // We bind a one-off or distinct listener? 
+                    // Since useEffect dependencies change, we will re-bind.
+                    player.on('seeking', handleSeeking);
+                    return () => {
+                        player.off('seeking', handleSeeking);
+                        if (player._seekTimeout) clearTimeout(player._seekTimeout);
+                    };
+                }
+
+            }, [props.src, conversionMode, seekOffset]);
 
 
 

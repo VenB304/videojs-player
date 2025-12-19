@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 98;
+exports.version = 99;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -370,18 +370,33 @@ exports.init = api => {
                 // Sanitize src? HFS usually provides a clean absolute path in fileSource.
                 // But just in case, we trust the `spawn` array method to handle argument escaping for the shell.
 
-                const proc = spawn(ffmpegPath, [
-                    '-i', src,
-                    '-f', 'mp4',
-                    '-movflags', 'frag_keyframe+empty_moov',
-                    '-vcodec', 'libx264',
-                    '-pix_fmt', 'yuv420p',
-                    '-acodec', 'aac',
-                    '-strict', '-2',
-                    '-preset', 'superfast',
-                    ...extraParams,
-                    'pipe:1'
-                ])
+                // Seek support
+                const startTime = parseFloat(ctx.query.startTime || 0);
+
+                const mkArgs = (src, start, extra) => {
+                    const args = [];
+                    // Input seeking is faster: -ss before -i
+                    if (start > 0) {
+                        args.push('-ss', String(start));
+                    }
+                    args.push('-i', src);
+                    args.push(
+                        '-f', 'mp4',
+                        '-movflags', 'frag_keyframe+empty_moov',
+                        '-vcodec', 'libx264',
+                        '-pix_fmt', 'yuv420p',
+                        '-acodec', 'aac',
+                        '-strict', '-2',
+                        '-preset', 'superfast'
+                    );
+                    if (extra && extra.length > 0) {
+                        args.push(...extra);
+                    }
+                    args.push('pipe:1');
+                    return args;
+                }
+
+                const proc = spawn(ffmpegPath, mkArgs(src, startTime, extraParams));
 
                 running.set(proc, username)
 
