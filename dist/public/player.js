@@ -836,12 +836,13 @@
                             const p = player.play();
                             if (p && p.catch) {
                                 p.catch(e => {
+                                    // Ignore errors if we are converting (since we expect an abort on switch)
+                                    if (isConvertingRef.current) return;
+
                                     console.warn("Auto-play blocked:", e);
-                                    // Show a hint to the user if blocked, but only if not converting (converting manages its own state)
-                                    if (!conversionMode && !player.paused()) {
-                                        // It thinks it's playing but blocked? Usually paused() is true if blocked.
-                                    }
-                                    if (!conversionMode && player.paused()) {
+                                    if (!player.paused()) {
+                                        // It thinks it's playing?
+                                    } else {
                                         notify(player, "Click to Play (Autoplay Blocked)", "info", 0); // 0 = persistent
                                     }
                                 });
@@ -855,16 +856,16 @@
                     const handleSeeking = () => {
                         const currentTime = player.currentTime();
                         // Ignore seek to 0 (initial load)
-                        if (currentTime === 0) return;
+                        if (currentTime < 0.5) return;
 
                         // Debounce seek
                         if (player._seekTimeout) clearTimeout(player._seekTimeout);
                         player._seekTimeout = setTimeout(() => {
-                            console.log("[VideoJS] Transcoding seek detected to relative:", currentTime);
+                            console.log("[VideoJS] Transcoding seek detected. Relative:", currentTime, "Offset:", seekOffset);
                             const newOffset = seekOffset + currentTime;
                             setSeekOffset(newOffset);
                             notify(player, `Seeking to ${Math.round(newOffset)}s...`, "info", 2000);
-                        }, 500);
+                        }, 600);
                     };
 
                     // We bind a one-off or distinct listener? 
@@ -877,6 +878,15 @@
                 }
 
             }, [props.src, conversionMode, seekOffset]);
+
+            // Clear timeout on unmount
+            React.useEffect(() => {
+                return () => {
+                    if (playerRef.current && playerRef.current._seekTimeout) {
+                        clearTimeout(playerRef.current._seekTimeout);
+                    }
+                };
+            }, []);
 
 
 
