@@ -657,12 +657,8 @@
 
                 player.on('play', () => {
                     // Remove error overlay if retrying or playing new source
-                    const playerEl = player.el();
-                    if (playerEl) {
-                        const existing = playerEl.querySelector('.vjs-custom-overlay');
-                        // Only remove if it's an error one? Or just clear invalid state?
-                        if (existing && existing.textContent.includes('Error')) existing.style.opacity = '0';
-                    }
+                    setOverlayState(prev => (prev && prev.type === 'error') ? { ...prev, show: false } : prev);
+
                     if (props.onPlay) props.onPlay();
                 });
                 player.on('ended', () => {
@@ -731,12 +727,15 @@
 
                     if (needsUpdate) {
                         console.log(`VideoJS Plugin: Loading ${conversionMode ? 'CONVERTED' : 'STANDARD'} source:`, targetSrc);
+
+                        // Clear previous errors/overlays
+                        setOverlayState(null);
+                        errorShownRef.current = false;
+
                         player.src({
                             src: targetSrc,
                             type: conversionMode ? 'video/mp4' : determineMimeType(props.src)
                         });
-
-                        errorShownRef.current = false;
                         // Don't resume playback for converted streams as seeking is disabled
                         if (!conversionMode) {
                             attemptResume(props.src);
