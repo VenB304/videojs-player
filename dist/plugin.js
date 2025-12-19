@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 97;
+exports.version = 98;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -39,7 +39,7 @@ exports.config = {
     // === 1. Core Playback ===
     autoplay: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
-        type: 'boolean', defaultValue: true, label: "Autoplay", frontend: true
+        type: 'boolean', defaultValue: true, label: "Autoplay", helperText: "Automatically start video", frontend: true
     },
     muted: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
@@ -47,7 +47,7 @@ exports.config = {
     },
     loop: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
-        type: 'boolean', defaultValue: false, label: "Loop", frontend: true
+        type: 'boolean', defaultValue: false, label: "Loop", helperText: "Repeat video when finished", frontend: true
     },
     preload: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
@@ -55,16 +55,18 @@ exports.config = {
         defaultValue: 'metadata',
         options: { 'Metadata': 'metadata', 'Auto': 'auto', 'None': 'none' },
         label: "Preload Strategy",
+        helperText: "How to load video data",
         frontend: true
     },
     enableAudio: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
         type: 'boolean', defaultValue: false, label: "Enable Audio Support", helperText: "Use this player for mp3, wav, etc.", frontend: true
     },
-    enableSubtitles: {
+    enableSubtitlePluginIntegration: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
-        type: 'boolean', defaultValue: true, label: "Enable Subtitles", helperText: "Auto-load .vtt files with same filename", frontend: true
+        type: 'boolean', defaultValue: true, label: "Integrate with HFS-Subtitles", helperText: "Uses hfs-subtitles plugin for advanced subtitles if installed", frontend: true
     },
+
     resumePlayback: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
         type: 'boolean', defaultValue: true, label: "Resume Playback", helperText: "Continue from last position", frontend: true
@@ -110,7 +112,7 @@ exports.config = {
     },
     enablePiP: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'controls',
-        type: 'boolean', defaultValue: true, label: "Enable Picture-in-Picture", frontend: true
+        type: 'boolean', defaultValue: true, label: "Enable Picture-in-Picture", helperText: "Show Picture-in-Picture button", frontend: true
     },
 
 
@@ -121,11 +123,11 @@ exports.config = {
     },
     hotkeySeekStep: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'keys',
-        type: 'number', defaultValue: 5, min: 1, label: "Hotkey Seek Time (s)", frontend: true
+        type: 'number', defaultValue: 5, min: 1, label: "Hotkey Seek Time (s)", helperText: "Seconds to skip", frontend: true
     },
     hotkeyVolumeStep: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'keys',
-        type: 'number', defaultValue: 10, min: 1, max: 100, label: "Hotkey Volume Step (%)", frontend: true
+        type: 'number', defaultValue: 10, min: 1, max: 100, label: "Hotkey Volume Step (%)", helperText: "Percent to change", frontend: true
     },
 
 

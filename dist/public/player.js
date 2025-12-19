@@ -55,7 +55,8 @@
             inactivityTimeout: parseInt(rawConfig.inactivityTimeout) || 2000,
             enable_ffmpeg_transcoding: rawConfig.enable_ffmpeg_transcoding ?? false,
             enableAudio: rawConfig.enableAudio ?? false,
-            enableSubtitles: rawConfig.enableSubtitles ?? true,
+            enableSubtitlePluginIntegration: rawConfig.enableSubtitlePluginIntegration ?? true,
+
         };
 
         const VIDEO_EXTS = ['.mp4', '.webm', '.ogv', '.mov'];
@@ -281,18 +282,7 @@
                 // Attempt to load sidecar subtitle (blind guess)
                 // We guess format .vtt or .srt (VideoJS mainly supports VTT natively, others maybe with plugins)
                 // But let's try VTT first.
-                if (C.enableSubtitles && !isAudio && props.src) {
-                    const vttSrc = props.src.substring(0, props.src.lastIndexOf('.')) + '.vtt';
-                    // We can't easily check 404 client side without a request, so just add it.
-                    // If it errors, console will whine but player survives.
-                    player.addRemoteTextTrack({
-                        kind: 'captions',
-                        label: 'English / Sidecar',
-                        srclang: 'en',
-                        src: vttSrc,
-                        default: false
-                    }, false);
-                }
+
 
                 // Ensure player wrapper is focusable for hotkeys
                 const playerEl = player.el();
@@ -810,103 +800,6 @@
                     }
                 }
 
-                // --- Advanced Subtitle Support (Drag & Drop + SRT Conversion) ---
-                if (C.enableSubtitles) {
-                    // Helper: Convert SRT to WebVTT
-                    const srt2webvtt = (data) => {
-                        let vtt = "WEBVTT\n\n";
-                        // Remove potential BOM
-                        data = data.replace(/^\uFEFF/, '');
-                        // Convert commas to dots in timestamps
-                        vtt += data.replace(/(\d\d:\d\d:\d\d),(\d\d\d)/g, '$1.$2');
-                        return vtt;
-                    };
-
-                    const handleDrop = (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-
-                        const dt = e.dataTransfer;
-                        if (dt.files && dt.files.length) {
-                            const file = dt.files[0];
-                            const name = file.name.toLowerCase();
-
-                            if (name.endsWith('.vtt') || name.endsWith('.srt')) {
-                                const reader = new FileReader();
-                                reader.onload = (evt) => {
-                                    let content = evt.target.result;
-
-                                    // Convert if SRT
-                                    if (name.endsWith('.srt')) {
-                                        content = srt2webvtt(content);
-                                    }
-
-                                    const blob = new Blob([content], { type: 'text/vtt' });
-                                    const url = URL.createObjectURL(blob);
-
-                                    player.addRemoteTextTrack({
-                                        kind: 'captions',
-                                        label: file.name,
-                                        srclang: 'en',
-                                        src: url,
-                                        default: true
-                                    }, true); // Manual cleanup? VJS usually handles track disposal
-
-                                    notify(player, `Loaded Subtitle: ${file.name}`, "success", 2000);
-                                };
-                                reader.readAsText(file);
-                            } else {
-                                notify(player, "Ignored: Not a .vtt or .srt file", "info", 2000);
-                            }
-                        }
-                    };
-
-                    const handleDragOver = (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        // Optional: Add visual drag indicator
-                    };
-
-                    const el = player.el();
-                    if (el) {
-                        el.addEventListener('drop', handleDrop);
-                        el.addEventListener('dragover', handleDragOver);
-
-                        player.on('dispose', () => {
-                            el.removeEventListener('drop', handleDrop);
-                            el.removeEventListener('dragover', handleDragOver);
-                        });
-                    }
-
-                    // --- Feature: Button to Load Subtitle from URL ---
-                    player.ready(() => {
-                        const controlBar = player.getChild('ControlBar');
-                        if (controlBar) {
-                            // Add "CC+" button
-                            const btnCC = controlBar.addChild('button', {
-                                controlText: "Load Subtitle (URL)",
-                                className: 'vjs-load-subs-button',
-                                clickHandler: () => {
-                                    const url = prompt("Enter Caption/Subtitle URL (.vtt or .srt):");
-                                    if (url) {
-                                        player.addRemoteTextTrack({
-                                            kind: 'captions',
-                                            label: 'Custom URL',
-                                            src: url,
-                                            default: true
-                                        }, true);
-                                        notify(player, "Subtitle URL Added", "success", 2000);
-                                    }
-                                }
-                            });
-                            // Icon
-                            btnCC.el().innerHTML = `<svg viewBox="0 0 24 24" fill="white" width="20" height="20" style="vertical-align: middle;"><path d="M19 4H5c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 7H7.5v-1.5h-2v3h2V11H11v2H5.5v-3H11v1zm7 0h-3.5v-1.5h-2v3h2V11H18v2h-5.5v-3H18v1z"/></svg>`;
-                            btnCC.el().title = "Load Subtitle from URL";
-                            btnCC.el().style.cursor = "pointer";
-                        }
-                    });
-                }
-
                 if (player && props.src) {
                     const suffix = conversionMode ? '?ffmpeg' : '';
                     const targetSrc = props.src + suffix;
@@ -972,7 +865,7 @@
                     className: cssClasses,
                     style: videoStyle,
                     tabIndex: 0
-                }),
+                }, props.children),
                 // React-Native Overlay Component (Integrated)
                 (overlayState && overlayState.show) ? h('div', {
                     className: 'vjs-custom-overlay',
@@ -1026,7 +919,13 @@
                     return;
                 }
             }
-            params.Component = VideoJsPlayer;
+            // Integration with HFS-Subtitles
+            // We only wrap if enabled and the API exists
+            const ComponentToUse = (C.enableSubtitlePluginIntegration && HFS.markVideoComponent)
+                ? HFS.markVideoComponent(VideoJsPlayer)
+                : VideoJsPlayer;
+
+            params.Component = ComponentToUse;
         });
     } else {
         console.error("VideoJS Plugin: React/Preact not found on window or HFS. Plugin execution aborted.");
