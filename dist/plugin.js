@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 96;
+exports.version = 97;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -60,6 +60,10 @@ exports.config = {
     enableAudio: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
         type: 'boolean', defaultValue: false, label: "Enable Audio Support", helperText: "Use this player for mp3, wav, etc.", frontend: true
+    },
+    enableSubtitles: {
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
+        type: 'boolean', defaultValue: true, label: "Enable Subtitles", helperText: "Auto-load .vtt files with same filename", frontend: true
     },
     resumePlayback: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'core',

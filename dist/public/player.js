@@ -55,6 +55,7 @@
             inactivityTimeout: parseInt(rawConfig.inactivityTimeout) || 2000,
             enable_ffmpeg_transcoding: rawConfig.enable_ffmpeg_transcoding ?? false,
             enableAudio: rawConfig.enableAudio ?? false,
+            enableSubtitles: rawConfig.enableSubtitles ?? true,
         };
 
         const VIDEO_EXTS = ['.mp4', '.webm', '.ogv', '.mov'];
@@ -209,6 +210,26 @@
 
                 if (!videoElement || !dummyVideo) return; // Should not happen
 
+                // --- Inject Custom Styles for Audio Mode ---
+                if (!document.getElementById('vjs-custom-styles')) {
+                    const style = document.createElement('style');
+                    style.id = 'vjs-custom-styles';
+                    style.innerHTML = `
+                        .vjs-audio-mode { background-color: transparent !important; }
+                        .vjs-audio-mode .vjs-tech { display: none; }
+                        .vjs-audio-mode .vjs-poster { display: none; }
+                        .vjs-audio-mode .vjs-big-play-button { display: none; }
+                        .vjs-audio-mode .vjs-control-bar { 
+                            display: flex !important; 
+                            visibility: visible !important; 
+                            opacity: 1 !important; 
+                            background-color: rgba(0,0,0,0.5); 
+                            border-radius: 8px;
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+
                 // --- Dummy Video Settings ---
                 // Monkey patch play to satisfy HFS checking
                 dummyVideo.play = () => Promise.resolve();
@@ -221,6 +242,12 @@
                 const isFluid = mode === 'fluid';
                 const isFill = mode === 'fill';
 
+                // Detect Audio Mode
+                const isAudio = C.enableAudio && (
+                    determineMimeType(props.src || '').startsWith('audio/') ||
+                    AUDIO_EXTS.some(ext => (props.src || '').toLowerCase().endsWith(ext))
+                );
+
                 // Initialize Video.js
                 // Pass existing element ref
                 const player = videojs(videoElement, {
@@ -229,16 +256,43 @@
                     loop: C.loop,
                     muted: C.muted,
                     preload: C.preload,
-                    fluid: isFluid,
-                    fill: isFill,
+                    fluid: isFluid && !isAudio, // Audio shouldn't be fluid (usually)
+                    fill: isFill && !isAudio,
+                    height: isAudio ? 50 : undefined,
                     playbackRates: rates.length ? rates : [0.5, 1, 1.5, 2],
                     inactivityTimeout: C.inactivityTimeout,
                     controlBar: {
-                        pictureInPictureToggle: C.enablePiP
+                        pictureInPictureToggle: C.enablePiP && !isAudio,
+                        fullscreenToggle: !isAudio
                     },
-                    sources: [] // Initialize empty, let useEffect handle source
+                    userActions: {
+                        hotkeys: false // We handle our own
+                    },
+                    sources: [] // Initialize empty
                 });
                 playerRef.current = player;
+
+                if (isAudio) {
+                    player.addClass('vjs-audio-mode');
+                    // Force height
+                    player.height(50);
+                }
+
+                // Attempt to load sidecar subtitle (blind guess)
+                // We guess format .vtt or .srt (VideoJS mainly supports VTT natively, others maybe with plugins)
+                // But let's try VTT first.
+                if (C.enableSubtitles && !isAudio && props.src) {
+                    const vttSrc = props.src.substring(0, props.src.lastIndexOf('.')) + '.vtt';
+                    // We can't easily check 404 client side without a request, so just add it.
+                    // If it errors, console will whine but player survives.
+                    player.addRemoteTextTrack({
+                        kind: 'captions',
+                        label: 'English / Sidecar',
+                        srclang: 'en',
+                        src: vttSrc,
+                        default: false
+                    }, false);
+                }
 
                 // Ensure player wrapper is focusable for hotkeys
                 const playerEl = player.el();
@@ -365,42 +419,63 @@
                             case 'k':
                             case 'K':
                                 e.preventDefault();
-                                if (player.paused()) player.play(); else player.pause();
+                                if (player.paused()) {
+                                    player.play();
+                                    notify(player, "Play", "info", 500);
+                                } else {
+                                    player.pause();
+                                    notify(player, "Pause", "info", 500);
+                                }
                                 break;
                             case 'f':
                             case 'F':
                                 e.preventDefault();
-                                if (player.isFullscreen()) player.exitFullscreen(); else player.requestFullscreen();
+                                if (player.isFullscreen()) {
+                                    player.exitFullscreen();
+                                } else {
+                                    player.requestFullscreen();
+                                }
                                 break;
                             case 'm':
                             case 'M':
                                 e.preventDefault();
                                 player.muted(!player.muted());
+                                notify(player, player.muted() ? "Muted" : "Unmuted", "info", 1000);
                                 break;
                             case 'p':
                             case 'P':
                                 e.preventDefault();
                                 if (document.pictureInPictureElement) {
                                     document.exitPictureInPicture();
-                                } else if (player.videoWidth() > 0) { // Safety check
+                                } else if (player.videoWidth() > 0) {
                                     player.requestPictureInPicture();
                                 }
                                 break;
                             case 'ArrowLeft':
                                 e.preventDefault();
                                 player.currentTime(player.currentTime() - C.hotkeySeekStep);
+                                notify(player, `Rewind ${C.hotkeySeekStep}s`, "info", 500);
                                 break;
                             case 'ArrowRight':
                                 e.preventDefault();
                                 player.currentTime(player.currentTime() + C.hotkeySeekStep);
+                                notify(player, `Forward ${C.hotkeySeekStep}s`, "info", 500);
                                 break;
                             case 'ArrowUp':
                                 e.preventDefault();
-                                player.volume(Math.min(player.volume() + C.hotkeyVolumeStep, 1));
+                                {
+                                    const v = Math.min(player.volume() + C.hotkeyVolumeStep, 1);
+                                    player.volume(v);
+                                    notify(player, `Volume: ${Math.round(v * 100)}%`, "info", 500);
+                                }
                                 break;
                             case 'ArrowDown':
                                 e.preventDefault();
-                                player.volume(Math.max(player.volume() - C.hotkeyVolumeStep, 0));
+                                {
+                                    const v = Math.max(player.volume() - C.hotkeyVolumeStep, 0);
+                                    player.volume(v);
+                                    notify(player, `Volume: ${Math.round(v * 100)}%`, "info", 500);
+                                }
                                 break;
                         }
                     };
@@ -506,6 +581,7 @@
                         if (newVol !== currentVol) {
                             player.volume(newVol);
                             player.userActive(true); // Wake up controls so volume bar is seen
+                            notify(player, `Volume: ${Math.round(newVol * 100)}%`, "info", 500);
                         }
                     };
 
@@ -535,6 +611,15 @@
                     }
                 }
 
+                // --- Helper: Debounce ---
+                const debounce = (func, wait) => {
+                    let timeout;
+                    return (...args) => {
+                        clearTimeout(timeout);
+                        timeout = setTimeout(() => func.apply(this, args), wait);
+                    };
+                };
+
                 // --- Custom Sizing Logic (Native Mode Only) ---
                 const resizePlayer = () => {
                     if (C.sizingMode !== 'native') return;
@@ -554,12 +639,15 @@
                     player.height(finalH);
                 };
 
+                const debouncedResize = debounce(resizePlayer, 200);
+
                 // Listeners for resizing
-                player.on('loadedmetadata', resizePlayer);
+                player.on('loadedmetadata', resizePlayer); // Immediate on load
                 player.on('loadedmetadata', () => {
                     if (props.onLoad) props.onLoad();
                 });
-                window.addEventListener('resize', resizePlayer);
+
+                window.addEventListener('resize', debouncedResize);
                 setTimeout(resizePlayer, 100);
 
                 // Feature: Auto-Focus on Play
@@ -604,9 +692,13 @@
 
                 // Persistence Listeners
                 if (C.persistentVolume) {
+                    let lastVolSave = 0;
                     player.on('volumechange', () => {
-                        // debounce slightly or just save? volumechange fires rapidly. LocalStorage is sync but fast enough.
-                        localStorage.setItem('vjs-volume-level', player.volume());
+                        const now = Date.now();
+                        if (now - lastVolSave > 1000) {
+                            localStorage.setItem('vjs-volume-level', player.volume());
+                            lastVolSave = now;
+                        }
                     });
                 }
 
@@ -697,7 +789,7 @@
                         }
                     }
                     if (hevcTimeoutRef.current) clearTimeout(hevcTimeoutRef.current);
-                    window.removeEventListener('resize', resizePlayer);
+                    window.removeEventListener('resize', debouncedResize);
                     if (player) player.dispose();
                     // React removes the video elements automatically since we render them
                 };
@@ -716,6 +808,103 @@
                         setConversionMode(false);
                         isConvertingRef.current = false;
                     }
+                }
+
+                // --- Advanced Subtitle Support (Drag & Drop + SRT Conversion) ---
+                if (C.enableSubtitles) {
+                    // Helper: Convert SRT to WebVTT
+                    const srt2webvtt = (data) => {
+                        let vtt = "WEBVTT\n\n";
+                        // Remove potential BOM
+                        data = data.replace(/^\uFEFF/, '');
+                        // Convert commas to dots in timestamps
+                        vtt += data.replace(/(\d\d:\d\d:\d\d),(\d\d\d)/g, '$1.$2');
+                        return vtt;
+                    };
+
+                    const handleDrop = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        const dt = e.dataTransfer;
+                        if (dt.files && dt.files.length) {
+                            const file = dt.files[0];
+                            const name = file.name.toLowerCase();
+
+                            if (name.endsWith('.vtt') || name.endsWith('.srt')) {
+                                const reader = new FileReader();
+                                reader.onload = (evt) => {
+                                    let content = evt.target.result;
+
+                                    // Convert if SRT
+                                    if (name.endsWith('.srt')) {
+                                        content = srt2webvtt(content);
+                                    }
+
+                                    const blob = new Blob([content], { type: 'text/vtt' });
+                                    const url = URL.createObjectURL(blob);
+
+                                    player.addRemoteTextTrack({
+                                        kind: 'captions',
+                                        label: file.name,
+                                        srclang: 'en',
+                                        src: url,
+                                        default: true
+                                    }, true); // Manual cleanup? VJS usually handles track disposal
+
+                                    notify(player, `Loaded Subtitle: ${file.name}`, "success", 2000);
+                                };
+                                reader.readAsText(file);
+                            } else {
+                                notify(player, "Ignored: Not a .vtt or .srt file", "info", 2000);
+                            }
+                        }
+                    };
+
+                    const handleDragOver = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // Optional: Add visual drag indicator
+                    };
+
+                    const el = player.el();
+                    if (el) {
+                        el.addEventListener('drop', handleDrop);
+                        el.addEventListener('dragover', handleDragOver);
+
+                        player.on('dispose', () => {
+                            el.removeEventListener('drop', handleDrop);
+                            el.removeEventListener('dragover', handleDragOver);
+                        });
+                    }
+
+                    // --- Feature: Button to Load Subtitle from URL ---
+                    player.ready(() => {
+                        const controlBar = player.getChild('ControlBar');
+                        if (controlBar) {
+                            // Add "CC+" button
+                            const btnCC = controlBar.addChild('button', {
+                                controlText: "Load Subtitle (URL)",
+                                className: 'vjs-load-subs-button',
+                                clickHandler: () => {
+                                    const url = prompt("Enter Caption/Subtitle URL (.vtt or .srt):");
+                                    if (url) {
+                                        player.addRemoteTextTrack({
+                                            kind: 'captions',
+                                            label: 'Custom URL',
+                                            src: url,
+                                            default: true
+                                        }, true);
+                                        notify(player, "Subtitle URL Added", "success", 2000);
+                                    }
+                                }
+                            });
+                            // Icon
+                            btnCC.el().innerHTML = `<svg viewBox="0 0 24 24" fill="white" width="20" height="20" style="vertical-align: middle;"><path d="M19 4H5c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 7H7.5v-1.5h-2v3h2V11H11v2H5.5v-3H11v1zm7 0h-3.5v-1.5h-2v3h2V11H18v2h-5.5v-3H18v1z"/></svg>`;
+                            btnCC.el().title = "Load Subtitle from URL";
+                            btnCC.el().style.cursor = "pointer";
+                        }
+                    });
                 }
 
                 if (player && props.src) {
