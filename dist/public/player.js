@@ -50,11 +50,12 @@
             enablePiP: rawConfig.enablePiP ?? true,
             doubleTapSeekSeconds: parseInt(rawConfig.doubleTapSeekSeconds) || 10,
             doubleTapSeekSeconds: parseInt(rawConfig.doubleTapSeekSeconds) || 10,
-            hevcErrorStyle: rawConfig.hevcErrorStyle || 'overlay',
+            errorStyle: rawConfig.errorStyle || 'overlay',
             theme: rawConfig.theme || 'default',
             inactivityTimeout: parseInt(rawConfig.inactivityTimeout) || 2000,
             enable_ffmpeg_transcoding: rawConfig.enable_ffmpeg_transcoding ?? false,
             enableAudio: rawConfig.enableAudio ?? false,
+            errorStyle: rawConfig.errorStyle || 'overlay',
         };
 
         const VIDEO_EXTS = ['.mp4', '.webm', '.ogv', '.mov'];
@@ -105,6 +106,66 @@
                 videoStyle.objectFit = 'cover';
             }
 
+            // --- Helper: Notification System (Toast vs Overlay) ---
+            const notify = (player, message, type = 'info', duration = 2000) => {
+                if (C.errorStyle === 'toast') {
+                    if (HFS && HFS.toast) {
+                        HFS.toast(message, type);
+                    }
+                } else {
+                    // Overlay Mode
+                    const playerEl = player.el();
+                    if (!playerEl) return;
+
+                    // Remove existing overlay of same type (or all?)
+                    // Let's allow one persistent error vs transient info? 
+                    // Simpler: Single overlay container.
+                    let overlay = playerEl.querySelector('.vjs-custom-overlay');
+                    if (!overlay) {
+                        overlay = document.createElement('div');
+                        overlay.className = 'vjs-custom-overlay';
+                        // General Styles
+                        overlay.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:99;text-align:center;padding:12px 20px;border-radius:8px;font-family:sans-serif;transition:opacity 0.3s ease;';
+                        playerEl.appendChild(overlay);
+                    }
+
+                    // Reset Timer
+                    if (overlay._timeout) {
+                        clearTimeout(overlay._timeout);
+                        overlay._timeout = null;
+                    }
+
+                    // Style based on type
+                    if (type === 'error') {
+                        overlay.style.backgroundColor = 'rgba(0,0,0,0.85)';
+                        overlay.style.color = '#ff6b6b';
+                        overlay.style.border = '1px solid #ff6b6b';
+                        overlay.style.fontSize = '1.1em';
+                        overlay.style.maxWidth = '80%';
+                        overlay.innerHTML = `<div style="font-weight:bold;margin-bottom:4px;">Error</div><div>${message}</div>`;
+                    } else {
+                        // Info
+                        overlay.style.backgroundColor = 'rgba(0,0,0,0.6)';
+                        overlay.style.color = '#fff';
+                        overlay.style.border = 'none';
+                        overlay.style.fontSize = '1.2em';
+                        overlay.style.maxWidth = 'auto';
+                        overlay.textContent = message;
+                    }
+
+                    // Show
+                    overlay.style.opacity = '1';
+
+                    // Auto-hide
+                    if (duration > 0) {
+                        overlay._timeout = setTimeout(() => {
+                            overlay.style.opacity = '0';
+                            // Optional: remove from DOM after fade? Not strictly necessary if we reuse.
+                        }, duration);
+                    }
+                }
+            };
+
             // --- Helper: Handle Playback Error (Conversion Integration) ---
             const handlePlaybackError = (player, message = "Video format not supported.") => {
                 // Check if integration is enabled
@@ -113,7 +174,7 @@
                     if (!isConvertingRef.current) {
                         // Attempt to switch to conversion stream
                         console.log("[VideoJS] Unsupported video detected. Switching to streaming conversion...");
-                        HFS.toast("Unsupported format. Attempting conversion...", "info");
+                        notify(player, "Unsupported format. Attempting conversion...", "info", 3000);
                         isConvertingRef.current = true;
                         setConversionMode(true);
                         return;
@@ -139,39 +200,20 @@
                     }
                 }, [conversionMode]);
 
-                // Fallback to standard error handling (Toast or Overlay)
-                if (C.hevcErrorStyle === 'toast') {
-                    if (!hevcErrorShownRef.current && HFS && HFS.toast) {
-                        HFS.toast(`${message} Audio playing...`, "error");
-                        hevcErrorShownRef.current = true;
-                    }
-                } else {
-                    // Option B: Player Overlay
-                    player.controls(true);
-                    const playerEl = player.el();
-                    if (playerEl) {
-                        // Remove existing
-                        const existing = playerEl.querySelector('.vjs-hevc-error-overlay');
-                        if (existing) existing.remove();
+                // Fallback to standard error handling
+                let displayMessage = message;
+                if (message.includes("The media could not be loaded")) {
+                    displayMessage = "Playback Failed: Format not supported or network error.";
+                }
 
-                        const errDiv = document.createElement('div');
-                        errDiv.className = 'vjs-hevc-error-overlay';
-                        // Style it...
-                        errDiv.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:auto;max-width:80%;background:rgba(0,0,0,0.8);border-radius:8px;z-index:10;padding:20px;color:#fff;text-align:center;pointer-events:none;';
+                // If converting failed, append info
+                if (isConvertingRef.current) {
+                    displayMessage += " (Conversion failed)";
+                }
 
-                        // Custom message for generic network/unsupported error
-                        let displayMessage = message;
-                        if (message.includes("The media could not be loaded")) {
-                            displayMessage = "Playback Failed: Format not supported or network error.";
-                        }
-
-                        errDiv.innerHTML = `
-                             <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 8px;">Playback Error</div>
-                             <div style="font-size: 0.9em;">${displayMessage}</div>
-                             ${isConvertingRef.current ? '<div style="font-size: 0.8em; opacity: 0.7; margin-top: 5px;">Conversion failed. Check plugin config (ffmpeg).</div>' : ''}
-                        `;
-                        playerEl.appendChild(errDiv);
-                    }
+                if (!hevcErrorShownRef.current) {
+                    notify(player, displayMessage, "error", 0); // Persistent
+                    hevcErrorShownRef.current = true;
                 }
             };
 
@@ -192,7 +234,7 @@
                             const dur = p.duration();
                             if (!dur || (dur - t > 5)) { // Don't resume if near end
                                 p.currentTime(t);
-                                HFS.toast(`Resumed playback`, "info");
+                                notify(p, `Resumed at ${Math.round(t)}s`, "info", 2000);
                             }
                         };
 
@@ -447,13 +489,13 @@
                                 let newTime = player.currentTime() - seekSeconds;
                                 if (newTime < 0) newTime = 0;
                                 player.currentTime(newTime);
-                                HFS.toast(`Rewind ${seekSeconds}s`, "info");
+                                notify(player, `Rewind ${seekSeconds}s`, "info", 1000);
                             } else if (pct > 0.7) {
                                 // Right 30%: Forward
                                 let newTime = player.currentTime() + seekSeconds;
                                 if (newTime > player.duration()) newTime = player.duration();
                                 player.currentTime(newTime);
-                                HFS.toast(`Forward ${seekSeconds}s`, "info");
+                                notify(player, `Forward ${seekSeconds}s`, "info", 1000);
                             } else {
                                 // Center 40%: Fullscreen Toggle
                                 if (player.isFullscreen()) {
@@ -461,7 +503,7 @@
                                 } else {
                                     player.requestFullscreen();
                                 }
-                                HFS.toast(player.isFullscreen() ? "Exit Fullscreen" : "Fullscreen", "info");
+                                // notify(player, player.isFullscreen() ? "Full Screen" : "Windowed", 'info', 1000);
                             }
                         }
                         lastTouchTime = now;
@@ -657,8 +699,9 @@
                     // Remove error overlay if retrying or playing new source
                     const playerEl = player.el();
                     if (playerEl) {
-                        const existing = playerEl.querySelector('.vjs-hevc-error-overlay');
-                        if (existing) existing.remove();
+                        const existing = playerEl.querySelector('.vjs-custom-overlay');
+                        // Only remove if it's an error one? Or just clear invalid state?
+                        if (existing && existing.textContent.includes('Error')) existing.style.opacity = '0';
                     }
                     if (props.onPlay) props.onPlay();
                 });
