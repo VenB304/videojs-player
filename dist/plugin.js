@@ -84,10 +84,6 @@ exports.config = {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'controls',
         type: 'boolean', defaultValue: true, label: "Show Controls", helperText: "Enables the control bar", frontend: true
     },
-    errorStyle: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'advanced',
-        type: 'select', options: ['overlay', 'toast'], defaultValue: 'overlay', label: "Notification Style", helperText: "How to show errors and info (Toast/Overlay)", frontend: true
-    },
     inactivityTimeout: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'controls',
         type: 'number', defaultValue: 2000, min: 0, label: "Controls Hide Delay (ms)", helperText: "0 = always visible", frontend: true
@@ -172,6 +168,10 @@ exports.config = {
         },
         label: "Player Theme",
         frontend: true
+    },
+    errorStyle: {
+        showIf: x => x.config_tab === 'all' || x.config_tab === 'appearance',
+        type: 'select', options: ['overlay', 'toast'], defaultValue: 'overlay', label: "Notification Style", helperText: "How to show errors and info (Toast/Overlay)", frontend: true
     },
 
 
