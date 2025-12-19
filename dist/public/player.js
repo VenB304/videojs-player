@@ -183,21 +183,8 @@
                     }
                 }
 
-                // --- Helper: UI State for Transcoding ---
-                React.useEffect(() => {
-                    const player = playerRef.current;
-                    if (!player) return;
+                // --- Helper: UI State for Transcoding is handled by the useEffect below ---
 
-                    const controlBar = player.getChild('ControlBar');
-                    const progressControl = controlBar && controlBar.getChild('ProgressControl');
-                    if (progressControl) {
-                        if (conversionMode) {
-                            progressControl.hide();
-                        } else {
-                            progressControl.show();
-                        }
-                    }
-                }, [conversionMode]);
 
                 // Fallback to standard error handling
                 let displayMessage = message;
@@ -788,6 +775,22 @@
                     }
                 }
             }, [props.src, conversionMode]);
+
+            // --- Effect: UI State for Transcoding ---
+            React.useEffect(() => {
+                const player = playerRef.current;
+                if (!player) return;
+
+                const controlBar = player.getChild('ControlBar');
+                const progressControl = controlBar && controlBar.getChild('ProgressControl');
+                if (progressControl) {
+                    if (conversionMode) {
+                        progressControl.hide();
+                    } else {
+                        progressControl.show();
+                    }
+                }
+            }, [conversionMode]);
 
             // Render with valid Structure
             return h('div', {
