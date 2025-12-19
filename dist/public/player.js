@@ -813,10 +813,14 @@
 
                     const targetSrc = props.src + suffix;
 
-                    // Simple check: if current src doesn't match target, update.
-                    // We decode both to be safe against browser encoding differences.
-                    const currentSrc = player.currentSrc() || '';
-                    const needsUpdate = !decodeURI(currentSrc).endsWith(decodeURI(suffix));
+                    // Robust check: matches if absolute paths match OR if currentSrc strings match
+                    // We decode both to be safe against browser encoding differences (e.g. %20 vs space)
+                    const currentSrc = player.currentSrc();
+                    const decodedCurrent = currentSrc ? decodeURI(currentSrc) : '';
+                    const decodedTarget = decodeURI(targetSrc);
+
+                    // Update if first load (!currentSrc) or if URL has changed
+                    const needsUpdate = !currentSrc || !decodedCurrent.includes(decodedTarget);
 
                     if (needsUpdate) {
                         console.log(`VideoJS Plugin: Switch Source -> ${targetSrc} (Offset: ${seekOffset})`);
