@@ -881,7 +881,7 @@
                         console.log("[VideoJS] Seeking event detected. Time:", currentTime);
 
                         // Ignore seek to near 0 (initial load often triggers seek to 0)
-                        if (currentTime < 1) return;
+                        if (currentTime < 0.1) return;
 
                         // Debounce seek
                         if (player._seekTimeout) clearTimeout(player._seekTimeout);
