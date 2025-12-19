@@ -554,6 +554,9 @@
 
                 // Listeners for resizing
                 player.on('loadedmetadata', resizePlayer);
+                player.on('loadedmetadata', () => {
+                    if (props.onLoad) props.onLoad();
+                });
                 window.addEventListener('resize', resizePlayer);
                 setTimeout(resizePlayer, 100);
 
