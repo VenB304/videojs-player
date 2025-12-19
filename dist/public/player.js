@@ -709,8 +709,8 @@
                     // We can save every second.
                     let lastSave = 0;
                     player.on('timeupdate', () => {
-                        // DISABLE RESUME SAVE FOR TRANSCODING
-                        if (isConvertingRef.current) return;
+                        // DISABLE RESUME SAVE FOR TRANSCODING UNLESS SEEKING IS ENABLED
+                        if (isConvertingRef.current && !C.enable_transcoding_seeking) return;
 
                         const now = Date.now();
                         if (now - lastSave > 2000) {
@@ -718,9 +718,10 @@
                             const dur = player.duration();
                             // Don't save if near end
                             if (cur > 0 && (!dur || (dur - cur > 10))) {
-                                const src = player.currentSrc();
+                                // Use props.src for stable key (ignoring query params added by transcoding)
+                                const src = props.src || player.currentSrc();
                                 if (src) {
-                                    const key = `vjs-resume-${src.split('/').pop()}`;
+                                    const key = `vjs-resume-${src.split('/').pop().split('?')[0]}`; // Ensure clean filename
                                     localStorage.setItem(key, cur.toFixed(1));
                                 }
                             }
@@ -844,8 +845,8 @@
                             type: conversionMode ? 'video/mp4' : determineMimeType(props.src)
                         });
 
-                        // Don't resume playback for converted streams as seeking is disabled
-                        if (!conversionMode) {
+                        // Don't resume playback for converted streams as seeking is disabled (unless enabled in config)
+                        if (!conversionMode || C.enable_transcoding_seeking) {
                             attemptResume(props.src);
                         }
 
