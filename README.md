@@ -17,7 +17,7 @@ This plugin replaces the basic default player with a professional-grade alternat
 *   **�️ Enterprise-Grade Security**: Includes built-in **Rate Limiting** (max streams per user) and **User Whitelisting** to prevent server overload.
 *   **🚀 High Performance**: Uses **process piping** (RAM-to-RAM) to stream converted video instantly without writing temporary files to disk.
 *   **🔌 Deep HFS Integration**: Fully supports HFS **playlists** (auto-play next) and integrates with the `hfs-subtitles` plugin.
-*   **�🛠️ Extended Format Support**: Adds experimental playback for **MKV** containers and **HLS (.m3u8)** streams.
+*   **🛠️ Extended Format Support**: Adds experimental playback for **MKV** containers and **HLS (.m3u8)** streams.
 
 ---
 
