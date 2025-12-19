@@ -415,6 +415,15 @@
                                 e.preventDefault();
                                 player.muted(!player.muted());
                                 break;
+                            case 'p':
+                            case 'P':
+                                e.preventDefault();
+                                if (document.pictureInPictureElement) {
+                                    document.exitPictureInPicture();
+                                } else if (player.videoWidth() > 0) { // Safety check
+                                    player.requestPictureInPicture();
+                                }
+                                break;
                             case 'ArrowLeft':
                                 e.preventDefault();
                                 player.currentTime(player.currentTime() - C.hotkeySeekStep);
@@ -724,7 +733,7 @@
                     // Cleanup
                     if (videoElementRef.current && document.pictureInPictureElement === videoElementRef.current) {
                         try {
-                            document.exitPictureInPicture();
+                            // document.exitPictureInPicture(); // DISABLED per user request
                         } catch (e) {
                             // ignore
                         }
