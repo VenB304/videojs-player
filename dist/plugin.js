@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 109;
+exports.version = 110;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -212,6 +212,14 @@ exports.config = {
         defaultValue: false,
         label: "Use FFmpeg for unsupported videos",
         helperText: "Transcodes formats like HEVC on the fly. Requires FFmpeg installed.",
+        frontend: true
+    },
+    enable_transcoding_seeking: {
+        showIf: x => (x.config_tab === 'all' || x.config_tab === 'advanced') && x.enable_ffmpeg_transcoding,
+        type: 'boolean',
+        defaultValue: false,
+        label: "Enable Seeking in Transcoded Videos (Beta)",
+        helperText: "Experimental. Allows seeking, but may cause instability or delays.",
         frontend: true
     },
     ffmpeg_path: {

@@ -908,7 +908,7 @@
 
                 // Detect Absolute vs Relative Timestamps
                 player.on('timeupdate', () => {
-                    if (!conversionMode || seekOffset === 0) return;
+                    if (!conversionMode || !C.enable_transcoding_seeking || seekOffset === 0) return;
 
                     // Only check once or periodically? Continuous check is fine as it's cheap boolean set
                     const t = player.currentTime();
@@ -926,7 +926,7 @@
                 // Intercept Seek Requests (Monkey-patch currentTime)
                 // This is necessary because browsers often clamp 'currentTime' to 0 for live streams,
                 // making it impossible to read the user's desired seek time from the 'seeking' event.
-                if (conversionMode) {
+                if (conversionMode && C.enable_transcoding_seeking) {
                     const originalCurrentTime = player.currentTime;
                     let seekDebounce = null;
 
@@ -938,7 +938,7 @@
 
                             // Ignore seek to near 0
                             if (targetTime > 0.1) {
-                                console.log("[VideoJS] Intercepted Seek Intent:", targetTime);
+                                // console.log("[VideoJS] Intercepted Seek Intent:", targetTime);
 
                                 if (seekDebounce) clearTimeout(seekDebounce);
                                 seekDebounce = setTimeout(() => {
@@ -946,11 +946,11 @@
                                     let newOffset = 0;
                                     if (isAbsoluteTimestampRef.current) {
                                         // Absolute Mode: The bar is showing real time. Target is absolute.
-                                        console.log("[VideoJS] Seek Mode: ABSOLUTE. Target:", targetTime);
+                                        // console.log("[VideoJS] Seek Mode: ABSOLUTE. Target:", targetTime);
                                         newOffset = targetTime;
                                     } else {
                                         // Relative Mode: The bar resets to 0. Target is relative to current chunk.
-                                        console.log("[VideoJS] Seek Mode: RELATIVE. Target:", targetTime, "+ Offset:", seekOffset);
+                                        // console.log("[VideoJS] Seek Mode: RELATIVE. Target:", targetTime, "+ Offset:", seekOffset);
                                         newOffset = seekOffset + targetTime;
                                     }
 
@@ -968,10 +968,10 @@
                         return originalCurrentTime.apply(player, arguments);
                     };
 
-                    console.log("[VideoJS] Intercepted currentTime execution for seeking support");
+                    // console.log("[VideoJS] Intercepted currentTime execution for seeking support");
 
                     return () => {
-                        console.log("[VideoJS] Restoring original currentTime");
+                        // console.log("[VideoJS] Restoring original currentTime");
                         // Restore original function on cleanup
                         player.currentTime = originalCurrentTime;
                         if (seekDebounce) clearTimeout(seekDebounce);
