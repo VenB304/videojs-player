@@ -253,8 +253,20 @@ exports.init = api => {
         setTimeout(() => proc.kill('SIGKILL'), 10_000)
     }
 
+    // cleanup on server exit to prevent zombies
+    const onExit = () => {
+        for (const proc of running.keys()) terminate(proc);
+    };
+
+    process.on('exit', onExit);
+    process.on('SIGINT', onExit);
+    process.on('SIGTERM', onExit);
+
     return {
         unload() {
+            process.off('exit', onExit);
+            process.off('SIGINT', onExit);
+            process.off('SIGTERM', onExit);
             for (const proc of running.keys())
                 terminate(proc)
         },
@@ -318,8 +330,36 @@ exports.init = api => {
                 const ffmpegPath = api.getConfig('ffmpeg_path') || 'ffmpeg';
                 const extraParamsStr = api.getConfig('ffmpeg_parameters') || '';
 
-                // Naive argument parsing for extra params (handles basic spaces and quotes)
-                const extraParams = extraParamsStr.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g)?.map(s => s.replace(/^['"]|['"]$/g, '')) || [];
+                // Improved argument tokenizer
+                // Splits by spaces but respects quotes (single and double)
+                const extraParams = [];
+                let currentToken = '';
+                let inQuote = false;
+                let quoteChar = '';
+
+                for (let i = 0; i < extraParamsStr.length; i++) {
+                    const char = extraParamsStr[i];
+                    if (inQuote) {
+                        if (char === quoteChar) {
+                            inQuote = false;
+                        } else {
+                            currentToken += char;
+                        }
+                    } else {
+                        if (char === '"' || char === "'") {
+                            inQuote = true;
+                            quoteChar = char;
+                        } else if (char === ' ') {
+                            if (currentToken.length > 0) {
+                                extraParams.push(currentToken);
+                                currentToken = '';
+                            }
+                        } else {
+                            currentToken += char;
+                        }
+                    }
+                }
+                if (currentToken.length > 0) extraParams.push(currentToken);
 
                 // Sanitize src? HFS usually provides a clean absolute path in fileSource.
                 // But just in case, we trust the `spawn` array method to handle argument escaping for the shell.

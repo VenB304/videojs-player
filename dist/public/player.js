@@ -95,6 +95,8 @@
             const [conversionMode, setConversionMode] = React.useState(false);
             const isConvertingRef = React.useRef(false);
 
+            const [overlayState, setOverlayState] = React.useState(null); // { message, type, show }
+
             // Calculate styles for Render
             let cssClasses = 'video-js vjs-big-play-centered';
             if (C.theme !== 'default') {
@@ -112,54 +114,14 @@
                         HFS.toast(message, type);
                     }
                 } else {
-                    // Overlay Mode
-                    const playerEl = player.el();
-                    if (!playerEl) return;
+                    // State-based Overlay
+                    setOverlayState({ message, type, show: true });
 
-                    // Remove existing overlay of same type (or all?)
-                    // Let's allow one persistent error vs transient info? 
-                    // Simpler: Single overlay container.
-                    let overlay = playerEl.querySelector('.vjs-custom-overlay');
-                    if (!overlay) {
-                        overlay = document.createElement('div');
-                        overlay.className = 'vjs-custom-overlay';
-                        // General Styles
-                        overlay.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:99;text-align:center;padding:12px 20px;border-radius:8px;font-family:sans-serif;transition:opacity 0.3s ease;';
-                        playerEl.appendChild(overlay);
-                    }
-
-                    // Reset Timer
-                    if (overlay._timeout) {
-                        clearTimeout(overlay._timeout);
-                        overlay._timeout = null;
-                    }
-
-                    // Style based on type
-                    if (type === 'error') {
-                        overlay.style.backgroundColor = 'rgba(0,0,0,0.85)';
-                        overlay.style.color = '#ff6b6b';
-                        overlay.style.border = '1px solid #ff6b6b';
-                        overlay.style.fontSize = '1.1em';
-                        overlay.style.maxWidth = '80%';
-                        overlay.innerHTML = `<div style="font-weight:bold;margin-bottom:4px;">Error</div><div>${message}</div>`;
-                    } else {
-                        // Info
-                        overlay.style.backgroundColor = 'rgba(0,0,0,0.6)';
-                        overlay.style.color = '#fff';
-                        overlay.style.border = 'none';
-                        overlay.style.fontSize = '1.2em';
-                        overlay.style.maxWidth = 'auto';
-                        overlay.textContent = message;
-                    }
-
-                    // Show
-                    overlay.style.opacity = '1';
-
-                    // Auto-hide
                     if (duration > 0) {
-                        overlay._timeout = setTimeout(() => {
-                            overlay.style.opacity = '0';
-                            // Optional: remove from DOM after fade? Not strictly necessary if we reuse.
+                        setTimeout(() => {
+                            // Only hide if it matches the current message (simple check) to avoid race conditions hiding new errors 
+                            // Actually a simple timeout is fine for now, or use a ref to track active timeout ID.
+                            setOverlayState(prev => prev && prev.message === message ? { ...prev, show: false } : prev);
                         }, duration);
                     }
                 }
@@ -782,7 +744,18 @@
 
                         if (C.autoplay || conversionMode) {
                             const p = player.play();
-                            if (p && p.catch) p.catch(e => console.warn("Auto-play blocked:", e));
+                            if (p && p.catch) {
+                                p.catch(e => {
+                                    console.warn("Auto-play blocked:", e);
+                                    // Show a hint to the user if blocked, but only if not converting (converting manages its own state)
+                                    if (!conversionMode && !player.paused()) {
+                                        // It thinks it's playing but blocked? Usually paused() is true if blocked.
+                                    }
+                                    if (!conversionMode && player.paused()) {
+                                        notify(player, "Click to Play (Autoplay Blocked)", "info", 0); // 0 = persistent
+                                    }
+                                });
+                            }
                         }
                     }
                 }
@@ -791,24 +764,55 @@
 
 
             // Render with valid Structure
+            if (!props.src) {
+                return h('div', {
+                    style: {
+                        width: '100%', height: '100%', minHeight: '150px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        backgroundColor: '#000', color: '#666', fontFamily: 'sans-serif'
+                    }
+                }, "No Video Selected");
+            }
+
             return h('div', {
                 'data-vjs-player': true,
-                ref: containerRef, // Still strictly needed? VideoJS might move the video element.
-                // Actually VideoJS replaces the <video> tag with a wrapper div if not standard.
-                // Modern React practice: <div data-vjs-player><video ref /></div>
-                // The ref {containerRef} was likely used to append child manually.
-                // We can keep it or remove it. Better keep it for safety if styling relies on it.
-                style: { display: 'contents' }
+                ref: containerRef,
+                style: { display: 'contents', position: 'relative' } // Ensure relative for overlay
             }, [
                 h('video', {
                     ref: videoElementRef,
                     className: cssClasses,
                     style: videoStyle,
                     tabIndex: 0
-                    // Props like controls/autoplay handled by VJS init, but good to mirror? 
-                    // No, VJS init handles them.
                 }),
-                // Dummy video for HFS
+                // React-Native Overlay Component (Integrated)
+                (overlayState && overlayState.show) ? h('div', {
+                    className: 'vjs-custom-overlay',
+                    style: {
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        pointerEvents: 'none',
+                        zIndex: 99,
+                        textAlign: 'center',
+                        padding: '12px 20px',
+                        borderRadius: '8px',
+                        fontFamily: 'sans-serif',
+                        transition: 'opacity 0.3s ease',
+                        opacity: 1,
+                        backgroundColor: overlayState.type === 'error' ? 'rgba(0,0,0,0.85)' : 'rgba(0,0,0,0.6)',
+                        color: overlayState.type === 'error' ? '#ff6b6b' : '#fff',
+                        border: overlayState.type === 'error' ? '1px solid #ff6b6b' : 'none',
+                        fontSize: overlayState.type === 'error' ? '1.1em' : '1.2em',
+                        maxWidth: overlayState.type === 'error' ? '80%' : 'auto'
+                    }
+                }, [
+                    overlayState.type === 'error' ? h('div', { style: { fontWeight: 'bold', marginBottom: '4px' } }, 'Error') : null,
+                    h('div', {}, overlayState.message)
+                ]) : null,
+
+                // Dummy video for HFS (Hidden)
                 h('video', {
                     ref: dummyVideoRef,
                     className: 'showing',
@@ -816,7 +820,6 @@
                 })
             ]);
         });
-
         HFS.onEvent('fileShow', (params) => {
             const { entry } = params;
             // Use the top-level captured config
