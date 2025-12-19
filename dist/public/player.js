@@ -620,7 +620,7 @@
                         if (hevcTimeoutRef.current) clearTimeout(hevcTimeoutRef.current);
                         hevcTimeoutRef.current = setTimeout(() => {
                             if (player.videoWidth() === 0) {
-                                handlePlaybackError(player, "HEVC/Unsupported format detected.");
+                                handlePlaybackError(player, "HEVC/Unsupported format detected. Audio may still play.");
                             }
                         }, 250); // Fast check (was 1000)
                     }
@@ -776,19 +776,43 @@
                 }
             }, [props.src, conversionMode]);
 
-            // --- Effect: UI State for Transcoding ---
+            // --- Effect: UI State for Transcoding (Progress vs Spacer) ---
             React.useEffect(() => {
                 const player = playerRef.current;
                 if (!player) return;
 
                 const controlBar = player.getChild('ControlBar');
-                const progressControl = controlBar && controlBar.getChild('ProgressControl');
-                if (progressControl) {
-                    if (conversionMode) {
-                        progressControl.hide();
-                    } else {
-                        progressControl.show();
+                if (!controlBar) return;
+
+                const progressControl = controlBar.getChild('ProgressControl');
+                // Use a custom name to track our spacer
+                let spacer = controlBar.getChild('TranscodingSpacer');
+
+                if (conversionMode) {
+                    // Hide Progress Bar
+                    if (progressControl) progressControl.hide();
+
+                    // Show/Create Spacer to maintain layout (push right controls to right)
+                    if (!spacer) {
+                        // Insert at same position as ProgressControl
+                        const idx = progressControl ? controlBar.children().indexOf(progressControl) : undefined;
+
+                        spacer = controlBar.addChild('Component', {
+                            name: 'TranscodingSpacer'
+                        }, idx);
+
+                        if (spacer) {
+                            spacer.addClass('vjs-custom-control-spacer');
+                            // Force flex behavior just in case class is missing/overridden
+                            spacer.el().style.flex = '1 1 auto';
+                        }
                     }
+                    if (spacer) spacer.show();
+                } else {
+                    // Restore Progress Bar
+                    if (progressControl) progressControl.show();
+                    // Hide Spacer
+                    if (spacer) spacer.hide();
                 }
             }, [conversionMode]);
 
