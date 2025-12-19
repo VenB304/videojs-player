@@ -862,23 +862,25 @@
                 if (conversionMode) {
                     const handleSeeking = () => {
                         const currentTime = player.currentTime();
-                        // Ignore seek to 0 (initial load)
-                        if (currentTime < 0.5) return;
+                        console.log("[VideoJS] Seeking event detected. Time:", currentTime);
+
+                        // Ignore seek to near 0 (initial load often triggers seek to 0)
+                        if (currentTime < 1) return;
 
                         // Debounce seek
                         if (player._seekTimeout) clearTimeout(player._seekTimeout);
                         player._seekTimeout = setTimeout(() => {
-                            console.log("[VideoJS] Transcoding seek detected. Relative:", currentTime, "Offset:", seekOffset);
+                            console.log("[VideoJS] Seek Timeout Executing. CurrentTime:", currentTime, "Old Offset:", seekOffset);
                             const newOffset = seekOffset + currentTime;
                             setSeekOffset(newOffset);
                             notify(player, `Seeking to ${Math.round(newOffset)}s...`, "info", 2000);
                         }, 600);
                     };
 
-                    // We bind a one-off or distinct listener? 
-                    // Since useEffect dependencies change, we will re-bind.
+                    console.log("[VideoJS] Attaching seek listener via useEffect");
                     player.on('seeking', handleSeeking);
                     return () => {
+                        console.log("[VideoJS] Detaching seek listener");
                         player.off('seeking', handleSeeking);
                         if (player._seekTimeout) clearTimeout(player._seekTimeout);
                     };
