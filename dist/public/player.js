@@ -54,6 +54,7 @@
             theme: rawConfig.theme || 'default',
             inactivityTimeout: parseInt(rawConfig.inactivityTimeout) || 2000,
             enable_ffmpeg_transcoding: rawConfig.enable_ffmpeg_transcoding ?? false,
+            enable_transcoding_seeking: rawConfig.enable_transcoding_seeking ?? false,
             enableAudio: rawConfig.enableAudio ?? false,
             enableSubtitlePluginIntegration: rawConfig.enableSubtitlePluginIntegration ?? true,
 
