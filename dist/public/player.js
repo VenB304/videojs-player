@@ -812,12 +812,14 @@
                     }
 
                     const targetSrc = props.src + suffix;
-                    const currentSrc = player.currentSrc();
 
-                    const needsUpdate = !currentSrc || !currentSrc.includes(encodeURI(targetSrc));
+                    // Simple check: if current src doesn't match target, update.
+                    // We decode both to be safe against browser encoding differences.
+                    const currentSrc = player.currentSrc() || '';
+                    const needsUpdate = !decodeURI(currentSrc).endsWith(decodeURI(suffix));
 
                     if (needsUpdate) {
-                        console.log(`VideoJS Plugin: Loading ${conversionMode ? 'CONVERTED' : 'STANDARD'} source:`, targetSrc);
+                        console.log(`VideoJS Plugin: Switch Source -> ${targetSrc} (Offset: ${seekOffset})`);
 
                         // Clear previous errors/overlays
                         setOverlayState(null);
@@ -827,6 +829,7 @@
                             src: targetSrc,
                             type: conversionMode ? 'video/mp4' : determineMimeType(props.src)
                         });
+
                         // Don't resume playback for converted streams as seeking is disabled
                         if (!conversionMode) {
                             attemptResume(props.src);
