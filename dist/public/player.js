@@ -874,6 +874,55 @@
                     }
                 }
 
+
+                // Ref needed for seek logic
+                const isAbsoluteTimestampRef = React.useRef(false); // Detects if browser respected -copyts
+
+                // Helper: Aggressive Duration Enforcement
+                // Browsers often reset duration to Infinity for open pipes. We must fight back.
+                const enforceDuration = () => {
+                    if (conversionMode && window._vjs_saved_duration && player) {
+                        const d = player.duration();
+                        // Allow a small tolerance, but if it differs significantly or is Infinity, fix it
+                        if (d === Infinity || Math.abs(d - window._vjs_saved_duration) > 5) {
+                            // console.log(`[VideoJS] Enforcing duration: ${window._vjs_saved_duration} (was ${d})`);
+                            player.duration(window._vjs_saved_duration);
+
+                            // Also fix the UI if it thinks it's live
+                            if (player.hasClass('vjs-live')) {
+                                player.removeClass('vjs-live');
+                            }
+                            const durDisplay = player.getChild('ControlBar')?.getChild('DurationDisplay');
+                            if (durDisplay && durDisplay.el()) {
+                                // Force show if hidden
+                                durDisplay.show();
+                            }
+                        }
+                    }
+                };
+
+                // Listeners for enforcement
+                player.on('durationchange', enforceDuration);
+                player.on('timeupdate', enforceDuration); // Periodic check
+                player.on('loadedmetadata', enforceDuration);
+
+                // Detect Absolute vs Relative Timestamps
+                player.on('timeupdate', () => {
+                    if (!conversionMode || seekOffset === 0) return;
+
+                    // Only check once or periodically? Continuous check is fine as it's cheap boolean set
+                    const t = player.currentTime();
+                    // If we are at 100s, and offset is 100s. We are absolute.
+                    // If we are at 0s, and offset is 100s. We are relative.
+                    if (t > seekOffset * 0.5 && t > 1) {
+                        isAbsoluteTimestampRef.current = true;
+                    } else if (t < 10 && seekOffset > 20) {
+                        // Careful unique case: User seeked to start? 
+                        // But if we just loaded, and t is low, it's relative.
+                        isAbsoluteTimestampRef.current = false;
+                    }
+                });
+
                 // Intercept Seek Requests (Monkey-patch currentTime)
                 // This is necessary because browsers often clamp 'currentTime' to 0 for live streams,
                 // making it impossible to read the user's desired seek time from the 'seeking' event.
@@ -887,14 +936,29 @@
                             // Setter call - User (or internal logic) is trying to seek
                             const targetTime = parseFloat(time);
 
-                            // Ignore seek to 0 (initial load)
+                            // Ignore seek to near 0
                             if (targetTime > 0.1) {
                                 console.log("[VideoJS] Intercepted Seek Intent:", targetTime);
 
                                 if (seekDebounce) clearTimeout(seekDebounce);
                                 seekDebounce = setTimeout(() => {
-                                    console.log("[VideoJS] Executing Virtual Seek. Target Relative:", targetTime, "Current Offset:", seekOffset);
-                                    const newOffset = seekOffset + targetTime;
+                                    // Use detection to decide logic
+                                    let newOffset = 0;
+                                    if (isAbsoluteTimestampRef.current) {
+                                        // Absolute Mode: The bar is showing real time. Target is absolute.
+                                        console.log("[VideoJS] Seek Mode: ABSOLUTE. Target:", targetTime);
+                                        newOffset = targetTime;
+                                    } else {
+                                        // Relative Mode: The bar resets to 0. Target is relative to current chunk.
+                                        console.log("[VideoJS] Seek Mode: RELATIVE. Target:", targetTime, "+ Offset:", seekOffset);
+                                        newOffset = seekOffset + targetTime;
+                                    }
+
+                                    // Safety: Clamp to saved duration
+                                    if (window._vjs_saved_duration && newOffset > window._vjs_saved_duration) {
+                                        newOffset = window._vjs_saved_duration - 5;
+                                    }
+
                                     setSeekOffset(newOffset);
                                     notify(player, `Seeking to ${Math.round(newOffset)}s...`, "info", 2000);
                                 }, 600);
@@ -911,6 +975,9 @@
                         // Restore original function on cleanup
                         player.currentTime = originalCurrentTime;
                         if (seekDebounce) clearTimeout(seekDebounce);
+                        player.off('durationchange', enforceDuration);
+                        player.off('timeupdate', enforceDuration);
+                        player.off('loadedmetadata', enforceDuration);
                     };
                 }
             }, [props.src, conversionMode, seekOffset]);
