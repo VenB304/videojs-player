@@ -97,6 +97,7 @@
             const [conversionMode, setConversionMode] = React.useState(false);
             const isConvertingRef = React.useRef(false);
             const [seekOffset, setSeekOffset] = React.useState(0);  // Track virtual start time for transcoding
+            const isAbsoluteTimestampRef = React.useRef(false); // Detects if browser respected -copyts
 
             const [overlayState, setOverlayState] = React.useState(null); // { message, type, show }
 
@@ -875,8 +876,7 @@
                 }
 
 
-                // Ref needed for seek logic
-                const isAbsoluteTimestampRef = React.useRef(false); // Detects if browser respected -copyts
+                // Ref needed for seek logic (MOVED TO TOP LEVEL)
 
                 // Helper: Aggressive Duration Enforcement
                 // Browsers often reset duration to Infinity for open pipes. We must fight back.
