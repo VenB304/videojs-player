@@ -10,12 +10,14 @@ unmute for audio
 
 This plugin replaces the basic default player with a professional-grade alternative used by millions of websites.
 
-*   **📺 Modern & Responsive**: Looks stunning on any device, from desktops to mobile phones.
-*   **📱 Mobile Optimized**: Native-like gestures including **double-tap to seek**, **auto-rotate**, and touch-friendly controls.
-*   **🔁 Live Transcoding**: Integrated **FFmpeg support** to play unsupported formats (HEVC/H.265) on the fly. Includes **Smart Seeking** (Beta) to jump to any point in the video. Thanks to @rejetto for the original code from their [unsupported-videos](https://github.com/rejetto/unsupported-videos) plugin.
-*   **⏯️ Smart Playback**: Features **auto-resume** (remembers where you left off), **persistent volume**, and sequential playback.
-*   **🎛️ Highly Configurable**: Organized settings menu in HFS Admin Panel to customize themes, hotkeys, sizing, and more.
-*   **🛠️ Advanced Format Support**: Experimental support for **MKV** containers and **HLS (.m3u8)** streaming.
+*   **🔁 Live FFmpeg Transcoding**: On-the-fly conversion for **HEVC/H.265** videos. Includes **Smart Seeking** (Beta) which restarts the stream at the requested timestamp. Thanks to @rejetto for the original code from their [unsupported-videos](https://github.com/rejetto/unsupported-videos) plugin.
+*   **💾 State Persistence**: Uses local storage to remember your **playback position** and **volume** settings for every video, resuming exactly where you left off.
+*   **🎨 Integrated Theme Engine**: Choose from 5 built-in skins (`City`, `Fantasy`, `Forest`, `Sea`) directly from the HFS Admin Panel.
+*   **📱 Enhanced Gestures**: Adds **double-tap to seek** (+/- 10s) and **auto-rotate** for Android integration—features missing from the standard HTML5 player.
+*   **�️ Enterprise-Grade Security**: Includes built-in **Rate Limiting** (max streams per user) and **User Whitelisting** to prevent server overload.
+*   **🚀 High Performance**: Uses **process piping** (RAM-to-RAM) to stream converted video instantly without writing temporary files to disk.
+*   **🔌 Deep HFS Integration**: Fully supports HFS **playlists** (auto-play next) and integrates with the `hfs-subtitles` plugin.
+*   **�🛠️ Extended Format Support**: Adds experimental playback for **MKV** containers and **HLS (.m3u8)** streams.
 
 ---
 
