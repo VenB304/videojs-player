@@ -139,6 +139,14 @@
                         // Attempt to switch to conversion stream
                         console.log("[VideoJS] Unsupported video detected. Switching to streaming conversion...");
                         notify(player, "Unsupported format. Attempting conversion...", "info", 3000);
+
+                        // Capture duration to persist it (since stream won't have it)
+                        const d = player.duration();
+                        if (d && d > 0 && d !== Infinity) {
+                            window._vjs_saved_duration = d;
+                            console.log("[VideoJS] Saved duration for transcoding:", d);
+                        }
+
                         isConvertingRef.current = true;
                         setConversionMode(true);
                         return;
@@ -854,6 +862,14 @@
                                     }
                                 });
                             }
+                        }
+
+                        // Restore duration for seeking UI if we saved it
+                        if (conversionMode && window._vjs_saved_duration) {
+                            player.one('loadedmetadata', () => {
+                                console.log("[VideoJS] Restoring duration:", window._vjs_saved_duration);
+                                player.duration(window._vjs_saved_duration);
+                            });
                         }
                     }
                 }
