@@ -874,34 +874,45 @@
                     }
                 }
 
-                // Listen for seeking in conversion mode to trigger virtual seek (reload)
+                // Intercept Seek Requests (Monkey-patch currentTime)
+                // This is necessary because browsers often clamp 'currentTime' to 0 for live streams,
+                // making it impossible to read the user's desired seek time from the 'seeking' event.
                 if (conversionMode) {
-                    const handleSeeking = () => {
-                        const currentTime = player.currentTime();
-                        console.log("[VideoJS] Seeking event detected. Time:", currentTime);
+                    const originalCurrentTime = player.currentTime;
+                    let seekDebounce = null;
 
-                        // Ignore seek to near 0 (initial load often triggers seek to 0)
-                        if (currentTime < 0.1) return;
+                    // Override
+                    player.currentTime = function (time) {
+                        if (time !== undefined) {
+                            // Setter call - User (or internal logic) is trying to seek
+                            const targetTime = parseFloat(time);
 
-                        // Debounce seek
-                        if (player._seekTimeout) clearTimeout(player._seekTimeout);
-                        player._seekTimeout = setTimeout(() => {
-                            console.log("[VideoJS] Seek Timeout Executing. CurrentTime:", currentTime, "Old Offset:", seekOffset);
-                            const newOffset = seekOffset + currentTime;
-                            setSeekOffset(newOffset);
-                            notify(player, `Seeking to ${Math.round(newOffset)}s...`, "info", 2000);
-                        }, 600);
+                            // Ignore seek to 0 (initial load)
+                            if (targetTime > 0.1) {
+                                console.log("[VideoJS] Intercepted Seek Intent:", targetTime);
+
+                                if (seekDebounce) clearTimeout(seekDebounce);
+                                seekDebounce = setTimeout(() => {
+                                    console.log("[VideoJS] Executing Virtual Seek. Target Relative:", targetTime, "Current Offset:", seekOffset);
+                                    const newOffset = seekOffset + targetTime;
+                                    setSeekOffset(newOffset);
+                                    notify(player, `Seeking to ${Math.round(newOffset)}s...`, "info", 2000);
+                                }, 600);
+                            }
+                        }
+                        // Always pass through to original to keep Video.js happy
+                        return originalCurrentTime.apply(player, arguments);
                     };
 
-                    console.log("[VideoJS] Attaching seek listener via useEffect");
-                    player.on('seeking', handleSeeking);
+                    console.log("[VideoJS] Intercepted currentTime execution for seeking support");
+
                     return () => {
-                        console.log("[VideoJS] Detaching seek listener");
-                        player.off('seeking', handleSeeking);
-                        if (player._seekTimeout) clearTimeout(player._seekTimeout);
+                        console.log("[VideoJS] Restoring original currentTime");
+                        // Restore original function on cleanup
+                        player.currentTime = originalCurrentTime;
+                        if (seekDebounce) clearTimeout(seekDebounce);
                     };
                 }
-
             }, [props.src, conversionMode, seekOffset]);
 
             // Clear timeout on unmount
