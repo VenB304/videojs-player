@@ -55,7 +55,6 @@
             inactivityTimeout: parseInt(rawConfig.inactivityTimeout) || 2000,
             enable_ffmpeg_transcoding: rawConfig.enable_ffmpeg_transcoding ?? false,
             enableAudio: rawConfig.enableAudio ?? false,
-            errorStyle: rawConfig.errorStyle || 'overlay',
         };
 
         const VIDEO_EXTS = ['.mp4', '.webm', '.ogv', '.mov'];
@@ -89,7 +88,7 @@
             const playerRef = React.useRef(null);
             const videoElementRef = React.useRef(null);
             const dummyVideoRef = React.useRef(null); // PROXY for HFS Play Next
-            const hevcErrorShownRef = React.useRef(false);
+            const errorShownRef = React.useRef(false);
             const hevcTimeoutRef = React.useRef(null);
 
             // --- Helper: Handle Playback Error (Conversion Integration) ---
@@ -211,9 +210,9 @@
                     displayMessage += " (Conversion failed)";
                 }
 
-                if (!hevcErrorShownRef.current) {
+                if (!errorShownRef.current) {
                     notify(player, displayMessage, "error", 0); // Persistent
-                    hevcErrorShownRef.current = true;
+                    errorShownRef.current = true;
                 }
             };
 
@@ -776,7 +775,7 @@
                             type: conversionMode ? 'video/mp4' : determineMimeType(props.src)
                         });
 
-                        hevcErrorShownRef.current = false;
+                        errorShownRef.current = false;
                         // Don't resume playback for converted streams as seeking is disabled
                         if (!conversionMode) {
                             attemptResume(props.src);

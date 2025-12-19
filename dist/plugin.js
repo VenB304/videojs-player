@@ -173,17 +173,7 @@ exports.config = {
         label: "Player Theme",
         frontend: true
     },
-    hevcErrorStyle: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'appearance',
-        type: 'select',
-        defaultValue: 'overlay',
-        options: {
-            'Player Overlay (Default)': 'overlay',
-            'System Notification': 'toast'
-        },
-        label: "HEVC Error Style",
-        frontend: true
-    },
+
 
 
     // === 6. Mobile Experience ===
