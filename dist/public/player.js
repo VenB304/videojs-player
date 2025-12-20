@@ -271,8 +271,90 @@
             if (C.theme !== 'default') {
                 cssClasses += ` vjs-theme-${C.theme}`;
             }
+
+            // --- STYLE CALCULATION ---
+            // Hoisted to top so useEffect can access it for manual DOM creation.
+
+            const mode = C.sizingMode;
+            const isAudioRender = C.enableAudio && (
+                determineMimeType(props.src).startsWith('audio/') ||
+                AUDIO_EXTS.some(ext => props.src.toLowerCase().endsWith(ext))
+            );
+
+            let containerStyle = {
+                // Default relative for Block/Inline-Block modes
+                position: 'relative'
+            };
+
+            // Calculated Video Element Style (The actual player box)
+            const videoStyleOverride = {};
+
+            if (isAudioRender) {
+                // AUDIO: Always pull to bottom, full width
+                containerStyle = {
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'flex-end',
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none', // Allow clicking background
+                    position: 'relative',
+                    zIndex: 1
+                };
+
+                // Audio Player Override
+                videoStyleOverride.pointerEvents = 'auto'; // Re-enable interaction
+                videoStyleOverride.width = '100%';
+                videoStyleOverride.height = 'auto';
+
+            } else {
+                // VIDEO MODES
+                switch (mode) {
+                    case 'native':
+                        // Native: Intrinsic video size, but FULL width/height Player Wrapper (to put controls at bottom)
+                        // Video uses absolute positioning to center itself and flow freely (overflow allowed).
+                        containerStyle.display = 'block';
+                        containerStyle.width = '100%';
+                        containerStyle.height = '100%';
+
+                        // Video Override: Intrinsic size, Center, Overflow
+                        videoStyleOverride.width = 'auto';
+                        videoStyleOverride.height = 'auto';
+                        videoStyleOverride.maxWidth = 'none';
+                        videoStyleOverride.maxHeight = 'none';
+                        videoStyleOverride.position = 'absolute';
+                        videoStyleOverride.top = '50%';
+                        videoStyleOverride.left = '50%';
+                        videoStyleOverride.transform = 'translate(-50%, -50%)';
+                        videoStyleOverride.pointerEvents = 'auto';
+                        break;
+
+                    case 'fluid':
+                        // Fluid: "Good" - display: contents
+                        containerStyle.display = 'contents';
+                        break;
+
+                    case 'fill':
+                        // Fill: "Good" - Block 100%
+                        containerStyle.display = 'block';
+                        containerStyle.width = '100%';
+                        containerStyle.height = '100%';
+                        // Video Override
+                        videoStyleOverride.width = '100%';
+                        videoStyleOverride.height = '100%';
+                        videoStyleOverride.objectFit = 'cover';
+                        break;
+
+                    case 'fixed':
+                    default:
+                        // Fixed: "Good" - Inline-Block (Standard)
+                        containerStyle.display = 'inline-block';
+                        break;
+                }
+            }
+
             const videoStyle = {
-                // Base styles, mostly handled by overrides now
+                // Base styles, mostly handled by overrides now, but kept for legacy
             };
 
 
@@ -410,7 +492,7 @@
 
                     // Apply initial props
                     vid.className = cssClasses;
-                    Object.assign(vid.style, videoStyle);
+                    Object.assign(vid.style, videoStyle, videoStyleOverride); // Apply calculated styles immediately
                     vid.tabIndex = 0;
 
                     // Append to container
@@ -486,17 +568,9 @@
                 const rates = C.playbackRates.split(',').map(r => parseFloat(r.trim())).filter(n => !isNaN(n));
 
                 // Determine Video.js sizing options
-                const mode = C.sizingMode;
-                const isFluid = mode === 'fluid';
-                const isFill = mode === 'fill';
+                // `mode` and `isAudioRender` are now defined at the top of the component.
 
-                // Detect Audio Mode
-                const isAudio = C.enableAudio && (
-                    determineMimeType(props.src || '').startsWith('audio/') ||
-                    AUDIO_EXTS.some(ext => (props.src || '').toLowerCase().endsWith(ext))
-                );
-
-                console.log(`VideoJS Mount: isAudio=${isAudio}, Poster=${props.poster}`);
+                console.log(`VideoJS Mount: isAudio=${isAudioRender}, Poster=${props.poster}`);
 
 
                 // Initialize Video.js
@@ -507,11 +581,11 @@
                     loop: C.loop,
                     muted: C.muted,
                     preload: C.preload,
-                    fluid: isFluid && !isAudio, // Initial fluid state
-                    fill: (isFill || mode === 'native') && !isAudio, // Native also needs full-size wrapper for control bar placement
-                    height: isAudio ? 50 : undefined,
+                    fluid: mode === 'fluid' && !isAudioRender, // Initial fluid state
+                    fill: (mode === 'fill' || mode === 'native') && !isAudioRender, // Native also needs full-size wrapper for control bar placement
+                    height: isAudioRender ? 50 : undefined,
                     playbackRates: rates.length ? rates : [0.5, 1, 1.5, 2],
-                    inactivityTimeout: isAudio ? 0 : C.inactivityTimeout, // Always show controls for Audio
+                    inactivityTimeout: isAudioRender ? 0 : C.inactivityTimeout, // Always show controls for Audio
                     controlBar: {
                         pictureInPictureToggle: C.enablePiP, // Always enable, hide via CSS
                         fullscreenToggle: true             // Always enable, hide via CSS
@@ -527,7 +601,7 @@
                 setupMobileGestures(player, notify, videoElementRef);
                 setupHotkeys(player, notify);
 
-                if (isAudio) {
+                if (isAudioRender) {
                     player.addClass('vjs-audio-mode');
                     // Force height
                     player.height(50);
@@ -1160,90 +1234,8 @@
             // We use Manual DOM management (created in useEffect) to ensure React never touches the video element.
             // This prevents React from stripping classes like 'vjs-audio-mode' or 'vjs-playing'.
 
-            // Dynamic Container Styling for Sizing Modes
-            const mode = C.sizingMode;
-
-            const isAudioRender = C.enableAudio && (
-                determineMimeType(props.src).startsWith('audio/') ||
-                AUDIO_EXTS.some(ext => props.src.toLowerCase().endsWith(ext))
-            );
-
-            let containerStyle = {
-                // Default relative for Block/Inline-Block modes
-                position: 'relative'
-            };
-
-            // Calculated Video Element Style (The actual player box)
-            // We use this to restore interaction or force sizing
-            const videoStyleOverride = {};
-
-            if (isAudioRender) {
-                // AUDIO: Always pull to bottom, full width
-                containerStyle = {
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'flex-end',
-                    width: '100%',
-                    height: '100%',
-                    pointerEvents: 'none', // Allow clicking background
-                    position: 'relative',
-                    zIndex: 1
-                };
-
-                // Audio Player Override
-                videoStyleOverride.pointerEvents = 'auto'; // Re-enable interaction
-                videoStyleOverride.width = '100%';
-                videoStyleOverride.height = 'auto';
-
-            } else {
-                // VIDEO MODES
-                switch (mode) {
-                    case 'native':
-                        // Native: Intrinsic video size, but FULL width/height Player Wrapper (to put controls at bottom)
-                        // Video uses absolute positioning to center itself and flow freely (overflow allowed).
-                        containerStyle.display = 'block';
-                        containerStyle.width = '100%';
-                        containerStyle.height = '100%';
-
-                        // Video Override: Intrinsic size, Center, Overflow
-                        videoStyleOverride.width = 'auto';
-                        videoStyleOverride.height = 'auto';
-                        videoStyleOverride.maxWidth = 'none';
-                        videoStyleOverride.maxHeight = 'none';
-                        videoStyleOverride.position = 'absolute';
-                        videoStyleOverride.top = '50%';
-                        videoStyleOverride.left = '50%';
-                        videoStyleOverride.transform = 'translate(-50%, -50%)';
-                        videoStyleOverride.pointerEvents = 'auto';
-                        break;
-
-                    case 'fluid':
-                        // Fluid: "Good" - display: contents
-                        containerStyle.display = 'contents';
-                        break;
-
-                    case 'fill':
-                        // Fill: "Good" - Block 100%
-                        containerStyle.display = 'block';
-                        containerStyle.width = '100%';
-                        containerStyle.height = '100%';
-                        // Video Override
-                        videoStyleOverride.width = '100%';
-                        videoStyleOverride.height = '100%';
-                        videoStyleOverride.objectFit = 'cover';
-                        break;
-
-                    case 'fixed':
-                        // Fixed: "Good" - Inline-Block (Standard)
-                        containerStyle.display = 'inline-block';
-                        break;
-
-                    default:
-                        // Default: "Good" - Inline-Block (Standard)
-                        containerStyle.display = 'inline-block';
-                        break;
-                }
-            }
+            // Dynamic Container Styling Logic MOVED to top of component (lines ~280)
+            // variables `containerStyle` and `videoStyleOverride` are now available in scope.
 
             // Apply Dynamic Overrides to Manual Video Element
             React.useEffect(() => {
