@@ -508,7 +508,7 @@
                     muted: C.muted,
                     preload: C.preload,
                     fluid: isFluid && !isAudio, // Initial fluid state
-                    fill: isFill && !isAudio,
+                    fill: (isFill || mode === 'native') && !isAudio, // Native also needs full-size wrapper for control bar placement
                     height: isAudio ? 50 : undefined,
                     playbackRates: rates.length ? rates : [0.5, 1, 1.5, 2],
                     inactivityTimeout: isAudio ? 0 : C.inactivityTimeout, // Always show controls for Audio
@@ -531,6 +531,13 @@
                     player.addClass('vjs-audio-mode');
                     // Force height
                     player.height(50);
+                }
+
+                // Native Mode Overflow Fix
+                if (mode === 'native') {
+                    // Allow video to overflow the container (so we see full intrinsic size if desired)
+                    // The control bar will stay constrained to the 100% wrapper.
+                    player.el().style.overflow = 'visible';
                 }
 
                 // Attempt to load sidecar subtitle (blind guess)
@@ -1192,18 +1199,21 @@
                 // VIDEO MODES
                 switch (mode) {
                     case 'native':
-                        // Native: User wants bottom alignment
-                        containerStyle = {
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'flex-end',
-                            alignItems: 'center',
-                            width: '100%',
-                            height: '100%',
-                            pointerEvents: 'none',
-                            position: 'relative',
-                            zIndex: 1
-                        };
+                        // Native: Intrinsic video size, but FULL width/height Player Wrapper (to put controls at bottom)
+                        // Video uses absolute positioning to center itself and flow freely (overflow allowed).
+                        containerStyle.display = 'block';
+                        containerStyle.width = '100%';
+                        containerStyle.height = '100%';
+
+                        // Video Override: Intrinsic size, Center, Overflow
+                        videoStyleOverride.width = 'auto';
+                        videoStyleOverride.height = 'auto';
+                        videoStyleOverride.maxWidth = 'none';
+                        videoStyleOverride.maxHeight = 'none';
+                        videoStyleOverride.position = 'absolute';
+                        videoStyleOverride.top = '50%';
+                        videoStyleOverride.left = '50%';
+                        videoStyleOverride.transform = 'translate(-50%, -50%)';
                         videoStyleOverride.pointerEvents = 'auto';
                         break;
 
@@ -1224,8 +1234,12 @@
                         break;
 
                     case 'fixed':
-                    default:
                         // Fixed: "Good" - Inline-Block (Standard)
+                        containerStyle.display = 'inline-block';
+                        break;
+
+                    default:
+                        // Default: "Good" - Inline-Block (Standard)
                         containerStyle.display = 'inline-block';
                         break;
                 }
