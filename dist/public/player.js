@@ -1152,17 +1152,23 @@
                 }, "No Video Selected");
             }
 
+            // Fix for React Re-render Clobbering Video.js Context
+            // We use useMemo to ensure React never touches the video element again after initial mount.
+            // This prevents React from stripping classes like 'vjs-audio-mode' or 'vjs-playing' when we update state (overlay).
+            // We intentionally ignore props.children updates to avoid re-sync conflicts.
+            const videoNode = React.useMemo(() => h('video', {
+                ref: videoElementRef,
+                className: cssClasses,
+                style: videoStyle,
+                tabIndex: 0
+            }, props.children), []);
+
             return h('div', {
                 'data-vjs-player': true,
                 ref: containerRef,
                 style: { display: 'contents', position: 'relative' } // Ensure relative for overlay
             }, [
-                h('video', {
-                    ref: videoElementRef,
-                    className: cssClasses,
-                    style: videoStyle,
-                    tabIndex: 0
-                }, props.children),
+                videoNode,
                 // React-Native Overlay Component (Integrated)
                 (overlayState && overlayState.show) ? h('div', {
                     className: 'vjs-custom-overlay',
