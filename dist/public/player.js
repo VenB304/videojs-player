@@ -296,6 +296,9 @@
                 // Common Audio Styles
                 containerStyle.backgroundColor = '#000';
                 containerStyle.position = 'relative';
+                // Override HFS .showing max-width/height to allow full control
+                containerStyle.maxWidth = 'none';
+                containerStyle.maxHeight = 'none';
 
                 // Force player element to fill the black box
                 videoStyleOverride.width = '100%';
@@ -328,6 +331,8 @@
                         containerStyle.display = 'block';
                         containerStyle.width = '100%';
                         containerStyle.height = '100%';
+                        containerStyle.maxWidth = 'none';
+                        containerStyle.maxHeight = 'none';
 
                         // Video Override: Intrinsic size, Center, Overflow
                         videoStyleOverride.width = 'auto';
@@ -1287,6 +1292,7 @@
             return h('div', {
                 'data-vjs-player': true,
                 ref: containerRef,
+                className: props.className, // Apply HFS .showing class (handles transitions/detection)
                 style: containerStyle
             }, [
                 // Manual Video Element is appended here by useEffect
