@@ -410,29 +410,31 @@
                 if (!videoElement || !dummyVideo) return; // Should not happen
 
                 // --- Inject Custom Styles for Audio Mode ---
-                if (!document.getElementById('vjs-custom-styles')) {
-                    const style = document.createElement('style');
-                    style.id = 'vjs-custom-styles';
-                    style.innerHTML = `
-                        .vjs-audio-mode { background-color: transparent !important; }
-                        .vjs-audio-mode .vjs-tech { display: none; }
-                        .vjs-audio-mode .vjs-poster { display: none; }
-                        .vjs-audio-mode .vjs-big-play-button { display: none; }
-                        .vjs-audio-mode .vjs-control-bar { 
-                            display: flex !important; 
-                            visibility: visible !important; 
-                            opacity: 1 !important; 
-                            background-color: rgba(0,0,0,0.5); 
-                            border-radius: 8px;
-                        }
-                        /* Hide Video-only controls in Audio Mode */
-                        .vjs-audio-mode .vjs-fullscreen-control, 
-                        .vjs-audio-mode .vjs-picture-in-picture-control { 
-                            display: none !important; 
-                        }
-                    `;
-                    document.head.appendChild(style);
+                // Always update styles to ensure latest CSS is applied (fixes SPA navigation issues)
+                let styleEl = document.getElementById('vjs-custom-styles');
+                if (!styleEl) {
+                    styleEl = document.createElement('style');
+                    styleEl.id = 'vjs-custom-styles';
+                    document.head.appendChild(styleEl);
                 }
+                styleEl.innerHTML = `
+                    .vjs-audio-mode { background-color: transparent !important; }
+                    .vjs-audio-mode .vjs-tech { display: none; }
+                    /* .vjs-poster is visible in audio mode to show Title/Artwork */
+                    .vjs-audio-mode .vjs-big-play-button { display: none; }
+                    .vjs-audio-mode .vjs-control-bar { 
+                        display: flex !important; 
+                        visibility: visible !important; 
+                        opacity: 1 !important; 
+                        background-color: rgba(0,0,0,0.5); 
+                        border-radius: 8px;
+                    }
+                    /* Hide Video-only controls in Audio Mode */
+                    .vjs-audio-mode .vjs-fullscreen-control, 
+                    .vjs-audio-mode .vjs-picture-in-picture-control { 
+                        display: none !important; 
+                    }
+                `;
 
                 // --- Dummy Video Settings ---
                 // Monkey patch play to satisfy HFS checking
@@ -451,6 +453,9 @@
                     determineMimeType(props.src || '').startsWith('audio/') ||
                     AUDIO_EXTS.some(ext => (props.src || '').toLowerCase().endsWith(ext))
                 );
+
+                console.log(`VideoJS Mount: isAudio=${isAudio}, Poster=${props.poster}`);
+
 
                 // Initialize Video.js
                 // Pass existing element ref
