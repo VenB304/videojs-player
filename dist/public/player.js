@@ -1021,43 +1021,45 @@
                 // --- Helper: Enforce Player State (Audio/Video Mode) ---
                 // We bind this to loadstart/loadedmetadata to ensure state is applied even if Video.js resets it.
                 const enforcePlayerState = () => {
-                    if (!player) return;
+                    setTimeout(() => {
+                        if (!player || player.isDisposed()) return;
 
-                    const src = player.currentSrc() || props.src || '';
-                    const isAudio = C.enableAudio && (
-                        determineMimeType(src).startsWith('audio/') ||
-                        AUDIO_EXTS.some(ext => src.toLowerCase().endsWith(ext))
-                    );
+                        const src = player.currentSrc() || props.src || '';
+                        const isAudio = C.enableAudio && (
+                            determineMimeType(src).startsWith('audio/') ||
+                            AUDIO_EXTS.some(ext => src.toLowerCase().endsWith(ext))
+                        );
 
-                    // console.log(`[VideoJS] Enforcing State: ${src} -> isAudio=${isAudio}`);
+                        // console.log(`[VideoJS] Enforcing State: ${src} -> isAudio=${isAudio}`);
 
-                    if (isAudio) {
-                        if (!player.hasClass('vjs-audio-mode')) {
-                            player.addClass('vjs-audio-mode');
-                        }
-                        // Always force these in case they were reset
-                        player.height(50);
-                        player.fluid(false);
-                        player.poster(''); // Hide poster
-
-                        // Ensure controls are visible
-                        if (!player.controls()) player.controls(true);
-
-                    } else {
-                        if (player.hasClass('vjs-audio-mode')) {
-                            player.removeClass('vjs-audio-mode');
-
-                            // Reset DOM styles
-                            if (player.el()) {
-                                player.el().style.height = '';
-                                player.el().style.width = '';
+                        if (isAudio) {
+                            if (!player.hasClass('vjs-audio-mode')) {
+                                player.addClass('vjs-audio-mode');
                             }
+                            // Always force these in case they were reset
+                            player.height(50);
+                            player.fluid(false);
+                            player.poster(''); // Hide poster
 
-                            if (C.sizingMode === 'fluid') {
-                                player.fluid(true);
+                            // Ensure controls are visible
+                            if (!player.controls()) player.controls(true);
+
+                        } else {
+                            if (player.hasClass('vjs-audio-mode')) {
+                                player.removeClass('vjs-audio-mode');
+
+                                // Reset DOM styles
+                                if (player.el()) {
+                                    player.el().style.height = '';
+                                    player.el().style.width = '';
+                                }
+
+                                if (C.sizingMode === 'fluid') {
+                                    player.fluid(true);
+                                }
                             }
                         }
-                    }
+                    }, 10);
                 };
 
                 // Helper: Aggressive Duration Enforcement
