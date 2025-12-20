@@ -913,8 +913,9 @@
                             }
                         }
 
-                        // Always clear poster to avoid stale "Title" / Artwork from previous track
-                        player.poster('');
+                        // Update poster/artwork to avoid stale "Title" or persistent previous images
+                        // If props.poster is undefined, this clears it (equivalent to '')
+                        player.poster(props.poster || '');
 
                         player.src({
                             src: targetSrc,
@@ -1058,7 +1059,7 @@
                         player.off('loadedmetadata', enforceDuration);
                     };
                 }
-            }, [props.src, conversionMode, seekOffset]);
+            }, [props.src, props.poster, conversionMode, seekOffset]);
 
             // Clear timeout on unmount
             React.useEffect(() => {
