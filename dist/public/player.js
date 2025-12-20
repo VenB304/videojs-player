@@ -289,26 +289,55 @@
             // Calculated Video Element Style (The actual player box)
             const videoStyleOverride = {};
 
-            if (isAudioRender) {
-                // AUDIO: Always pull to bottom, full width
-                containerStyle = {
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'flex-end',
-                    width: '100%',
-                    height: '100%',
-                    pointerEvents: 'none', // Allow clicking background
-                    position: 'relative',
-                    zIndex: 1
-                };
+            if (mode === 'fixed') {
+                // FIXED MODE (Audio & Video)
+                containerStyle.display = 'inline-block';
+                // Apply strict sizing to valid container
+                if (C.fixedWidth) containerStyle.width = `${C.fixedWidth}px`;
+                if (C.fixedHeight) containerStyle.height = `${C.fixedHeight}px`;
 
-                // Audio Player Override
-                videoStyleOverride.pointerEvents = 'auto'; // Re-enable interaction
+                if (isAudioRender) {
+                    // Audio Fixed: Black box + Bottom Controls
+                    containerStyle.backgroundColor = '#000';
+                    containerStyle.position = 'relative';
+
+                    // Force player to fill the black box
+                    videoStyleOverride.width = '100%';
+                    videoStyleOverride.height = '100%';
+                    videoStyleOverride.pointerEvents = 'auto';
+                    // Note: VideoJS default audio layout is flex-end usually, but if not, 
+                    // the height:100% on the video element should allow the control bar to sit at the bottom 
+                    // if the skin supports it. Standard VJS skin on audio element usually creates a 30px bar.
+                    // If we want the bar to be at the bottom of the black box:
+                    // We might need to ensure the video element itself is what provides the black background? 
+                    // Actually, if we set height:100% on the audio player, the control bar might end up at the bottom naturally.
+                    // But strictly speaking, the player element IS the bar for audio. 
+                    // If we want a "box", we need the player to be the box.
+                }
+
+            } else if (isAudioRender) {
+                // AUDIO (Fluid, Fill, Native) -> Force Bottom of Screen/Container
+                // User wants it "at the bottom just like Video+Fluid".
+                // Since "Video+Fluid" usually means the player fills the width and sits in flow,
+                // BUT for Audio in a full-screen viewer, we typically want it grounded at the visible bottom.
+
+                // We use Absolute Positioning to anchor it to the bottom of the HFS wrapper.
+                containerStyle.display = 'block';
+                containerStyle.width = '100%';
+                containerStyle.height = '100%';
+                containerStyle.position = 'relative'; // Anchor
+                containerStyle.pointerEvents = 'none'; // Click-through empty space
+
+                // Pin Video Element (Controls) to Bottom
+                videoStyleOverride.position = 'absolute';
+                videoStyleOverride.bottom = '0';
+                videoStyleOverride.left = '0';
                 videoStyleOverride.width = '100%';
                 videoStyleOverride.height = 'auto';
+                videoStyleOverride.pointerEvents = 'auto';
 
             } else {
-                // VIDEO MODES
+                // VIDEO MODES (Fluid, Fill, Native)
                 switch (mode) {
                     case 'native':
                         // Native: Intrinsic video size, but FULL width/height Player Wrapper (to put controls at bottom)
@@ -345,9 +374,7 @@
                         videoStyleOverride.objectFit = 'cover';
                         break;
 
-                    case 'fixed':
                     default:
-                        // Fixed: "Good" - Inline-Block (Standard)
                         containerStyle.display = 'inline-block';
                         break;
                 }
