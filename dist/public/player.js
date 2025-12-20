@@ -412,9 +412,6 @@
                     window._videoConfigLogged = true;
                 }
 
-                if (!videoElement || !dummyVideo) return; // Should not happen
-                // NOTE: videoElement is now created manually below if not present, but init logic is here.
-
                 // --- MANUAL DOM MANAGEMENT FOR VIDEO ELEMENT ---
                 // We create the video element manually to prevent React from reconciling it and stripping classes/styles
                 // that Video.js adds (like vjs-audio-mode, vjs-playing, etc).
@@ -438,6 +435,9 @@
                 }
 
                 const videoElement = videoElementRef.current;
+                const dummyVideo = dummyVideoRef.current;
+
+                if (!videoElement || !dummyVideo) return; // Should not happen
 
                 // --- Inject Custom Styles for Audio Mode ---
                 // Always update styles to ensure latest CSS is applied (fixes SPA navigation issues)
