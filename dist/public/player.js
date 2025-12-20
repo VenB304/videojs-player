@@ -179,8 +179,12 @@
             };
 
             // --- Helper: Resume Playback ---
+            const hasResumedRef = React.useRef(false);
+
             const attemptResume = (src) => {
                 if (!C.resumePlayback || !src) return;
+                // Prevent double resume for the same source load
+                if (hasResumedRef.current) return;
 
                 const resumeKey = `vjs-resume-${src.split('/').pop()}`;
                 const savedTime = localStorage.getItem(resumeKey);
@@ -188,7 +192,6 @@
                 if (savedTime) {
                     const t = parseFloat(savedTime);
                     if (!isNaN(t) && t > 1) {
-                        // console.log(`[Resume] Found saved time for ${src}: ${t}`);
                         const applyResume = () => {
                             const p = playerRef.current;
                             if (!p) return;
@@ -196,6 +199,7 @@
                             if (!dur || (dur - t > 5)) { // Don't resume if near end
                                 p.currentTime(t);
                                 notify(p, `Resumed at ${Math.round(t)}s`, "info", 2000);
+                                hasResumedRef.current = true; // Mark as done
                             }
                         };
 
@@ -207,7 +211,12 @@
                                 p.one('loadedmetadata', applyResume);
                             }
                         }
+                    } else {
+                        // No saved time, mark as done so we don't keep checking
+                        hasResumedRef.current = true;
                     }
+                } else {
+                    hasResumedRef.current = true;
                 }
             };
 
@@ -810,6 +819,7 @@
                         setConversionMode(false);
                         isConvertingRef.current = false;
                         setSeekOffset(0);
+                        hasResumedRef.current = false; // Allow resume for new source
                     }
                 }
 
