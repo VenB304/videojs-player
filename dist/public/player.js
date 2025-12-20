@@ -899,7 +899,14 @@
                         } else {
                             if (player.hasClass('vjs-audio-mode')) {
                                 player.removeClass('vjs-audio-mode');
-                                player.height(null); // Reset to allow CSS/fluid to take over
+                                // Reset height: Video.js doesn't like null/undefined in height() API
+                                // Direct DOM manipulation is safer to clear inline styles added by height(50)
+                                if (player.el()) {
+                                    player.el().style.height = '';
+                                    player.el().style.width = '';
+                                }
+
+                                // Re-enable fluid mode if configured
                                 if (C.sizingMode === 'fluid') {
                                     player.fluid(true);
                                 }
