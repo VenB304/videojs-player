@@ -420,7 +420,8 @@
                 styleEl.innerHTML = `
                     .vjs-audio-mode { background-color: transparent !important; }
                     .vjs-audio-mode .vjs-tech { display: none; }
-                    /* .vjs-poster is visible in audio mode to show Title/Artwork */
+                    /* USER REQUEST: Disable Audio Title/Poster -> Hide it */
+                    .vjs-audio-mode .vjs-poster { display: none !important; }
                     .vjs-audio-mode .vjs-big-play-button { display: none; }
                     .vjs-audio-mode .vjs-control-bar { 
                         display: flex !important; 
@@ -918,9 +919,8 @@
                             }
                         }
 
-                        // Update poster/artwork to avoid stale "Title" or persistent previous images
-                        // If props.poster is undefined, this clears it (equivalent to '')
-                        player.poster(props.poster || '');
+                        // always clear poster so it doesn't persist
+                        player.poster('');
 
                         player.src({
                             src: targetSrc,
@@ -1064,7 +1064,7 @@
                         player.off('loadedmetadata', enforceDuration);
                     };
                 }
-            }, [props.src, props.poster, conversionMode, seekOffset]);
+            }, [props.src, conversionMode, seekOffset]);
 
             // Clear timeout on unmount
             React.useEffect(() => {
