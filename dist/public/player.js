@@ -337,8 +337,6 @@
             const [conversionMode, setConversionMode] = React.useState(false);
             const isConvertingRef = React.useRef(false);
             const [seekOffset, setSeekOffset] = React.useState(0);
-            const isAbsoluteTimestampRef = React.useRef(false);
-            const hevcTimeoutRef = React.useRef(null);
             const errorShownRef = React.useRef(false);
 
             // Logic to switch to conversion
@@ -351,7 +349,6 @@
                         const d = player.duration();
                         if (d && d > 0 && d !== Infinity) {
                             savedDurationRef.current = d;
-                            console.log("[VideoJS] Saved duration:", d);
                         }
 
                         isConvertingRef.current = true;
@@ -367,104 +364,89 @@
                 }
             };
 
-            // Hevc Checker
             const checkHevc = () => {
                 const player = playerRef.current;
                 if (!player || player.isDisposed() || player.ended() || isConvertingRef.current) return;
 
+                // Simple heuristic: if video but 0x0 dimensions
                 const w = player.videoWidth();
                 const h = player.videoHeight();
-                const v = player.tech({ IWillNotUseThisInPlugins: true }).el(); // Raw video element
-
                 if (determineMimeType(player.currentSrc()).startsWith('video/') && (w === 0 || h === 0)) {
-                    if (hevcTimeoutRef.current) clearTimeout(hevcTimeoutRef.current);
-                    hevcTimeoutRef.current = setTimeout(() => {
-                        if (player.videoWidth() === 0) {
-                            handlePlaybackError(player, "HEVC/Unsupported format detected.");
-                        }
-                    }, 250);
+                    // Retry once quickly
+                    setTimeout(() => {
+                        if (player.videoWidth() === 0) handlePlaybackError(player, "HEVC/Unsupported format detected.");
+                    }, 500);
                 }
             };
 
-            // Duration Enforcer (For transcoded streams)
+            // Duration Enforcer (Simple)
             React.useEffect(() => {
                 const player = playerRef.current;
-                if (!player) return;
+                if (!player || !conversionMode) return;
 
                 const enforceDuration = () => {
-                    if (conversionMode && savedDurationRef.current) {
+                    if (savedDurationRef.current) {
                         const d = player.duration();
                         if (d === Infinity || Math.abs(d - savedDurationRef.current) > 5) {
                             player.duration(savedDurationRef.current);
-                            if (player.hasClass('vjs-live')) player.removeClass('vjs-live');
                         }
-                    }
-                    // Check Timestamp Absolute vs Relative
-                    if (conversionMode && C.enable_transcoding_seeking && seekOffset > 0) {
-                        const t = player.currentTime();
-                        if (t > seekOffset * 0.5 && t > 1) isAbsoluteTimestampRef.current = true;
-                        else if (t < 10 && seekOffset > 20) isAbsoluteTimestampRef.current = false;
                     }
                 };
 
                 player.on('durationchange', enforceDuration);
-                player.on('timeupdate', enforceDuration);
                 player.on('loadedmetadata', enforceDuration);
-
                 return () => {
                     player.off('durationchange', enforceDuration);
-                    player.off('timeupdate', enforceDuration);
                     player.off('loadedmetadata', enforceDuration);
                 };
-            }, [conversionMode, seekOffset, playerRef.current]);
+            }, [conversionMode, playerRef.current]);
 
-            // Seek Interceptor
+            // Simple Seek Interceptor that just updates the state to trigger reload
+            // We removed the complex currentTime patch.
+            // If user seeks using the bar, VideoJS updates currentTime.
+            // We need to catch that 'seeking' event? 
+            // Actually, for Live streams, the standard seek bar might be disabled or erratic.
+            // But let's try to trust the standard 'seeking' event if duration is set.
             React.useEffect(() => {
                 const player = playerRef.current;
-                if (conversionMode && C.enable_transcoding_seeking && player) {
-                    const originalCurrentTime = player.currentTime;
-                    let seekDebounce = null;
+                if (!player || !conversionMode || !C.enable_transcoding_seeking) return;
 
-                    player.currentTime = function (time) {
-                        if (time === undefined) {
-                            // Getter
-                            const val = originalCurrentTime.apply(player);
-                            // If we are in relative mode (browser ignored copyts), add offset to UI
-                            if (!isAbsoluteTimestampRef.current && conversionMode && C.enable_transcoding_seeking) {
-                                return val + seekOffset;
-                            }
-                            return val;
-                        } else {
-                            // Setter
-                            const targetTime = parseFloat(time);
-                            if (targetTime > 0.1) {
-                                if (seekDebounce) clearTimeout(seekDebounce);
-                                seekDebounce = setTimeout(() => {
-                                    // Use absolute as target if we are absolute, else relative
-                                    // But wait, if the UI is showing (Global Time), the input 'time' here IS Global Time.
-                                    // So we just want to jump to THAT time.
-                                    let newOffset = targetTime;
+                const onSeek = () => {
+                    // User seeked. We need to reload the stream at this position.
+                    const t = player.currentTime();
+                    // Debounce?
+                    if (Math.abs(t - seekOffset) > 2) { // 2s threshold
+                        console.log(`[VideoJS] Seek detected: ${t}`);
+                        setSeekOffset(t);
+                        notify(player, `Seeking to ${Math.round(t)}s...`, "info", 2000);
+                    }
+                };
 
-                                    // Safety: Clamp to saved duration
-                                    if (savedDurationRef.current && newOffset > savedDurationRef.current)
-                                        newOffset = savedDurationRef.current - 5;
+                // Use 'seeking' or 'seeked'? 'seeking' fires repeatedly while dragging.
+                // We want 'seeked' but sometimes that doesn't fire if stream stalls.
+                // Let's monkey patch currentTime SETTER only simplistically to catch intent.
+                const originalCurrentTime = player.currentTime;
+                let debounce = null;
 
-                                    setSeekOffset(newOffset);
-                                    notify(player, `Seeking to ${Math.round(newOffset)}s...`, "info", 2000);
-                                }, 600);
-                            }
-                            // Pass through setter to keep internal state happy (e.g. bar position)
-                            // But if we are "fake" seeking, do we want to pass it?
-                            // Yes, to move the handle visually.
-                            return originalCurrentTime.apply(player, arguments);
-                        }
-                    };
+                player.currentTime = function (val) {
+                    if (val !== undefined) {
+                        const t = parseFloat(val);
+                        if (debounce) clearTimeout(debounce);
+                        debounce = setTimeout(() => {
+                            setSeekOffset(t);
+                            notify(player, `Seeking to ${Math.round(t)}s...`, "info", 2000);
+                        }, 500);
+                        // We do NOT call original setter because we are about to reload the source!
+                        // Calling it might confuse the player or buffer.
+                        return t;
+                    }
+                    return originalCurrentTime.apply(player);
+                };
 
-                    return () => {
-                        player.currentTime = originalCurrentTime;
-                        if (seekDebounce) clearTimeout(seekDebounce);
-                    };
-                }
+                return () => {
+                    player.currentTime = originalCurrentTime;
+                };
+
             }, [conversionMode, seekOffset, playerRef.current]);
 
             return {
