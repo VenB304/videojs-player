@@ -305,8 +305,13 @@
                 if (mode === 'fixed') {
                     // Fixed: Respect explicit dimensions
                     containerStyle.display = 'inline-block';
-                    if (C.fixedWidth) containerStyle.width = `${C.fixedWidth}px`;
-                    if (C.fixedHeight) containerStyle.height = `${C.fixedHeight}px`;
+                    // We must ensure the strings are valid numbers for CSS
+                    const fw = C.fixedWidth || 0;
+                    const fh = C.fixedHeight || 0;
+                    if (fw > 0) containerStyle.width = `${fw}px`;
+                    if (fh > 0) containerStyle.height = `${fh}px`;
+
+                    console.log(`VideoJS Audio Fixed: ${fw}x${fh}`);
                 } else {
                     // Fluid / Fill / Native: Fill the parent container
                     // User wants "bottom alignment", which VJS handles naturally if given 100% height of a container.
@@ -566,6 +571,15 @@
                         0% { transform: translate(-50%, -50%) rotate(0deg); }
                         100% { transform: translate(-50%, -50%) rotate(360deg); }
                     }
+
+                    /* Native Mode: Force Control Bar to Bottom */
+                    .vjs-native-mode .vjs-control-bar {
+                        position: absolute !important;
+                        bottom: 0 !important;
+                        left: 0 !important;
+                        width: 100% !important;
+                        z-index: 101 !important; /* Ensure above video if active */
+                    }
                 `;
 
                 // --- Dummy Video Settings ---
@@ -617,6 +631,7 @@
 
                 // Native Mode Overflow Fix
                 if (mode === 'native') {
+                    player.addClass('vjs-native-mode'); // Enable custom CSS for bottom alignment
                     // Allow video to overflow the container (so we see full intrinsic size if desired)
                     // The control bar will stay constrained to the 100% wrapper.
                     player.el().style.overflow = 'visible';
