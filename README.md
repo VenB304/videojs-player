@@ -91,7 +91,7 @@ Settings are organized into categories in **Admin Panel > Plugins > videojs-play
 | **Enable HLS/MKV** | Experimental client-side support for .m3u8/.mkv. | `Off` |
 | **Enable Transcoding** | **Live Server Conversion** for unsupported formats (HEVC, AVI) to allow users to watch unsupported formats without the need to convert them on their device. | `Off` |
 | **Allow Seeking** | (Beta) Enable seeking for users viewing transcoded videos. | `Off` |
-| **Hardware Preset** | • `Universal`: CPU (Safe).<br>• `NVENC` / `QuickSync` / `AMF` / `VideoToolbox`: GPU.<br>• `Copy`: Passthrough. | `Universal` |
+| **Hardware Preset** | • `Universal`: CPU (Safe).<br>• `NVENC` / `QuickSync` / `AMF` / `VideoToolbox`: GPU.<br>• `Copy`: Passthrough.<br>• `Custom`: Use custom FFmpeg flags. | `Universal` |
 | **FFmpeg Path** | Absolute path to ffmpeg binary. Leave empty if ffmpeg can be found in system PATH. | *Empty* |
 | **Custom FFmpeg Flags** | Extra parameters for FFmpeg (e.g. `-c:v libx265`). Only for `Custom` preset. | *Empty* |
 | **Max Global Limits** | Maximum number of simultaneous transcoding processes on the server. | `3` |
