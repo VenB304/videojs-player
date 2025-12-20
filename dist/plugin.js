@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 113;
+exports.version = 114;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -329,21 +329,22 @@ exports.init = api => {
                 }
 
                 // --- Concurrency Limits & Debouncing ---
-                const maxGlobal = api.getConfig('transcoding_concurrency');
-                const maxPerUser = !allowAnonymous ? api.getConfig('transcoding_rate_limit_per_user') : 0;
-
-                // Count active processes
-                if (running.size >= maxGlobal) {
-                    return ctx.status = 429; // Too Many Requests
-                }
-
                 if (maxPerUser > 0) {
-                    let userCount = 0;
-                    for (const u of running.values()) {
-                        if (u === username) userCount++;
+                    let userProcs = [];
+                    for (const [proc, u] of running.entries()) {
+                        if (u === username) userProcs.push(proc);
                     }
-                    if (userCount >= maxPerUser) {
-                        return ctx.status = 429; // Too Many Requests
+
+                    if (userProcs.length >= maxPerUser) {
+                        // Instead of 429, we preempt the oldest process to allow the new seek/stream
+                        // The map iteration order preserves insertion order, so the first items are the oldest.
+                        const excess = userProcs.length - maxPerUser + 1; // +1 because we are about to add one
+                        for (let i = 0; i < excess; i++) {
+                            const procToKill = userProcs[i];
+                            console.log(`[VideoJS] Concurrency limit hit for ${username}. Terminating old process.`);
+                            terminate(procToKill);
+                            running.delete(procToKill);
+                        }
                     }
                 }
 

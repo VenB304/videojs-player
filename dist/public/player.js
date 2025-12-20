@@ -569,11 +569,16 @@
                 player.on('playing', () => { setTimeout(() => videoElementRef.current?.focus(), 50); checkHevc(); });
                 player.on('loadedmetadata', checkHevc);
                 player.on('error', () => {
-                    const code = player.error()?.code;
-                    if (code === 4) {
+                    const error = player.error();
+                    const code = error ? error.code : 0;
+                    // Code 4: Source not supported
+                    // Code 2: Network error (often happens when aborting a stream for seeking)
+                    if (code === 4 || code === 2) {
                         player.error(null);
-                        handlePlaybackError(player);
-                    } else if (props.onError) props.onError(player.error());
+                        handlePlaybackError(player, code === 2 ? "Network error (retrying...)" : undefined);
+                    } else if (props.onError) {
+                        props.onError(error);
+                    }
                 });
 
                 // HFS Play Next Proxy
