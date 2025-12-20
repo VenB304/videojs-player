@@ -412,10 +412,32 @@
                     window._videoConfigLogged = true;
                 }
 
-                const videoElement = videoElementRef.current;
-                const dummyVideo = dummyVideoRef.current;
-
                 if (!videoElement || !dummyVideo) return; // Should not happen
+                // NOTE: videoElement is now created manually below if not present, but init logic is here.
+
+                // --- MANUAL DOM MANAGEMENT FOR VIDEO ELEMENT ---
+                // We create the video element manually to prevent React from reconciling it and stripping classes/styles
+                // that Video.js adds (like vjs-audio-mode, vjs-playing, etc).
+                if (!videoElementRef.current && containerRef.current) {
+                    const vid = document.createElement('video');
+
+                    // Apply initial props
+                    vid.className = cssClasses;
+                    Object.assign(vid.style, videoStyle);
+                    vid.tabIndex = 0;
+
+                    // Append to container
+                    containerRef.current.appendChild(vid);
+                    videoElementRef.current = vid;
+
+                    // Forward Ref if provided
+                    if (ref) {
+                        if (typeof ref === 'function') ref(vid);
+                        else if (ref.hasOwnProperty('current')) ref.current = vid;
+                    }
+                }
+
+                const videoElement = videoElementRef.current;
 
                 // --- Inject Custom Styles for Audio Mode ---
                 // Always update styles to ensure latest CSS is applied (fixes SPA navigation issues)
@@ -904,7 +926,11 @@
                     if (hevcTimeoutRef.current) clearTimeout(hevcTimeoutRef.current);
                     window.removeEventListener('resize', debouncedResize);
                     if (player) player.dispose();
-                    // React removes the video elements automatically since we render them
+                    if (videoElementRef.current) {
+                        videoElementRef.current.remove();
+                        videoElementRef.current = null;
+                    }
+                    if (containerRef.current) containerRef.current.innerHTML = '';
                 };
             }, []);
 
@@ -1153,22 +1179,16 @@
             }
 
             // Fix for React Re-render Clobbering Video.js Context
-            // We use useMemo to ensure React never touches the video element again after initial mount.
-            // This prevents React from stripping classes like 'vjs-audio-mode' or 'vjs-playing' when we update state (overlay).
-            // We intentionally ignore props.children updates to avoid re-sync conflicts.
-            const videoNode = React.useMemo(() => h('video', {
-                ref: videoElementRef,
-                className: cssClasses,
-                style: videoStyle,
-                tabIndex: 0
-            }, props.children), []);
+            // We use Manual DOM management (created in useEffect) to ensure React never touches the video element.
+            // This prevents React from stripping classes like 'vjs-audio-mode' or 'vjs-playing'.
 
             return h('div', {
                 'data-vjs-player': true,
                 ref: containerRef,
                 style: { display: 'contents', position: 'relative' } // Ensure relative for overlay
             }, [
-                videoNode,
+                // Manual Video Element is appended here by useEffect
+
                 // React-Native Overlay Component (Integrated)
                 (overlayState && overlayState.show) ? h('div', {
                     className: 'vjs-custom-overlay',
