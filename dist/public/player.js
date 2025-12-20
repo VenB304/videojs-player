@@ -144,7 +144,12 @@
 
             const el = player.el();
             if (el) {
-                el.style.touchAction = 'manipulation'; // Prevent double-tap to zoom
+
+                // Apply to key areas to prevent zoom but allow scrolling if needed
+                el.style.touchAction = 'manipulation';
+                const textTracks = el.querySelectorAll('.vjs-text-track-display');
+                if (textTracks) textTracks.forEach(t => t.style.touchAction = 'manipulation');
+
                 // Use capture phase to ensure we get the event before Video.js internals
                 const opts = { capture: true, passive: false };
                 el.addEventListener('touchend', handleTouch, opts);
@@ -425,10 +430,11 @@
                 // Fallback to standard error handling
                 let displayMessage = message;
 
-                // Video.js generic error mapping
-                if (message.includes("The media could not be loaded")) {
-                    displayMessage = "Playback Failed: Network error or Format not supported.";
+                // Video.js generic error mapping - Make it friendlier
+                if (message && message.includes("The media could not be loaded")) {
+                    displayMessage = "Playback Error: Format not supported or Network issue.";
                 }
+
 
                 // If converting failed, append info
                 if (isConvertingRef.current) {
@@ -436,8 +442,10 @@
                     // Async check for rate limits (503)
                     fetch(player.currentSrc(), { method: 'HEAD' }).then(res => {
                         if (res.status === 503 && res.headers.get('X-Transcode-Reason') === 'global_limit') {
-                            notify(player, "Service Unavailable: Too many users transcoding (Limit Reached).", "error", 0);
+
+                            notify(player, "Server Busy: Too many people watching. Try again later.", "error", 0);
                         }
+
                     }).catch(e => console.warn("[VideoJS] Error check failed:", e));
                 }
 
