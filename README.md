@@ -47,51 +47,58 @@ Settings are organized into categories in **Admin Panel > Plugins > videojs-play
 | **Autoplay Video** | Automatically start videos on load. *Browsers may block this w/ audio.* | `On` |
 | **Start Muted** | Forces 0% volume on start. Required for consistent Autoplay. | `Off` |
 | **Loop Playback** | Automatically restart video when ended. | `Off` |
-| **Preload Strategy** | • `Metadata`: Duration only (Fast).<br>• `Auto`: Buffers video.<br>• `None`: No load until click. | `Metadata` |
-| **Remember Resume** | Saves playback position per video. (Disabled for Transcoded streams). | `On` |
+| **Preload Strategy** | • `Metadata`: Load video metadata first.<br>• `Auto`: Buffers video.<br>• `None`: No load until click. | `Metadata` |
+| **Remember Resume** | Saves playback position per video. Disabled for Transcoded streams. | `On` |
 | **Remember Volume** | Saves volume preference between sessions. | `On` |
-| **Default Volume** | Initial volume (0-100%). | `100` |
-| **Playback Rates** | Speed options (e.g. `0.5, 1, 1.5, 2`). | `0.5...` |
+| **Default Volume** | Initial volume. | `100` |
+| **Playback Rates** | Speed options. | `0.5, 1, 1.5, 2` |
 | **Enable Audio Mode** | Use this player for .mp3/.wav files. | `Off` |
-| **Integrate Subtitles** | Detects `hfs-subtitles` plugin for advanced captions. | `Off` |
+| **Integrate Subtitles** | Use `hfs-subtitles` plugin for captions support. | `Off` |
 
 ### 2. Interface
 | Setting | Description | Default |
 | :--- | :--- | :--- |
 | **Show Control Bar** | Toggle bottom controls (Play/Pause/Timeline). | `On` |
 | **Auto-Hide Controls** | Time (ms) before controls fade. `0` = Always visible. | `2000` |
-| **Player Theme** | Visual skins (`Standard`, `City`, `Sea`, etc). | `Standard` |
-| **Show Seek Buttons** | Adds +/- 10s buttons to control bar. | `On` |
-| **Seek Button Step** | Seconds to skip per click. | `10` |
-| **Show Download Button** | Adds download icon to control bar. | `On` |
-| **Picture-in-Picture** | Show PiP toggle button. | `On` |
+| **Player Theme** | Visual skins (`Standard`, `City`, `Sea`, `Fantasy`, `Forest`). | `Standard` |
+| **Show Seek Buttons** | Adds Rewind and Fast Forward buttons to the control bar. | `On` |
+| **Seek Button Step** | Seconds to seek for Seeking buttons. | `10` |
+| **Show Download Button** | Adds download icon to the control bar. | `On` |
+| **Picture-in-Picture** | Adds PiP toggle button to the control bar. | `On` |
 | **Error Style** | `Overlay` (Cover) or `Toast` (Popup) notifications. | `Overlay` |
 
 ### 3. Layout & Sizing
 | Setting | Description | Default |
 | :--- | :--- | :--- |
-| **Sizing Mode** | • `Fluid`: Responsive & **Transparent**. Best for layouts.<br>• `Fill`: **Block** element. Fills parent 100%.<br>• `Fixed`: Custom pixel size.<br>• `Native`: Intrinsic video size. | `Fluid` |
-| **Fixed Width/Height** | Fixed width and height for **Fixed** mode. | `640`x`360` |
+| **Sizing Mode** | • `Fluid`: Responsive. Best for layouts.<br>• `Fill`: **Block** element. Fills parent 100%.<br>• `Fixed`: Custom pixel size.<br>• `Native`: Intrinsic video size. | `Fluid` |
+| **Fixed Width** | Width in pixels for **Fixed** mode. | `640` |
+| **Fixed Height** | Height in pixels for **Fixed** mode. | `360` |
 
 ### 4. Interaction
 | Setting | Description | Default |
 | :--- | :--- | :--- |
 | **Enable Hotkeys** | Space (Pause), F (Full), M (Mute), Arrows (Seek/Vol). | `On` |
-| **Arrow Seek/Vol Step** | Time(s) or Vol(%) changed by arrow keys. | `5` |
+| **Arrow key Seek Time** | Seconds to skip when using Left/Right arrow keys. | `5` |
+| **Arrow Key Volume Step** | Percentage to change volume when using Up/Down arrow keys. | `5` |
 | **Scroll Volume** | Mouse wheel changes volume. | `On` |
 | **Double Tap Seek** | (Mobile) Double-tap sides to seek. | `On` |
-| **Double Tap Seconds** | Time skipped per tap. | `10` |
-| **Auto-Rotate** | (Mobile) Lock landscape in fullscreen. | `On` |
+| **Double Tap Seconds** | Time skipped per seek. | `10` |
+| **Auto-Rotate** | Whether to automatically go into Landscape mode when in fullscreen. Android devices only. | `On` |
 
 ### 5. Transcoding & Advanced
 | Setting | Description | Default |
 | :--- | :--- | :--- |
 | **Enable HLS/MKV** | Experimental client-side support for .m3u8/.mkv. | `Off` |
-| **Enable Transcoding** | **Live Server Conversion** for unsupported formats (HEVC, AVI). | `Off` |
-| **Allow Seeking** | (Beta) Enable seeking in converted streams. | `Off` |
+| **Enable Transcoding** | **Live Server Conversion** for unsupported formats (HEVC, AVI) to allow users to watch unsupported formats without the need to convert them on their device. | `Off` |
+| **Allow Seeking** | (Beta) Enable seeking for users viewing transcoded videos. | `Off` |
 | **Hardware Preset** | • `Universal`: CPU (Safe).<br>• `NVENC` / `QuickSync` / `AMF` / `VideoToolbox`: GPU.<br>• `Copy`: Passthrough. | `Universal` |
-| **FFmpeg Path** | Absolute path to binary. Leave empty if ffmpeg can be found in system PATH. | *Empty* |
-| **Limits** | • **Max Global**: Total active streams.<br>• **Max User**: Streams per user.<br>• **Allowed Users**: Whitelist. | `3`, `1`, `All` |
+| **FFmpeg Path** | Absolute path to ffmpeg binary. Leave empty if ffmpeg can be found in system PATH. | *Empty* |
+| **Custom FFmpeg Flags** | Extra parameters for FFmpeg (e.g. `-c:v libx265`). Only for `Custom` preset. | *Empty* |
+| **Max Global Limits** | Maximum number of simultaneous transcoding processes on the server. | `3` |
+| **Allow Guest Transcoding** | Allow guests to watch transcoded videos without logging in. | `On` |
+| **Max Streams Per User** | Limit simultaneous transcoding sessions per user (if not anonymous). | `1` |
+| **Allowed Users (Whitelist)** | Specific usernames allowed to use transcoding. Leave empty for "All". | *Empty* |
+
 ---
 
 ## 🛠️ Troubleshooting
