@@ -83,11 +83,10 @@
         }
 
 
+
         // --- Assets ---
-        const SVGs = {
-            download: `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22" style="vertical-align: middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`,
-            search: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`
-        };
+        // SVGs moved to bottom of file
+
 
         // --- Helper: Mobile Gestures Setup ---
         const setupMobileGestures = (player, notify, videoElementRef) => {
@@ -528,78 +527,11 @@
 
                 if (!videoElement || !dummyVideo) return; // Should not happen
 
-                // --- Inject Custom Styles for Audio Mode ---
-                // Always update styles to ensure latest CSS is applied (fixes SPA navigation issues)
-                let styleEl = document.getElementById('vjs-custom-styles');
-                if (!styleEl) {
-                    styleEl = document.createElement('style');
-                    styleEl.id = 'vjs-custom-styles';
-                    document.head.appendChild(styleEl);
-                }
-                styleEl.innerHTML = `
-                    /* converting overlay */
-                    .vjs-converting::after {
-                        content: "Transcoding Media...";
-                        position: absolute;
-                        top: 50%;
-                        left: 50%;
-                        transform: translate(-50%, -50%);
-                        background: rgba(0, 0, 0, 0.8);
-                        color: white;
-                        padding: 10px 20px;
-                        border-radius: 5px;
-                        font-family: sans-serif;
-                        font-size: 14px;
-                        z-index: 99;
-                        pointer-events: none;
-                        display: flex;
-                        align-items: center;
-                        gap: 10px;
-                    }
-                    /* Simple Spinner */
-                    .vjs-converting::before {
-                        content: "";
-                        position: absolute;
-                        top: 40%; 
-                        left: 50%;
-                        transform: translate(-50%, -50%);
-                        width: 24px;
-                        height: 24px;
-                        border: 3px solid #fff;
-                        border-bottom-color: transparent;
-                        border-radius: 50%;
-                        animation: vjs-spin 1s linear infinite;
-                        z-index: 100;
-                    }
-                    @keyframes vjs-spin {
-                        0% { transform: translate(-50%, -50%) rotate(0deg); }
-                        100% { transform: translate(-50%, -50%) rotate(360deg); }
-                    }
 
-                    /* Native Mode: Force Control Bar to Bottom & Tech Centered */
-                    .vjs-native-mode {
-                        width: 100% !important;
-                        height: 100% !important;
-                    }
-                    .vjs-native-mode .vjs-control-bar {
-                        position: absolute !important;
-                        bottom: 0 !important;
-                        left: 0 !important;
-                        width: 100% !important;
-                        z-index: 101 !important;
-                    }
-                    /* Force Video Tech to be small/intrinsic in Native Mode */
-                    .vjs-native-mode .vjs-tech {
-                        width: auto !important;
-                        height: auto !important;
-                        max-width: none !important;
-                        max-height: none !important;
-                        top: 50% !important;
-                        left: 50% !important;
-                        transform: translate(-50%, -50%) !important;
-                        position: absolute !important;
-                    }
-                `;
+                // --- Inject Custom Styles for Audio Mode ---
+                // Custom styles are now loaded via video-js.css
+                // This block previously injected inline styles which are now externalized.
+
 
                 // --- Dummy Video Settings ---
                 // Monkey patch play to satisfy HFS checking
@@ -834,14 +766,16 @@
                     }
                 }
 
-                // --- Helper: Debounce ---
-                const debounce = (func, wait) => {
+
+                // --- Helper: Debounce (Use HFS lodash if available) ---
+                const debounce = (HFS && HFS._ && HFS._.debounce) ? HFS._.debounce : (func, wait) => {
                     let timeout;
                     return (...args) => {
                         clearTimeout(timeout);
                         timeout = setTimeout(() => func.apply(this, args), wait);
                     };
                 };
+
 
                 // --- Custom Sizing Logic (Native & Fixed Modes) ---
                 const resizePlayer = () => {
@@ -1368,7 +1302,14 @@
             // effectively resetting all internal and Video.js states (fixes sticky metadata).
             params.Component = (props) => h(ComponentToUse, { ...props, key: props.src });
         });
+
     } else {
         console.error("VideoJS Plugin: React/Preact not found on window or HFS. Plugin execution aborted.");
     }
 }
+
+// --- SVG Assets (Externalized) ---
+const SVGs = {
+    download: `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22" style="vertical-align: middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`,
+    search: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`
+};
