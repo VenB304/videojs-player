@@ -271,6 +271,7 @@
             const isAbsoluteTimestampRef = React.useRef(false); // Detects if browser respected -copyts
 
             const [overlayState, setOverlayState] = React.useState(null); // { message, type, show }
+            const [audioTitle, setAudioTitle] = React.useState(null); // State for Audio Title Overlay
 
             // Calculate styles for Render
             let cssClasses = 'video-js vjs-big-play-centered';
@@ -464,6 +465,24 @@
                     .vjs-audio-mode .vjs-fullscreen-control, 
                     .vjs-audio-mode .vjs-picture-in-picture-control { 
                         display: none !important; 
+                    }
+                    /* Audio Title Overlay */
+                    .vjs-audio-title {
+                        position: absolute;
+                        top: 40%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        color: white;
+                        font-family: sans-serif;
+                        font-size: 1.5em;
+                        text-align: center;
+                        text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+                        pointer-events: none; /* Let clicks pass through to player */
+                        z-index: 10;
+                        width: 90%;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
                     }
 
                     /* converting overlay */
@@ -770,8 +789,11 @@
                 // Feature: Auto-Focus on Play
                 player.on('playing', () => {
                     setTimeout(() => {
-                        if (videoElementRef.current) {
-                            videoElementRef.current.focus();
+                        // FIX: Focus the player wrapper (.video-js) instead of the tech element.
+                        // The tech element is display:none in Audio mode, causing focus to fail and controls to become unreachable.
+                        // The wrapper is always visible and handles hotkeys/tabIndex.
+                        if (player && player.el()) {
+                            player.el().focus();
                         }
                     }, 50);
                     checkHevc();
@@ -1039,14 +1061,26 @@
                             // Always force these in case they were reset
                             player.height(50);
                             player.fluid(false);
-                            player.poster(''); // Hide poster
+                            player.poster(''); // Hide poster in audio mode
+
+                            // Set Audio Title (Filename)
+                            const title = props.filename || decodeURIComponent(src.split('/').pop().split('?')[0]);
+                            setAudioTitle(title);
 
                             // Ensure controls are visible
                             if (!player.controls()) player.controls(true);
 
                         } else {
+                            // Video Mode
+                            setAudioTitle(null); // Clear Audio Title Overlay
+
                             if (player.hasClass('vjs-audio-mode')) {
                                 player.removeClass('vjs-audio-mode');
+
+                                // Restore Poster if available
+                                if (props.poster) {
+                                    player.poster(props.poster);
+                                }
 
                                 // Reset DOM styles
                                 if (player.el()) {
@@ -1226,6 +1260,9 @@
                     overlayState.type === 'error' ? h('div', { style: { fontWeight: 'bold', marginBottom: '4px' } }, 'Error') : null,
                     h('div', {}, overlayState.message)
                 ]) : null,
+
+                // Audio Title Overlay
+                audioTitle ? h('div', { className: 'vjs-audio-title' }, audioTitle) : null,
 
                 // Dummy video for HFS (Hidden)
                 h('video', {
