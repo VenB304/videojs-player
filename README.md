@@ -91,7 +91,8 @@ Settings are organized into categories in **Admin Panel > Plugins > videojs-play
 | **Enable HLS/MKV** | Experimental client-side support for .m3u8/.mkv. | `Off` |
 | **Enable Transcoding** | **Live Server Conversion** for unsupported formats (HEVC, AVI) to allow users to watch unsupported formats without the need to convert them on their device. | `Off` |
 | **Allow Seeking** | (Beta) Enable seeking for users viewing transcoded videos. | `Off` |
-| **Hardware Preset** | • `Universal`: CPU (Safe).<br>• `NVENC` / `QuickSync` / `AMF` / `VideoToolbox`: GPU.<br>• `Copy`: Passthrough.<br>• `Custom`: Use custom FFmpeg flags. | `Universal` |
+| **Hardware Acceleration** | • `Software (x264)`: CPU (Safe).<br>• `Intel QSV` / `NVIDIA NVENC` / `AMD AMF` / `Apple VideoToolbox`: GPU.<br>• `VAAPI`: Linux Hardware.<br>• `Copy`: Passthrough (No re-encoding).<br>• `Custom`: Manual flags. | `Software` |
+| **Encoder Preset** | Speed vs Quality choice (e.g. `Ultrafast`, `Balanced`, `Best Quality`).<br> *Options change based on Hardware selection.* | `Balanced` |
 | **FFmpeg Path** | Absolute path to ffmpeg binary. Leave empty if ffmpeg can be found in system PATH. | *Empty* |
 | **Custom FFmpeg Flags** | Extra parameters for FFmpeg (e.g. `-c:v libx265`). Only for `Custom` preset. | *Empty* |
 | **Max Global Limits** | Maximum number of simultaneous transcoding processes on the server. | `3` |
@@ -110,7 +111,7 @@ Settings are organized into categories in **Admin Panel > Plugins > videojs-play
 ### Transcoding Performance
 *   **"Transcoding Failed"**:
     1.  Check if `ffmpeg` is installed and in your system PATH (or specified in settings).
-    2.  Check if your chosen **Preset** is supported by your server hardware. Try switching to **Universal** as fallback.
+    2.  Check if your chosen **Hardware Acceleration** is supported by your server. Try switching to **Software (x264)** as fallback.
 *   **High CPU Usage**:
     *   Switch to a Hardware Accelerated preset (NVENC/QuickSync/AMF/VideoToolbox) if available.
     *   Limit **Max Global Streams** to prevent server overload.
@@ -141,11 +142,12 @@ This plugin bridges **HFS (Server)** and **Video.js (Client)** using a hybrid ap
 
 ### Transcoding Pipeline
 `Source` -> `Decoder` -> `Encoder (H.264/AAC)` -> `MPEG-TS/MP4 Container` -> `Browser`
-*   **Universal**: Uses `libx264` (CPU).
-*   **NVIDIA NVENC**: Uses `h264_nvenc`.
-*   **Intel QuickSync**: Uses `h264_qsv`.
-*   **AMD AMF**: Uses `h264_amf`.
-*   **Apple VideoToolbox**: Uses `h264_videotoolbox`.
+*   **Software (x264)**: Uses `libx264` (Standard CPU encoding).
+*   **Intel QuickSync**: Uses `h264_qsv` (Intel iGPU).
+*   **NVIDIA NVENC**: Uses `h264_nvenc` (NVIDIA GPU).
+*   **AMD AMF**: Uses `h264_amf` (AMD GPU).
+*   **Apple VideoToolbox**: Uses `h264_videotoolbox` (macOS).
+*   **VAAPI**: Uses `h264_vaapi` (Linux Generic).
 *   **Copy**: Uses `-c copy`.
 
 ---

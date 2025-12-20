@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 161;
+exports.version = 162;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -218,23 +218,63 @@ exports.config = {
         helperText: "Enables seeking for converted videos. May be slow or unstable depending on CPU/Server speed.",
         frontend: true
     },
-    ffmpeg_preset: {
+    ffmpeg_hardware_accel: {
         showIf: x => x.config_tab === 'transcoding' && x.enable_ffmpeg_transcoding,
         type: 'select',
-        defaultValue: 'universal',
+        defaultValue: 'cpu',
         options: {
-            'Universal (libx264)': 'universal',
-            'Intel QuickSync (h264_qsv)': 'intel_qsv',
-            'NVIDIA NVENC (h264_nvenc)': 'nvidia_nvenc',
-            'AMD AMF (h264_amf)': 'amd_amf',
-            'Apple VideoToolbox (h264_videotoolbox)': 'apple_vt',
+            'Software (x264)': 'cpu',
+            'Intel Quick Sync': 'intel_qsv',
+            'NVIDIA NVENC': 'nvidia_nvenc',
+            'AMD AMF': 'amd_amf',
+            'Apple VideoToolbox': 'apple_vt',
+            'VAAPI (Linux)': 'vaapi',
             'Stream Copy (No Transcoding)': 'copy',
             'Custom (Manual Configuration)': 'custom'
         },
-        label: "Hardware Acceleration (Preset)",
-        helperText: "Universal: CPU only. Others use GPU. 'Copy': No re-encoding. 'Custom': Edit flags below.",
+        label: "Hardware Acceleration",
+        helperText: "Select the encoder backend. Ensure your hardware supports it.",
         frontend: true
     },
+
+    // --- Dynamic Presets (Conditional) ---
+    preset_cpu: {
+        showIf: x => x.config_tab === 'transcoding' && x.enable_ffmpeg_transcoding && x.ffmpeg_hardware_accel === 'cpu',
+        type: 'select', defaultValue: 'medium',
+        options: { 'Ultrafast': 'ultrafast', 'Superfast': 'superfast', 'Veryfast': 'veryfast', 'Faster': 'faster', 'Fast': 'fast', 'Medium (Default)': 'medium', 'Slow': 'slow', 'Slower': 'slower', 'Veryslow': 'veryslow' },
+        label: "x264 Preset", helperText: "Speed vs Quality tradeoff.", frontend: true
+    },
+    preset_intel_qsv: {
+        showIf: x => x.config_tab === 'transcoding' && x.enable_ffmpeg_transcoding && x.ffmpeg_hardware_accel === 'intel_qsv',
+        type: 'select', defaultValue: 'balanced',
+        options: { 'Very Fast': 'veryfast', 'Faster': 'faster', 'Balanced (Default)': 'balanced', 'Better': 'better', 'Best': 'best' },
+        label: "QSV Preset", helperText: "Intel QuickSync Quality Balance.", frontend: true
+    },
+    preset_nvidia_nvenc: {
+        showIf: x => x.config_tab === 'transcoding' && x.enable_ffmpeg_transcoding && x.ffmpeg_hardware_accel === 'nvidia_nvenc',
+        type: 'select', defaultValue: 'balanced',
+        options: { 'Fastest (p1)': 'fastest', 'Fast (p3)': 'fast', 'Balanced (p5)': 'balanced', 'Quality (p6)': 'quality', 'Best Quality (p7)': 'best_quality' },
+        label: "NVENC Preset", helperText: "NVIDIA Encoder Quality (P-States).", frontend: true
+    },
+    preset_amd_amf: {
+        showIf: x => x.config_tab === 'transcoding' && x.enable_ffmpeg_transcoding && x.ffmpeg_hardware_accel === 'amd_amf',
+        type: 'select', defaultValue: 'balanced',
+        options: { 'Speed': 'speed', 'Balanced': 'balanced', 'Quality': 'quality' },
+        label: "AMF Preset", helperText: "AMD Advanced Media Framework Quality.", frontend: true
+    },
+    preset_apple_vt: {
+        showIf: x => x.config_tab === 'transcoding' && x.enable_ffmpeg_transcoding && x.ffmpeg_hardware_accel === 'apple_vt',
+        type: 'select', defaultValue: 'balanced',
+        options: { 'Low Latency': 'low-latency', 'Balanced': 'balanced', 'Quality': 'quality' },
+        label: "VideoToolbox Preset", helperText: "Apple Hardware Encoder Quality.", frontend: true
+    },
+    preset_vaapi: {
+        showIf: x => x.config_tab === 'transcoding' && x.enable_ffmpeg_transcoding && x.ffmpeg_hardware_accel === 'vaapi',
+        type: 'select', defaultValue: 'balanced',
+        options: { 'Fast': 'fast', 'Balanced': 'balanced', 'Quality': 'quality' },
+        label: "VAAPI Preset", helperText: "Linux VAAPI Quality Simulation.", frontend: true
+    },
+
     ffmpeg_path: {
         type: 'real_path',
         fileMask: 'ffmpeg*',
@@ -246,7 +286,7 @@ exports.config = {
         defaultValue: '',
         label: "Custom FFmpeg Flags",
         helperText: "Enter custom parameters (e.g. -c:v libx265 -crf 23). These are appended to the command. Only visible in 'Custom' mode.",
-        showIf: x => x.config_tab === 'transcoding' && x.enable_ffmpeg_transcoding && x.ffmpeg_preset === 'custom'
+        showIf: x => x.config_tab === 'transcoding' && x.enable_ffmpeg_transcoding && x.ffmpeg_hardware_accel === 'custom'
     },
     transcoding_concurrency: {
         showIf: x => x.config_tab === 'transcoding' && x.enable_ffmpeg_transcoding,
@@ -376,7 +416,7 @@ exports.init = api => {
                 // However, we should be careful about injection if we ever expose this to non-admins.
                 const ffmpegPath = api.getConfig('ffmpeg_path') || 'ffmpeg';
                 const extraParamsStr = api.getConfig('ffmpeg_parameters') || '';
-                const preset = api.getConfig('ffmpeg_preset') || 'universal';
+                const hardware = api.getConfig('ffmpeg_hardware_accel') || 'cpu';
 
                 // --- SECURITY: Input Validation ---
                 // Validate ffmpegPath to prevent command injection
@@ -425,7 +465,7 @@ exports.init = api => {
                 const startTimeInput = qs.get('startTime');
                 const startTime = startTimeInput ? parseFloat(startTimeInput) : 0;
 
-                console.log(`[VideoJS] FFmpeg Request: ${src} | Start: ${startTime} | Preset: ${preset} | QS: ${ctx.querystring}`);
+                console.log(`[VideoJS] FFmpeg Request: ${src} | Start: ${startTime} | HW: ${hardware}`);
 
                 const mkArgs = (src, start, extra) => {
                     const args = [];
@@ -437,9 +477,9 @@ exports.init = api => {
 
 
 
-                    // --- Dynamic Preset Logic ---
+                    // --- Dynamic Hardware Logic ---
 
-                    if (preset === 'custom') {
+                    if (hardware === 'custom') {
                         // Custom Mode: Minimal defaults + User Parameters
                         args.push(
                             '-f', 'mp4',
@@ -451,64 +491,85 @@ exports.init = api => {
                             args.push(...extra);
                         }
                     } else {
-                        // Preset Mode: Standard defaults + Specific Encoder Flags
-                        // Ignore 'extra' (ffmpeg_parameters) as user requested they be disabled/hidden
+                        // Standard Mode: Apply Base Container Flags
                         args.push(
                             '-f', 'mp4',
                             '-movflags', 'frag_keyframe+empty_moov+delay_moov',
-                            '-strict', '-2'
+                            '-strict', '-2',
+                            '-c:a', 'aac', // Always AAC for safety
+                            '-ac', '2'     // Stereo
                         );
 
-                        // Encoder Selection
-                        switch (preset) {
-                            case 'intel_qsv':
-                                // Intel QuickSync
+                        // --- Encoder Selection ---
+                        const getPreset = (name) => api.getConfig(name) || 'balanced'; // Fallback
+
+                        switch (hardware) {
+                            case 'intel_qsv': {
+                                const p = getPreset('preset_intel_qsv');
+                                const pMap = {
+                                    'veryfast': '7', 'faster': '6', 'balanced': '4', 'better': '2', 'best': '1'
+                                };
                                 args.push(
                                     '-c:v', 'h264_qsv',
+                                    '-preset', pMap[p] || '4',
                                     '-global_quality', '23',
-                                    '-load_plugin', 'hevc_hw',
-                                    '-c:a', 'aac'
+                                    '-load_plugin', 'hevc_hw'
                                 );
                                 break;
-                            case 'nvidia_nvenc':
-                                // NVIDIA NVENC
+                            }
+                            case 'nvidia_nvenc': {
+                                const p = getPreset('preset_nvidia_nvenc');
+                                const pMap = {
+                                    'fastest': 'p1', 'fast': 'p3', 'balanced': 'p5', 'quality': 'p6', 'best_quality': 'p7'
+                                };
                                 args.push(
                                     '-c:v', 'h264_nvenc',
-                                    '-preset', 'p1',
-                                    '-tune', 'll',
-                                    '-c:a', 'aac'
+                                    '-preset', pMap[p] || 'p5',
+                                    '-tune', 'll' // Low Latency tune is usually good for streaming
                                 );
                                 break;
-                            case 'amd_amf':
-                                // AMD AMF
+                            }
+                            case 'amd_amf': {
+                                const p = getPreset('preset_amd_amf');
                                 args.push(
                                     '-c:v', 'h264_amf',
-                                    '-usage', 'transcoding',
-                                    '-c:a', 'aac'
+                                    '-usage', 'transcoding', // Optimize for streaming
+                                    '-quality', p // speed, balanced, quality
                                 );
                                 break;
-                            case 'apple_vt':
-                                // Apple VideoToolbox
+                            }
+                            case 'apple_vt': {
+                                const p = getPreset('preset_apple_vt');
                                 args.push(
                                     '-c:v', 'h264_videotoolbox',
-                                    '-realtime', 'true',
-                                    '-c:a', 'aac'
+                                    '-realtime', 'true'
                                 );
                                 break;
-                            case 'copy':
+                            }
+                            case 'vaapi': {
+                                const p = getPreset('preset_vaapi');
+                                args.push('-c:v', 'h264_vaapi');
+                                // Simulate presets
+                                if (p === 'fast') args.push('-qp', '28');
+                                else if (p === 'quality') args.push('-qp', '20');
+                                else args.push('-qp', '24'); // Balanced
+                                break;
+                            }
+                            case 'copy': {
                                 // Stream Copy (Passthrough)
                                 args.push('-c', 'copy');
                                 break;
-                            case 'universal':
-                            default:
-                                // CPU Universal (libx264)
+                            }
+                            case 'cpu':
+                            default: {
+                                const p = getPreset('preset_cpu');
                                 args.push(
                                     '-c:v', 'libx264',
-                                    '-preset', 'superfast',
-                                    '-pix_fmt', 'yuv420p',
-                                    '-c:a', 'aac'
+                                    '-preset', p, // ultrafast ... veryslow matches ffmpeg directly
+                                    '-pix_fmt', 'yuv420p'
                                 );
                                 break;
+                            }
                         }
 
                         // CopyTS logic
