@@ -426,20 +426,38 @@
                     let seekDebounce = null;
 
                     player.currentTime = function (time) {
-                        if (time !== undefined) {
+                        if (time === undefined) {
+                            // Getter
+                            const val = originalCurrentTime.apply(player);
+                            // If we are in relative mode (browser ignored copyts), add offset to UI
+                            if (!isAbsoluteTimestampRef.current && conversionMode && C.enable_transcoding_seeking) {
+                                return val + seekOffset;
+                            }
+                            return val;
+                        } else {
+                            // Setter
                             const targetTime = parseFloat(time);
                             if (targetTime > 0.1) {
                                 if (seekDebounce) clearTimeout(seekDebounce);
                                 seekDebounce = setTimeout(() => {
-                                    let newOffset = isAbsoluteTimestampRef.current ? targetTime : seekOffset + targetTime;
+                                    // Use absolute as target if we are absolute, else relative
+                                    // But wait, if the UI is showing (Global Time), the input 'time' here IS Global Time.
+                                    // So we just want to jump to THAT time.
+                                    let newOffset = targetTime;
+
+                                    // Safety: Clamp to saved duration
                                     if (savedDurationRef.current && newOffset > savedDurationRef.current)
                                         newOffset = savedDurationRef.current - 5;
+
                                     setSeekOffset(newOffset);
                                     notify(player, `Seeking to ${Math.round(newOffset)}s...`, "info", 2000);
                                 }, 600);
                             }
+                            // Pass through setter to keep internal state happy (e.g. bar position)
+                            // But if we are "fake" seeking, do we want to pass it?
+                            // Yes, to move the handle visually.
+                            return originalCurrentTime.apply(player, arguments);
                         }
-                        return originalCurrentTime.apply(player, arguments);
                     };
 
                     return () => {
