@@ -632,9 +632,26 @@
                     console.log(`VideoJS Plugin: Load ${targetSrc}`);
                     player.src({ src: targetSrc, type: conversionMode ? 'video/mp4' : determineMimeType(props.src) });
 
-                    if (!conversionMode || C.enable_transcoding_seeking) {
+                    if (!conversionMode) {
+                        // Standard Resume for direct files
                         if (player._attemptResume) player._attemptResume(props.src);
+                    } else if (C.enable_transcoding_seeking && C.resumePlayback && seekOffset === 0) {
+                        // Special Resume for Transcoding
+                        // We set seekOffset directly to start the stream at the resume point.
+                        // We only do this if seekOffset is 0 (fresh conversion start) to avoid overriding user seeks.
+                        const key = `vjs-resume-${props.src.split('/').pop().split('?')[0]}`;
+                        const saved = localStorage.getItem(key);
+                        if (saved) {
+                            const t = parseFloat(saved);
+                            if (!isNaN(t) && t > 5) { // Threshold >5 to ensure meaningful resume
+                                console.log(`[VideoJS] Resuming transcoding at ${t}s`);
+                                setSeekOffset(t);
+                                // Note: calling setSeekOffset will trigger this effect again with the new URL.
+                                // This is expected and desired.
+                            }
+                        }
                     }
+
                     if (C.autoplay || conversionMode) {
                         player.play().catch(e => {
                             if (!isConvertingRef.current) notify(player, "Click to Play", "info", 0);
