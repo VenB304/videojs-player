@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 160;
+exports.version = 161;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -378,6 +378,14 @@ exports.init = api => {
                 const extraParamsStr = api.getConfig('ffmpeg_parameters') || '';
                 const preset = api.getConfig('ffmpeg_preset') || 'universal';
 
+                // --- SECURITY: Input Validation ---
+                // Validate ffmpegPath to prevent command injection
+                if (/[;&|]/.test(ffmpegPath)) {
+                    console.error(`[VideoJS] Security Error: Invalid characters detected in ffmpeg_path: ${ffmpegPath}`);
+                    return ctx.status = 500;
+                }
+
+
                 // Improved argument tokenizer
                 // Splits by spaces but respects quotes (single and double)
                 const extraParams = [];
@@ -511,7 +519,36 @@ exports.init = api => {
                     return args;
                 }
 
-                const proc = spawn(ffmpegPath, mkArgs(src, startTime, extraParams));
+                // --- OPTIMIZATION: Process Priority ---
+                // Lower priority to keep HFS responsive
+                let spawnCmd = ffmpegPath;
+                let spawnArgs = mkArgs(src, startTime, extraParams);
+                let spawnOptions = {};
+
+                if (process.platform === 'win32') {
+                    // Windows: Use 'cmd /c start /BELOWNORMAL /B ...'
+                    // This is tricky with spawn because we need to wrap the whole command.
+                    // Instead, we can try to rely on 'start' command. 
+                    // However, piping stdout from 'start' is hard.
+                    // ALTERNATIVE: Just spawn normally, HFS/Node usually handle this fine.
+                    // BUT USER REQUESTED PRIORITY. 
+                    // Let's use 'wmic' or PowerShell AFTER spawn? No, too slow.
+                    // Let's stick to standard spawn for reliability unless we are sure.
+                    // Wait, we can use a small trick:
+                    // spawn('cmd', ['/c', 'start', '/b', '/belownormal', '/wait', 'ffmpeg', ...])
+                    // But 'start' doesn't pipe stdout standardly. 
+
+                    // DECISION: On Windows, simple spawn is safer for piping. 
+                    // We will attempt to use 'nice' ONLY on Linux/Mac/Docker.
+                } else {
+                    // Linux/Mac: Use 'nice'
+                    spawnCmd = 'nice'; // Use nice binary
+                    spawnArgs = ['-n', '10', ffmpegPath, ...spawnArgs];
+                }
+
+                // const proc = spawn(ffmpegPath, mkArgs(src, startTime, extraParams));
+                const proc = spawn(spawnCmd, spawnArgs, spawnOptions);
+
 
                 running.set(proc, username)
 
