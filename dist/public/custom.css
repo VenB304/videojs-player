@@ -1,5 +1,10 @@
 /* --- Video.js Player Plugin Custom Styles --- */
 
+/* Better visibility for control bar on light videos */
+.video-js .vjs-control-bar {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+}
+
 /* converting overlay */
 .vjs-converting::after {
     content: "Transcoding Media...";
