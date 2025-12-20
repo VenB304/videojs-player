@@ -577,6 +577,10 @@
                     }
 
                     /* Native Mode: Force Control Bar to Bottom & Tech Centered */
+                    .vjs-native-mode {
+                        width: 100% !important;
+                        height: 100% !important;
+                    }
                     .vjs-native-mode .vjs-control-bar {
                         position: absolute !important;
                         bottom: 0 !important;
