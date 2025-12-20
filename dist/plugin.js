@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 119;
+exports.version = 120;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -288,13 +288,9 @@ exports.init = api => {
          * Middleware to intercept ?ffmpeg requests and stream converted video
          * @param {object} ctx - Koa context
          */
-        /**
-         * Middleware to intercept ?ffmpeg requests and stream converted video
-         * @param {object} ctx - Koa context
-         */
         middleware: async ctx => {
             return async () => { // wait for fileSource to be available
-                // Only intercept if we are enabled AND querystring contains ffmpeg
+                // Only intercept if we are enabled AND querystring is ffmpeg
                 const transcodingEnabled = api.getConfig('enable_ffmpeg_transcoding');
                 if (!transcodingEnabled) return;
 
@@ -304,16 +300,8 @@ exports.init = api => {
                  * Credits to Rejetto for the original implementation.
                  */
 
-                const src = ctx.state.fileSource;
-                if (!src) return;
-
-                // Robust Query Parsing using URLSearchParams
-                // We use the full querystring to ensure we catch parameters regardless of order
-                // ctx.querystring is the raw string without '?'
-                const params = new URLSearchParams(ctx.querystring);
-
-                // Check if this is a transcoding request
-                if (!params.has('ffmpeg')) return;
+                const src = ctx.state.fileSource
+                if (!ctx.querystring.startsWith('ffmpeg') || !src) return
 
                 const username = api.getCurrentUsername(ctx);
 
@@ -328,60 +316,31 @@ exports.init = api => {
                     }
                 }
 
-                // --- Concurrency Limits & Debouncing ---
+                // --- Concurrency Limits ---
+                const maxGlobal = api.getConfig('transcoding_concurrency');
+                const maxPerUser = !allowAnonymous ? api.getConfig('transcoding_rate_limit_per_user') : 0;
+
+                // Count active processes
+                if (running.size >= maxGlobal) {
+                    return ctx.status = 429; // Too Many Requests
+                }
+
                 if (maxPerUser > 0) {
-                    let userProcs = [];
-                    for (const [proc, u] of running.entries()) {
-                        if (u === username) userProcs.push(proc);
+                    let userCount = 0;
+                    for (const u of running.values()) {
+                        if (u === username) userCount++;
                     }
-
-                    if (userProcs.length >= maxPerUser) {
-                        // Instead of 429, we preempt the oldest process to allow the new seek/stream
-                        // The map iteration order preserves insertion order, so the first items are the oldest.
-                        const excess = userProcs.length - maxPerUser + 1; // +1 because we are about to add one
-                        for (let i = 0; i < excess; i++) {
-                            const procToKill = userProcs[i];
-                            console.log(`[VideoJS] Concurrency limit hit for ${username}. Terminating old process.`);
-                            terminate(procToKill);
-                            running.delete(procToKill);
-                        }
+                    if (userCount >= maxPerUser) {
+                        return ctx.status = 429; // Too Many Requests
                     }
                 }
 
-                // --- Per-User Debounce ---
-                // Prevent rapid-fire requests from the same user/IP from spawning multiple heavy processes
-                // We utilize a simple cache attached to exports to track last request times.
-                // We sleep for the remainder of the debounce window instead of rejecting, 
-                // allowing legitimate rapid seeks to eventually succeed without breaking the player.
-                const now = Date.now();
-                if (username) {
-                    if (!exports._lastReq) exports._lastReq = new Map();
-                    const lastTime = exports._lastReq.get(username) || 0;
-                    const timeSince = now - lastTime;
-                    const minInterval = 1000; // 1 second interval between spawns
-
-                    if (timeSince < minInterval) {
-                        const wait = minInterval - timeSince;
-                        // console.log(`[VideoJS] Debouncing user ${username} for ${wait}ms`);
-                        await new Promise(res => setTimeout(res, wait));
-                    }
-                    exports._lastReq.set(username, Date.now());
-
-                    // Cleanup map occasionally
-                    if (exports._lastReq.size > 200) {
-                        const expiry = Date.now() - 60000;
-                        for (const [u, t] of exports._lastReq.entries()) {
-                            if (t < expiry) exports._lastReq.delete(u);
-                        }
-                    }
-                } else {
-                    // Global debounce for anonymous to be safe
-                    await new Promise(res => setTimeout(res, 500));
-                }
-
+                await new Promise(res => setTimeout(res, 500)) // Debounce: avoid short-lasting requests spawning ffmpeg
                 if (ctx.socket.closed) return
 
                 // SECURITY NOTE: These configs are Admin-only.
+                // We assume the Admin does not want to hack their own server.
+                // However, we should be careful about injection if we ever expose this to non-admins.
                 const ffmpegPath = api.getConfig('ffmpeg_path') || 'ffmpeg';
                 const extraParamsStr = api.getConfig('ffmpeg_parameters') || '';
 
@@ -416,11 +375,15 @@ exports.init = api => {
                 }
                 if (currentToken.length > 0) extraParams.push(currentToken);
 
+                // Sanitize src? HFS usually provides a clean absolute path in fileSource.
+                // But just in case, we trust the `spawn` array method to handle argument escaping for the shell.
+
                 // Seek support
-                const startTimeInput = params.get('startTime');
+                const qs = new URLSearchParams(ctx.querystring);
+                const startTimeInput = qs.get('startTime');
                 const startTime = startTimeInput ? parseFloat(startTimeInput) : 0;
 
-                console.log(`[VideoJS] FFmpeg Request: ${src} | Start: ${startTime} | User: ${username || 'Guest'}`);
+                console.log(`[VideoJS] FFmpeg Request: ${src} | Start: ${startTime} | QS: ${ctx.querystring}`);
 
                 const mkArgs = (src, start, extra) => {
                     const args = [];
