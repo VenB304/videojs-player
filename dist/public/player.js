@@ -336,13 +336,15 @@
 
                 // Fallback to standard error handling
                 let displayMessage = message;
+
+                // Video.js generic error mapping
                 if (message.includes("The media could not be loaded")) {
-                    displayMessage = "Playback Failed: Format not supported or network error.";
+                    displayMessage = "Playback Failed: Network error or Format not supported.";
                 }
 
                 // If converting failed, append info
                 if (isConvertingRef.current) {
-                    displayMessage += " (Conversion failed)";
+                    displayMessage = "Transcoding Failed: Server could not process video.";
                 }
 
                 if (!errorShownRef.current) {
@@ -434,6 +436,45 @@
                     .vjs-audio-mode .vjs-fullscreen-control, 
                     .vjs-audio-mode .vjs-picture-in-picture-control { 
                         display: none !important; 
+                    }
+
+                    /* converting overlay */
+                    .vjs-converting::after {
+                        content: "Transcoding Media...";
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        background: rgba(0, 0, 0, 0.8);
+                        color: white;
+                        padding: 10px 20px;
+                        border-radius: 5px;
+                        font-family: sans-serif;
+                        font-size: 14px;
+                        z-index: 99;
+                        pointer-events: none;
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                    }
+                    /* Simple Spinner */
+                    .vjs-converting::before {
+                        content: "";
+                        position: absolute;
+                        top: 40%; 
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        width: 24px;
+                        height: 24px;
+                        border: 3px solid #fff;
+                        border-bottom-color: transparent;
+                        border-radius: 50%;
+                        animation: vjs-spin 1s linear infinite;
+                        z-index: 100;
+                    }
+                    @keyframes vjs-spin {
+                        0% { transform: translate(-50%, -50%) rotate(0deg); }
+                        100% { transform: translate(-50%, -50%) rotate(360deg); }
                     }
                 `;
 
@@ -802,7 +843,24 @@
 
                     if (props.onPlay) props.onPlay();
                 });
+
+                // --- Feature: Converting State UI ---
+                const setConvertingState = (isBuffering) => {
+                    if (isConvertingRef.current && isBuffering) {
+                        player.addClass('vjs-converting');
+                    } else {
+                        player.removeClass('vjs-converting');
+                    }
+                };
+
+                player.on('waiting', () => setConvertingState(true));
+                player.on('canplay', () => setConvertingState(false));
+                player.on('playing', () => setConvertingState(false));
+                player.on('pause', () => setConvertingState(false)); // Don't show if paused
+                player.on('error', () => player.removeClass('vjs-converting')); // Clear on error
+
                 player.on('ended', () => {
+                    player.removeClass('vjs-converting');
                     if (C.resumePlayback) {
                         const src = player.currentSrc();
                         if (src) {

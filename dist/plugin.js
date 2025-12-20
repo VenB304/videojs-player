@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 130;
+exports.version = 131;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -222,6 +222,22 @@ exports.config = {
         helperText: "Experimental. Allows seeking, but may cause instability or delays.",
         frontend: true
     },
+    ffmpeg_preset: {
+        showIf: x => (x.config_tab === 'all' || x.config_tab === 'advanced') && x.enable_ffmpeg_transcoding,
+        type: 'select',
+        defaultValue: 'universal',
+        options: {
+            'Universal (CPU / Soft)': 'universal',
+            'Intel QuickSync (QSV)': 'intel_qsv',
+            'NVIDIA NVENC': 'nvidia_nvenc',
+            'AMD AMF': 'amd_amf',
+            'Apple VideoToolbox (macOS)': 'apple_vt',
+            'Stream Copy (Passthrough)': 'copy'
+        },
+        label: "Transcoding Backend (Preset)",
+        helperText: "Hardware acceleration requires correct drivers.",
+        frontend: true
+    },
     ffmpeg_path: {
         type: 'real_path',
         fileMask: 'ffmpeg*',
@@ -230,7 +246,7 @@ exports.config = {
     },
     ffmpeg_parameters: {
         defaultValue: '',
-        helperText: "Additional FFmpeg params (e.g. for hardware accel)",
+        helperText: "Additional FFmpeg params (Appended AFTER preset args)",
         showIf: x => (x.config_tab === 'all' || x.config_tab === 'advanced') && x.enable_ffmpeg_transcoding
     },
 
@@ -363,6 +379,7 @@ exports.init = api => {
                 // However, we should be careful about injection if we ever expose this to non-admins.
                 const ffmpegPath = api.getConfig('ffmpeg_path') || 'ffmpeg';
                 const extraParamsStr = api.getConfig('ffmpeg_parameters') || '';
+                const preset = api.getConfig('ffmpeg_preset') || 'universal';
 
                 // Improved argument tokenizer
                 // Splits by spaces but respects quotes (single and double)
@@ -403,7 +420,7 @@ exports.init = api => {
                 const startTimeInput = qs.get('startTime');
                 const startTime = startTimeInput ? parseFloat(startTimeInput) : 0;
 
-                console.log(`[VideoJS] FFmpeg Request: ${src} | Start: ${startTime} | QS: ${ctx.querystring}`);
+                console.log(`[VideoJS] FFmpeg Request: ${src} | Start: ${startTime} | Preset: ${preset} | QS: ${ctx.querystring}`);
 
                 const mkArgs = (src, start, extra) => {
                     const args = [];
@@ -412,16 +429,72 @@ exports.init = api => {
                         args.push('-ss', String(start));
                     }
                     args.push('-i', src);
+
+                    // --- Dynamic Preset Logic ---
+                    // Base flags for MP4 container
                     args.push(
                         '-f', 'mp4',
                         '-movflags', 'frag_keyframe+empty_moov+delay_moov',
-                        '-vcodec', 'libx264',
-                        '-pix_fmt', 'yuv420p',
-                        '-acodec', 'aac',
-                        '-strict', '-2',
-                        '-copyts',
-                        '-preset', 'superfast'
+                        '-strict', '-2'
                     );
+
+                    // Encoder Selection
+                    switch (preset) {
+                        case 'intel_qsv':
+                            // Intel QuickSync
+                            args.push(
+                                '-c:v', 'h264_qsv',
+                                '-global_quality', '23',
+                                '-load_plugin', 'hevc_hw', // Often needed for HEVC input hardware decode
+                                '-c:a', 'aac'
+                            );
+                            break;
+                        case 'nvidia_nvenc':
+                            // NVIDIA NVENC
+                            args.push(
+                                '-c:v', 'h264_nvenc',
+                                '-preset', 'p1',   // Lowest latency / Fast
+                                '-tune', 'll',     // Low Latency
+                                '-c:a', 'aac'
+                            );
+                            break;
+                        case 'amd_amf':
+                            // AMD AMF
+                            args.push(
+                                '-c:v', 'h264_amf',
+                                '-usage', 'transcoding',
+                                '-c:a', 'aac'
+                            );
+                            break;
+                        case 'apple_vt':
+                            // Apple VideoToolbox
+                            args.push(
+                                '-c:v', 'h264_videotoolbox',
+                                '-realtime', 'true',
+                                '-c:a', 'aac' // Ensure audio is compatible
+                            );
+                            break;
+                        case 'copy':
+                            // Stream Copy (Pass-through)
+                            // WARNING: Only works if source is already H264/AAC compliant for MP4
+                            args.push('-c', 'copy');
+                            break;
+                        case 'universal':
+                        default:
+                            // CPU Universal (libx264)
+                            args.push(
+                                '-c:v', 'libx264',
+                                '-preset', 'superfast',
+                                '-pix_fmt', 'yuv420p',
+                                '-c:a', 'aac'
+                            );
+                            break;
+                    }
+
+                    // CopyTS is generally good for keeping sync, but verify with presets?
+                    // It can sometimes cause issues with duration detection if not careful.
+                    args.push('-copyts');
+
                     if (extra && extra.length > 0) {
                         args.push(...extra);
                     }
