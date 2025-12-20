@@ -76,7 +76,7 @@ Settings are organized into categories in **Admin Panel > Plugins > videojs-play
 ### 4. Layout & Sizing
 | Setting | Description | Default |
 | :--- | :--- | :--- |
-| **Sizing Mode** | • `Fluid`: Responsive width, aspect-ratio height (Best for web).<br>• `Fill`: Fills container 100%.<br>• `Fixed`: Hard pixel size. | `Fluid` |
+| **Sizing Mode** | • `Fluid`: Responsive & **Transparent**. Best for modern layouts.<br>• `Fill`: **Block** element. Fills parent 100% w/ positioning.<br>• `Fixed`: Custom pixel size (`Inline-Block`).<br>• `Native`: Uses video's intrinsic resolution (`Inline-Block`). | `Fluid` |
 | **Fixed Width/Height** | Overrides only for **Fixed** mode. `0` = use video's intrinsic size. | `640` / `360` |
 
 ### 5. Appearance

@@ -136,27 +136,33 @@ exports.config = {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'layout',
         type: 'select',
         defaultValue: 'fluid',
-        options: { 'Fluid (Responsive)': 'fluid', 'Fill (100% Parent)': 'fill', 'Fixed / Native Size': 'native' },
+        options: {
+            'Fluid (Responsive & Transparent)': 'fluid',
+            'Fill (100% Parent Block)': 'fill',
+            'Fixed (Custom Size)': 'fixed',
+            'Native (Video Intrinsic Size)': 'native'
+        },
         label: "Player Sizing Mode",
-        frontend: true // Updated text logic in frontend? Just label change.
+        helperText: "Fluid: Responsive. Fill: 100% Block. Fixed: Custom Px. Native: Source Px.",
+        frontend: true
     },
     fixedWidth: {
         type: 'number',
         defaultValue: 640,
         min: 0,
         label: "Fixed Width (px)",
-        helperText: "Overrides fluid/fill. Set 0 to use video's intrinsic width.",
+        helperText: "Width for 'Fixed' mode.",
         frontend: true,
-        showIf: x => (x.config_tab === 'all' || x.config_tab === 'layout') && x.sizingMode === 'native'
+        showIf: x => (x.config_tab === 'all' || x.config_tab === 'layout') && x.sizingMode === 'fixed'
     },
     fixedHeight: {
         type: 'number',
         defaultValue: 360,
         min: 0,
         label: "Fixed Height (px)",
-        helperText: "Overrides fluid/fill. Set 0 to use video's intrinsic height.",
+        helperText: "Height for 'Fixed' mode.",
         frontend: true,
-        showIf: x => (x.config_tab === 'all' || x.config_tab === 'layout') && x.sizingMode === 'native'
+        showIf: x => (x.config_tab === 'all' || x.config_tab === 'layout') && x.sizingMode === 'fixed'
     },
 
 

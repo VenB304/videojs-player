@@ -714,23 +714,28 @@
                     };
                 };
 
-                // --- Custom Sizing Logic (Native Mode Only) ---
+                // --- Custom Sizing Logic (Native & Fixed Modes) ---
                 const resizePlayer = () => {
-                    if (C.sizingMode !== 'native') return;
+                    const mode = C.sizingMode;
+                    if (mode !== 'native' && mode !== 'fixed') return;
 
                     const el = player.el();
                     if (!el) return;
 
                     const vidW = player.videoWidth();
                     const vidH = player.videoHeight();
+
+                    // Fixed Mode: Configured Dimensions
+                    if (mode === 'fixed') {
+                        player.width(C.fixedWidth || 640);
+                        player.height(C.fixedHeight || 360);
+                        return;
+                    }
+
+                    // Native Mode: Intrinsic Dimensions
                     if (!vidW || !vidH) return;
-
-                    // Force strict native dimensions or custom fixed override
-                    const finalW = C.fixedWidth > 0 ? C.fixedWidth : vidW;
-                    const finalH = C.fixedHeight > 0 ? C.fixedHeight : vidH;
-
-                    player.width(finalW);
-                    player.height(finalH);
+                    player.width(vidW);
+                    player.height(vidH);
                 };
 
                 const debouncedResize = debounce(resizePlayer, 200);
@@ -1152,7 +1157,7 @@
             // Dynamic Container Styling for Sizing Modes
             // Fluid: display:contents (transparency, user preference)
             // Fill / Audio: display:block (standard layout + positioning context)
-            // Fixed: display:inline-block (shrink-wrap + positioning context)
+            // Fixed / Native: display:inline-block (shrink-wrap + positioning context)
             const mode = C.sizingMode;
 
             const isAudioRender = C.enableAudio && (
@@ -1177,7 +1182,7 @@
                 containerStyle.display = 'contents';
                 // Note: position:relative is ignored on display:contents
             } else {
-                // Fixed / Native
+                // Fixed OR Native
                 containerStyle.display = 'inline-block';
             }
 
