@@ -196,8 +196,3 @@ The script will safely download the latest version from the official CDN and upd
 
 *   **@rejetto**: Special thanks for the original live transcoding code from the [unsupported-videos](https://github.com/rejetto/unsupported-videos) plugin, which powers the FFmpeg backend of this player.
 
----
-
-## Sponsored by Google's Antigravity, Gemini 3 Pro and 1 Year Google AI Pro for Students
-
----
