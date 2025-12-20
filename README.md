@@ -50,7 +50,7 @@ Settings are organized into categories in **Admin Panel > Plugins > videojs-play
 | **Preload Strategy** | • `Metadata`: loads duration only (Fastest).<br>• `Auto`: Buffers immediately.<br>• `None`: No data loaded until clicked. | `Metadata` |
 | **Enable Audio Player Mode** | Use this player for audio files (.mp3, .wav). Posters are hidden in audio mode. | `Off` |
 | **Integrate 'hfs-subtitles'** | Detects the `hfs-subtitles` plugin for advanced subtitle selection. | `Off` |
-| **Resume Playback** | Remembers playback position per video. *(Disabled for "Live Transcoded" streams)* | `On` |
+| **Resume Playback** | Remembers playback position per video. *Disabled for "Live Transcoded" streams* | `On` |
 | **Remember Volume** | Saves your volume level between sessions. | `On` |
 | **Default Volume** | Initial volume (0-100%) if no preference is saved. | `100` |
 | **Playback Rates** | Comma-separated list of speed options (e.g. `0.5, 1, 2`). | `0.5, 1, 1.5, 2` |
@@ -60,7 +60,7 @@ Settings are organized into categories in **Admin Panel > Plugins > videojs-play
 | :--- | :--- | :--- |
 | **Show Control Bar** | Toggle the bottom control bar visibility. | `On` |
 | **Auto-Hide Controls** | Time (ms) before controls fade out. `0` = always visible. | `2000` |
-| **Show Seek Buttons** | Adds +/- 10s buttons to the control bar. | `On` |
+| **Show Seek Buttons** | Adds Rewind and Forward buttons to the control bar. | `On` |
 | **Seek Button Step** | Seconds to increment/decrement per tap. | `10` |
 | **Show Download Button** | Adds a Download icon to the control bar. | `On` |
 | **Scroll to Change Volume** | Adjust volume by scrolling the mouse wheel over the player. | `On` |
@@ -83,7 +83,7 @@ Settings are organized into categories in **Admin Panel > Plugins > videojs-play
 | Setting | Description | Default |
 | :--- | :--- | :--- |
 | **Player Theme** | Visual skins: `Standard`, `City`, `Fantasy`, `Forest`, `Sea`. | `Standard` |
-| **Error Notification Style** | • `Overlay`: Covers the player (Good for mobile).<br>• `Toast`: Shows a popup message. | `Overlay` |
+| **Error Notification Style** | • `Overlay`: Covers the player (Good for mobile).<br>• `Toast`: Shows a popup message. *Similarly to how successful login/logout notifications are displayed.* | `Overlay` |
 
 ### 6. Mobile Experience
 | Setting | Description | Default |
@@ -98,7 +98,7 @@ Settings are organized into categories in **Admin Panel > Plugins > videojs-play
 | **Enable HLS/MKV Client Support** | Experimental client-side playback for .m3u8 and .mkv. | `Off` |
 | **Enable FFmpeg Transcoding** | **Live Transcoding**. Automatically converts unsupported videos (HEVC/H.265, AVI) on the server. | `Off` |
 | **Allow Seeking in Transocded Videos** | **(Beta)** Allows seeking in converted streams. May cause delays. | `Off` |
-| **Hardware Acceleration (Preset)** | Select your Hardware Acceleration optimization:<br>• **Universal**: CPU (libx264). Safe fallback.<br>• **Intel QuickSync**: `h264_qsv`.<br>• **NVIDIA NVENC**: `h264_nvenc`.<br>• **AMD AMF**: `h264_amf`.<br>• **Apple VideoToolbox**: `h264_videotoolbox` (macOS).<br>• **Stream Copy**: No re-encoding.<br>• **Custom**: Manual. | `Universal` |
+| **Hardware Acceleration (Preset)** | Select your Hardware Acceleration optimization:<br>• **Universal**: CPU 'libx264'. Safe fallback.<br>• **Intel QuickSync**: `h264_qsv`.<br>• **NVIDIA NVENC**: `h264_nvenc`.<br>• **AMD AMF**: `h264_amf`.<br>• **Apple VideoToolbox**: `h264_videotoolbox` (macOS).<br>• **Stream Copy**: No re-encoding.<br>• **Custom**: Manual. | `Universal` |
 | **FFmpeg Executable Path** | Absolute path to `ffmpeg.exe`. | *Empty* |
 | **Custom FFmpeg Flags** | Only visible if **Preset** is set to `Custom`. Example: `-c:v libx265 -crf 23`. | *Empty* |
 
@@ -121,13 +121,18 @@ Settings are organized into categories in **Admin Panel > Plugins > videojs-play
 ### Transcoding Performance
 *   **"Transcoding Failed"**:
     1.  Check if `ffmpeg` is installed and in your system PATH (or specified in settings).
-    2.  Check if your chosen **Preset** (e.g. NVENC) is supported by your hardware. Try switching to **Universal** to test.
+    2.  Check if your chosen **Preset** is supported by your server hardware. Try switching to **Universal** as fallback.
 *   **High CPU Usage**:
-    *   Switch to a Hardware Accelerated preset (NVENC/QuickSync) if available.
+    *   Switch to a Hardware Accelerated preset (NVENC/QuickSync/AMF/VideoToolbox) if available.
     *   Limit **Max Global Streams** to prevent server overload.
 *   **Laggy Seeking**: Seeking in transcoding mode requires restarting the FFmpeg process. This can take 1-3 seconds.
 *   **Rate Limiting (Error 429)**: The server limits the number of simultaneous conversions (Default: 3 global, 1 per user). Pass videojs-player config to increase this if your server is powerful.
-*   **Error Logs**: Check the server console (HFS terminal) for `VideoJS FFmpeg Error` messages.
+*   **Error Logs**: Check the server console (HFS terminal) for `VideoJS FFmpeg` messages.
+    *   **Status 503 / "Service Unavailable"**: Global `Max Streams` limit reached.
+    *   **ENOENT / "Binary not found"**: The path in `ffmpeg_path` is incorrect, or FFmpeg is not installed.
+    *   **Exit Code 1**: General Logic Error. Usually means invalid arguments (e.g. `Custom` flags are wrong).
+    *   **Exit Code 3221225781** (Windows): Missing DLLs or dependencies. Reinstall FFmpeg.
+    *   **Exit Code 3221225477** (Access Violation): Hardware Driver crash. Try updating GPU drivers or switch to a Supported Preset or try `Universal`.
 
 ### Mobile & Touch
 *   **Double Tap**: Works on the left/right 30% of the screen. The center area toggles fullscreen.
@@ -148,10 +153,10 @@ This plugin bridges **HFS (Server)** and **Video.js (Client)** using a hybrid ap
 ### Transcoding Pipeline
 `Source` -> `Decoder` -> `Encoder (H.264/AAC)` -> `MPEG-TS/MP4 Container` -> `Browser`
 *   **Universal**: Uses `libx264` (CPU).
-*   **NVENC**: Uses `h264_nvenc`.
-*   **QuickSync**: Uses `h264_qsv`.
-*   **AMF**: Uses `h264_amf` (AMD).
-*   **VideoToolbox**: Uses `h264_videotoolbox` (macOS).
+*   **NVIDIA NVENC**: Uses `h264_nvenc`.
+*   **Intel QuickSync**: Uses `h264_qsv`.
+*   **AMD AMF**: Uses `h264_amf`.
+*   **Apple VideoToolbox**: Uses `h264_videotoolbox`.
 *   **Copy**: Uses `-c copy`.
 
 ---

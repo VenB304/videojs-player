@@ -345,6 +345,12 @@
                 // If converting failed, append info
                 if (isConvertingRef.current) {
                     displayMessage = "Transcoding Failed: Server could not process video.";
+                    // Async check for rate limits (503)
+                    fetch(player.currentSrc(), { method: 'HEAD' }).then(res => {
+                        if (res.status === 503 && res.headers.get('X-Transcode-Reason') === 'global_limit') {
+                            notify(player, "Service Unavailable: Too many users transcoding (Limit Reached).", "error", 0);
+                        }
+                    }).catch(e => console.warn("[VideoJS] Error check failed:", e));
                 }
 
                 if (!errorShownRef.current) {

@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 132;
+exports.version = 133;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -342,10 +342,10 @@ exports.init = api => {
 
                 // 1. Global Limit Check (Return 503 if overloaded globally)
                 if (running.size >= maxGlobal) {
-                    // Try to preempt an anonymous process to make room for a user?
-                    // For now, simple FIFO logic or Hard Reject.
-                    // Let's hard reject for global safety.
-                    return ctx.status = 503; // Service Unavailable
+                    ctx.set('X-Transcode-Reason', 'global_limit');
+                    ctx.status = 503;
+                    ctx.body = "Service Unavailable: Too many concurrent transcoding requests.";
+                    return;
                 }
 
                 // 2. User Limit Check (Preemption)
@@ -524,10 +524,16 @@ exports.init = api => {
 
                 proc.on('error', (err) => {
                     console.error("VideoJS FFmpeg Error:", err);
+                    if (err.code === 'ENOENT') {
+                        console.error("VideoJS Critical Error: FFmpeg binary not found. Check 'ffmpeg_path' in plugin settings.");
+                    }
                     running.delete(proc);
                 })
                 proc.on('exit', (code) => {
-                    if (code !== 0 && code !== null) console.log("VideoJS FFmpeg Exited with code:", code);
+                    if (code !== 0 && code !== null) {
+                        console.log("VideoJS FFmpeg Process Exited with Error Code:", code);
+                        if (code === 1) console.log("VideoJS Hint: Possible invalid arguments or unsupported codec/preset.");
+                    }
                     running.delete(proc);
                 })
 
