@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 111;
+exports.version = 112;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -288,9 +288,13 @@ exports.init = api => {
          * Middleware to intercept ?ffmpeg requests and stream converted video
          * @param {object} ctx - Koa context
          */
+        /**
+         * Middleware to intercept ?ffmpeg requests and stream converted video
+         * @param {object} ctx - Koa context
+         */
         middleware: async ctx => {
             return async () => { // wait for fileSource to be available
-                // Only intercept if we are enabled AND querystring is ffmpeg
+                // Only intercept if we are enabled AND querystring contains ffmpeg
                 const transcodingEnabled = api.getConfig('enable_ffmpeg_transcoding');
                 if (!transcodingEnabled) return;
 
@@ -300,8 +304,16 @@ exports.init = api => {
                  * Credits to Rejetto for the original implementation.
                  */
 
-                const src = ctx.state.fileSource
-                if (!ctx.querystring.startsWith('ffmpeg') || !src) return
+                const src = ctx.state.fileSource;
+                if (!src) return;
+
+                // Robust Query Parsing using URLSearchParams
+                // We use the full querystring to ensure we catch parameters regardless of order
+                // ctx.querystring is the raw string without '?'
+                const params = new URLSearchParams(ctx.querystring);
+                
+                // Check if this is a transcoding request
+                if (!params.has('ffmpeg')) return;
 
                 const username = api.getCurrentUsername(ctx);
 
@@ -316,7 +328,7 @@ exports.init = api => {
                     }
                 }
 
-                // --- Concurrency Limits ---
+                // --- Concurrency Limits & Debouncing ---
                 const maxGlobal = api.getConfig('transcoding_concurrency');
                 const maxPerUser = !allowAnonymous ? api.getConfig('transcoding_rate_limit_per_user') : 0;
 
@@ -335,12 +347,43 @@ exports.init = api => {
                     }
                 }
 
-                await new Promise(res => setTimeout(res, 500)) // Debounce: avoid short-lasting requests spawning ffmpeg
+                // --- Per-User Debounce ---
+                // Prevent rapid-fire requests from the same user/IP from spawning multiple heavy processes
+                // We use a static map on the module level or attached to the api object if needed.
+                // Since 'running' is closure-scoped, we can add a 'lastRequest' map here too.
+                // However, for simplicity, we can just check if this user has a process that started VERY recently.
+                // But 'running' only tracks active. We need a history.
+                // Let's attach a simple cache to the exports or a local variable outside middleware.
+                // For now, valid implementation:
+                const now = Date.now();
+                if (username) {
+                   if (!exports._lastReq) exports._lastReq = new Map();
+                   const lastTime = exports._lastReq.get(username) || 0;
+                   if (now - lastTime < 1000) {
+                       // Silent ignore or 429? 
+                       // 429 is better to tell client to back off, but might break rapid seeking if client is dumb.
+                       // Just delay is safer but we want to avoid server hold.
+                       // Let's return 429 which client should handle or simple return.
+                       // Actually, if we return, it serves the file as static. We don't want that for ffmpeg req.
+                       return ctx.status = 429; 
+                   }
+                   exports._lastReq.set(username, now);
+                   
+                   // Cleanup map occasionally?
+                   if (exports._lastReq.size > 100) { 
+                       // Simple cleanup: delete older than 1 minute
+                       for (const [u, t] of exports._lastReq.entries()) {
+                           if (now - t > 60000) exports._lastReq.delete(u);
+                       }
+                   }
+                } else {
+                    // Global debounce for anonymous to be safe?
+                     await new Promise(res => setTimeout(res, 200));
+                }
+
                 if (ctx.socket.closed) return
 
                 // SECURITY NOTE: These configs are Admin-only.
-                // We assume the Admin does not want to hack their own server.
-                // However, we should be careful about injection if we ever expose this to non-admins.
                 const ffmpegPath = api.getConfig('ffmpeg_path') || 'ffmpeg';
                 const extraParamsStr = api.getConfig('ffmpeg_parameters') || '';
 
@@ -375,15 +418,11 @@ exports.init = api => {
                 }
                 if (currentToken.length > 0) extraParams.push(currentToken);
 
-                // Sanitize src? HFS usually provides a clean absolute path in fileSource.
-                // But just in case, we trust the `spawn` array method to handle argument escaping for the shell.
-
                 // Seek support
-                const qs = new URLSearchParams(ctx.querystring);
-                const startTimeInput = qs.get('startTime');
+                const startTimeInput = params.get('startTime');
                 const startTime = startTimeInput ? parseFloat(startTimeInput) : 0;
 
-                console.log(`[VideoJS] FFmpeg Request: ${src} | Start: ${startTime} | QS: ${ctx.querystring}`);
+                console.log(`[VideoJS] FFmpeg Request: ${src} | Start: ${startTime} | User: ${username || 'Guest'}`);
 
                 const mkArgs = (src, start, extra) => {
                     const args = [];
