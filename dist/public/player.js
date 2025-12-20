@@ -407,6 +407,23 @@
             // We need to catch that 'seeking' event? 
             // Actually, for Live streams, the standard seek bar might be disabled or erratic.
             // But let's try to trust the standard 'seeking' event if duration is set.
+            /* 
+             * === NOTE ON TRANSCODING SEEKING (THE HEADACHE) ===
+             * Seeking in a piped FFmpeg stream is extremely fragile. 
+             * Browsers often treat the stream as "Live" and reset timestamps to 0, ignoring '-copyts'.
+             * 
+             * Previous attempts to "hack" the UI to show absolute time (by adding offset to currentTime)
+             * caused infinite loops with the Resume Playback feature and UI glitching.
+             * 
+             * CURRENT STRATEGY:
+             * 1. Trust the browser's "Live" behavior.
+             * 2. When the user seeks (via the bar), we intercept the SETTER.
+             * 3. We do NOT update the player's internal time (which would conflict with the stream).
+             * 4. Instead, we update 'seekOffset' state, which triggers a full React effect.
+             * 5. The effect reloads the video source with `?ffmpeg&startTime=X`.
+             * 
+             * DO NOT attempt to force 'currentTime' to match absolute time unless you want pain.
+             */
             React.useEffect(() => {
                 const player = playerRef.current;
                 if (!player || !conversionMode || !C.enable_transcoding_seeking) return;
