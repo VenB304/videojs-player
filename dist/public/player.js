@@ -1060,6 +1060,29 @@
                     }
                 };
 
+                // Helper: Aggressive Duration Enforcement
+                // Browsers often reset duration to Infinity for open pipes. We must fight back.
+                const enforceDuration = () => {
+                    if (conversionMode && window._vjs_saved_duration && player) {
+                        const d = player.duration();
+                        // Allow a small tolerance, but if it differs significantly or is Infinity, fix it
+                        if (d === Infinity || Math.abs(d - window._vjs_saved_duration) > 5) {
+                            // console.log(`[VideoJS] Enforcing duration: ${window._vjs_saved_duration} (was ${d})`);
+                            player.duration(window._vjs_saved_duration);
+
+                            // Also fix the UI if it thinks it's live
+                            if (player.hasClass('vjs-live')) {
+                                player.removeClass('vjs-live');
+                            }
+                            const durDisplay = player.getChild('ControlBar')?.getChild('DurationDisplay');
+                            if (durDisplay && durDisplay.el()) {
+                                // Force show if hidden
+                                durDisplay.show();
+                            }
+                        }
+                    }
+                };
+
                 // Listeners for enforcement
                 player.on('loadstart', enforcePlayerState);
                 player.on('loadedmetadata', enforcePlayerState);
