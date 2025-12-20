@@ -374,7 +374,10 @@
                 if (determineMimeType(player.currentSrc()).startsWith('video/') && (w === 0 || h === 0)) {
                     // Retry once quickly
                     setTimeout(() => {
-                        if (player.videoWidth() === 0) handlePlaybackError(player, "HEVC/Unsupported format detected.");
+                        // Check if we started converting in the meantime
+                        if (player.videoWidth() === 0 && !isConvertingRef.current) {
+                            handlePlaybackError(player, "HEVC/Unsupported format detected.");
+                        }
                     }, 500);
                 }
             };
