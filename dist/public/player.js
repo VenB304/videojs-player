@@ -469,20 +469,21 @@
                     /* Audio Title Overlay */
                     .vjs-audio-title {
                         position: absolute;
-                        top: 40%;
+                        top: 25%; /* Moved higher to avoid controls */
                         left: 50%;
                         transform: translate(-50%, -50%);
                         color: white;
                         font-family: sans-serif;
-                        font-size: 1.5em;
+                        font-size: 1.2em;
                         text-align: center;
                         text-shadow: 0 2px 4px rgba(0,0,0,0.8);
                         pointer-events: none; /* Let clicks pass through to player */
                         z-index: 10;
                         width: 90%;
-                        white-space: nowrap;
+                        white-space: pre-wrap; /* Allow line breaks for Artist/Album */
                         overflow: hidden;
                         text-overflow: ellipsis;
+                        opacity: 0.9;
                     }
 
                     /* converting overlay */
@@ -1041,7 +1042,6 @@
                 }
 
                 // --- Helper: Enforce Player State (Audio/Video Mode) ---
-                // We bind this to loadstart/loadedmetadata to ensure state is applied even if Video.js resets it.
                 const enforcePlayerState = () => {
                     setTimeout(() => {
                         if (!player || player.isDisposed()) return;
@@ -1052,8 +1052,6 @@
                             AUDIO_EXTS.some(ext => src.toLowerCase().endsWith(ext))
                         );
 
-                        // console.log(`[VideoJS] Enforcing State: ${src} -> isAudio=${isAudio}`);
-
                         if (isAudio) {
                             if (!player.hasClass('vjs-audio-mode')) {
                                 player.addClass('vjs-audio-mode');
@@ -1063,12 +1061,26 @@
                             player.fluid(false);
                             player.poster(''); // Hide poster in audio mode
 
-                            // Set Audio Title (Filename)
-                            const title = props.filename || decodeURIComponent(src.split('/').pop().split('?')[0]);
-                            setAudioTitle(title);
+                            // Set Audio Title (Structured: Artist - Title \n Album \n Year)
+                            const e = props.entry || {};
+                            const title = e.meta_title || e.name || decodeURIComponent(src.split('/').pop().split('?')[0]);
+                            const artist = e.meta_artist || "";
+                            const album = e.meta_album || "";
+                            const year = e.meta_year || "";
+
+                            let displayStr = "";
+                            if (artist) displayStr += artist + " - ";
+                            displayStr += title;
+                            if (album) displayStr += "\n" + album;
+                            if (year) displayStr += " (" + year + ")";
+
+                            setAudioTitle(displayStr);
 
                             // Ensure controls are visible
                             if (!player.controls()) player.controls(true);
+
+                            // Trigger HFS metadata update
+                            if (props.onPlay) props.onPlay();
 
                         } else {
                             // Video Mode
@@ -1230,7 +1242,9 @@
             return h('div', {
                 'data-vjs-player': true,
                 ref: containerRef,
-                style: { display: 'contents', position: 'relative' } // Ensure relative for overlay
+                // FIX: Use block display with relative positioning to ensure overlay is contained and interactive.
+                // display: contents was causing issues with focus and coordinate systems.
+                style: { display: 'block', position: 'relative', width: '100%', height: '100%' }
             }, [
                 // Manual Video Element is appended here by useEffect
 
@@ -1280,23 +1294,26 @@
             const ext = entry.n.substring(entry.n.lastIndexOf('.')).toLowerCase();
 
             // Check extensions
-            if (!VIDEO_EXTS.includes(ext)) {
-                // Check Audio
-                if (C.enableAudio && AUDIO_EXTS.includes(ext)) {
-                    // Allowed
-                }
-                // If not in standard list, check if HLS allows it
-                else if (!enableHLS || (ext !== '.m3u8' && ext !== '.mkv')) {
-                    return;
-                }
-            }
-            // Integration with HFS-Subtitles
-            // We only wrap if enabled and the API exists
-            const ComponentToUse = (C.enableSubtitlePluginIntegration && HFS.markVideoComponent)
-                ? HFS.markVideoComponent(VideoJsPlayer)
-                : VideoJsPlayer;
+            const isAudio = C.enableAudio && AUDIO_EXTS.includes(ext);
+            const isVideo = VIDEO_EXTS.includes(ext) || (enableHLS && (ext === '.m3u8' || ext === '.mkv'));
 
-            params.Component = ComponentToUse;
+            if (!isVideo && !isAudio) {
+                return;
+            }
+
+            // Dynamic Component Marking (Ensures HFS show.ts knows if it's Audio or Video)
+            let ComponentToUse = VideoJsPlayer;
+            if (C.enableSubtitlePluginIntegration && HFS.markVideoComponent) {
+                ComponentToUse = HFS.markVideoComponent(ComponentToUse);
+            }
+            if (isAudio && HFS.markAudioComponent) {
+                ComponentToUse = HFS.markAudioComponent(ComponentToUse);
+            }
+
+            // FORCED RE-MOUNT: Using a wrapper component with a dynamic key based on SRC.
+            // This forces React to destroy and recreate the player when switching files,
+            // effectively resetting all internal and Video.js states (fixes sticky metadata).
+            params.Component = (props) => h(ComponentToUse, { ...props, key: props.src });
         });
     } else {
         console.error("VideoJS Plugin: React/Preact not found on window or HFS. Plugin execution aborted.");
