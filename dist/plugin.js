@@ -214,7 +214,7 @@ exports.config = {
         showIf: x => x.config_tab === 'transcoding' && x.enable_ffmpeg_transcoding,
         type: 'boolean',
         defaultValue: false,
-        label: "Allow Seeking in Transocded Videos (Experimental)",
+        label: "Allow Seeking in Transcoded Videos (Experimental)",
         helperText: "Enables seeking for converted videos. May be slow or unstable depending on CPU/Server speed.",
         frontend: true
     },
