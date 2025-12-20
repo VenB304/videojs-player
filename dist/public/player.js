@@ -1150,27 +1150,35 @@
             // This prevents React from stripping classes like 'vjs-audio-mode' or 'vjs-playing'.
 
             // Dynamic Container Styling for Sizing Modes
-            // Fluid/Fill/Audio: Needs display:block + width:100% to fill parent and allow positioning.
-            // Fixed: Needs display:inline-block to shrink-wrap the fixed player so overlays center correctly.
-            // We AVOID display:contents because it breaks position:relative context for overlays.
+            // Fluid: display:contents (transparency, user preference)
+            // Fill / Audio: display:block (standard layout + positioning context)
+            // Fixed: display:inline-block (shrink-wrap + positioning context)
             const mode = C.sizingMode;
-            // Both fluid and fill act as "fluid" for the container wrapper
-            const isFluidContainer = (mode === 'fluid' || mode === 'fill');
 
-            // Re-calculate isAudio for render (to ensure container behaves like a block)
             const isAudioRender = C.enableAudio && (
                 determineMimeType(props.src).startsWith('audio/') ||
                 AUDIO_EXTS.some(ext => props.src.toLowerCase().endsWith(ext))
             );
 
             const containerStyle = {
-                position: 'relative', // Essential for absolute overlays (error, custom text) to position relative to player
-                display: (isFluidContainer || isAudioRender) ? 'block' : 'inline-block',
+                // Default relative for Block/Inline-Block modes
+                position: 'relative'
             };
 
-            if (isFluidContainer || isAudioRender) {
+            if (isAudioRender) {
+                containerStyle.display = 'block';
+                containerStyle.width = '100%';
+                containerStyle.height = 'auto';
+            } else if (mode === 'fill') {
+                containerStyle.display = 'block';
                 containerStyle.width = '100%';
                 containerStyle.height = '100%';
+            } else if (mode === 'fluid') {
+                containerStyle.display = 'contents';
+                // Note: position:relative is ignored on display:contents
+            } else {
+                // Fixed / Native
+                containerStyle.display = 'inline-block';
             }
 
             return h('div', {
