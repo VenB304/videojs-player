@@ -71,7 +71,7 @@ Settings are organized into categories in **Admin Panel > Plugins > videojs-play
 | Setting | Description | Default |
 | :--- | :--- | :--- |
 | **Sizing Mode** | • `Fluid`: Responsive & **Transparent**. Best for layouts.<br>• `Fill`: **Block** element. Fills parent 100%.<br>• `Fixed`: Custom pixel size.<br>• `Native`: Intrinsic video size. | `Fluid` |
-| **Fixed Width/Height** | Overrides only for **Fixed** mode. | `640`x`360` |
+| **Fixed Width/Height** | Fixed width and height for **Fixed** mode. | `640`x`360` |
 
 ### 4. Interaction
 | Setting | Description | Default |
@@ -90,7 +90,7 @@ Settings are organized into categories in **Admin Panel > Plugins > videojs-play
 | **Enable Transcoding** | **Live Server Conversion** for unsupported formats (HEVC, AVI). | `Off` |
 | **Allow Seeking** | (Beta) Enable seeking in converted streams. | `Off` |
 | **Hardware Preset** | • `Universal`: CPU (Safe).<br>• `NVENC` / `QuickSync` / `AMF` / `VideoToolbox`: GPU.<br>• `Copy`: Passthrough. | `Universal` |
-| **FFmpeg Path** | Absolute path to binary. Empty = System PATH. | *Empty* |
+| **FFmpeg Path** | Absolute path to binary. Leave empty if ffmpeg can be found in system PATH. | *Empty* |
 | **Limits** | • **Max Global**: Total active streams.<br>• **Max User**: Streams per user.<br>• **Allowed Users**: Whitelist. | `3`, `1`, `All` |
 ---
 
