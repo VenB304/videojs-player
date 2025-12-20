@@ -1242,9 +1242,7 @@
             return h('div', {
                 'data-vjs-player': true,
                 ref: containerRef,
-                // FIX: Use block display with relative positioning to ensure overlay is contained and interactive.
-                // display: contents was causing issues with focus and coordinate systems.
-                style: { display: 'block', position: 'relative', width: '100%', height: '100%' }
+                style: { display: 'contents', position: 'relative', width: '100%', height: '100%' }
             }, [
                 // Manual Video Element is appended here by useEffect
 
