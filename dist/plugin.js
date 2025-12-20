@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 147;
+exports.version = 148;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -19,38 +19,34 @@ exports.config = {
     // === Configuration Group Selector ===
     config_tab: {
         type: 'select',
-        defaultValue: 'all',
+        defaultValue: 'playback',
         options: {
-            '0. All Settings': 'all',
-            '1. Core Playback': 'core',
-            '2. Player Controls': 'controls',
-            '3. Keyboard Shortcuts': 'keys',
-            '4. Layout & Sizing': 'layout',
-            '5. Appearance': 'appearance',
-            '6. Mobile Experience': 'mobile',
-            '7. Advanced / Experimental': 'advanced',
-            '8. Transcoding': 'transcoding'
+            '1. Playback': 'playback',
+            '2. Interface': 'ui',
+            '3. Layout': 'layout',
+            '4. Interaction': 'input',
+            '5. Transcoding & Advanced': 'transcoding'
         },
         label: "Configuration Category",
         helperText: "Select a category to view and edit settings.",
-        frontend: true // Needs to be sent to frontend? Actually only used in admin panel logic usually. keeping true just in case.
+        frontend: true
     },
 
-    // === 1. Core Playback ===
+    // === 1. Playback Settings ===
     autoplay: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
+        showIf: x => x.config_tab === 'playback',
         type: 'boolean', defaultValue: true, label: "Autoplay Video", helperText: "Start playing immediately when the page loads. Note: Browsers may block this if audio is enabled.", frontend: true
     },
     muted: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
+        showIf: x => x.config_tab === 'playback',
         type: 'boolean', defaultValue: false, label: "Start Muted", helperText: "Mutes the video on start. Required for 'Autoplay' to work consistently in Chrome/Edge/Firefox.", frontend: true
     },
     loop: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
+        showIf: x => x.config_tab === 'playback',
         type: 'boolean', defaultValue: false, label: "Loop Playback", helperText: "Automatically replay the video when it ends.", frontend: true
     },
     preload: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
+        showIf: x => x.config_tab === 'playback',
         type: 'select',
         defaultValue: 'metadata',
         options: { 'Metadata (Fastest)': 'metadata', 'Auto (Buffer)': 'auto', 'None (Save Bandwidth)': 'none' },
@@ -58,82 +54,81 @@ exports.config = {
         helperText: "'Metadata' loads duration only. 'Auto' downloads some video data. 'None' waits for play.",
         frontend: true
     },
-    enableAudio: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
-        type: 'boolean', defaultValue: false, label: "Enable Audio Player Mode", helperText: "If enabled, audio files (mp3, wav) will use this player instead of the browser default. Posters are hidden in audio mode.", frontend: true
-    },
-    enableSubtitlePluginIntegration: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
-        type: 'boolean', defaultValue: false, label: "Integrate 'hfs-subtitles' Plugin", helperText: "Detects the 'hfs-subtitles' plugin to provide advanced subtitle selection. Requires that plugin to be installed separately.", frontend: true
-    },
-
     resumePlayback: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
+        showIf: x => x.config_tab === 'playback',
         type: 'boolean', defaultValue: true, label: "Remember Playback Position (Resume)", helperText: "Saves your progress and resumes video where you left off. (Disabled for Transcoded streams)", frontend: true
     },
     persistentVolume: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
+        showIf: x => x.config_tab === 'playback',
         type: 'boolean', defaultValue: true, label: "Remember Volume Level", helperText: "Saves your volume preference between plays.", frontend: true
     },
     volume: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
+        showIf: x => x.config_tab === 'playback',
         type: 'number', defaultValue: 100, min: 0, max: 100, step: 5, label: "Default Volume (%)", helperText: "Initial volume if no preference is saved. (0-100)", frontend: true
     },
     playbackRates: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
+        showIf: x => x.config_tab === 'playback',
         type: 'string', defaultValue: "0.5, 1, 1.5, 2", label: "Available Speed Options", helperText: "Comma-separated list of playback speeds (e.g. 0.5, 1, 2) available in the menu.", frontend: true
+    },
+    enableAudio: {
+        showIf: x => x.config_tab === 'playback',
+        type: 'boolean', defaultValue: false, label: "Enable Audio Player Mode", helperText: "If enabled, audio files (mp3, wav) will use this player instead of the browser default. Posters are hidden in audio mode.", frontend: true
+    },
+    enableSubtitlePluginIntegration: {
+        showIf: x => x.config_tab === 'playback',
+        type: 'boolean', defaultValue: false, label: "Integrate 'hfs-subtitles' Plugin", helperText: "Detects the 'hfs-subtitles' plugin to provide advanced subtitle selection. Requires that plugin to be installed separately.", frontend: true
     },
 
 
-    // === 2. Player Controls ===
+    // === 2. Interface Settings ===
     controls: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'controls',
+        showIf: x => x.config_tab === 'ui',
         type: 'boolean', defaultValue: true, label: "Show Control Bar", helperText: "Uncheck to hide all controls (Play/Pause/Timeline). Useful for background videos.", frontend: true
     },
     inactivityTimeout: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'controls',
+        showIf: x => x.config_tab === 'ui',
         type: 'number', defaultValue: 2000, min: 0, label: "Auto-Hide Controls (ms)", helperText: "How long controls stay visible after mouse movement. Set 0 to keep always visible.", frontend: true
     },
+    theme: {
+        showIf: x => x.config_tab === 'ui',
+        type: 'select',
+        defaultValue: 'default',
+        options: {
+            'Standard (Default)': 'default',
+            'City (Modern)': 'city',
+            'Fantasy (Classic)': 'fantasy',
+            'Forest (Green)': 'forest',
+            'Sea (Blue)': 'sea'
+        },
+        label: "Player Theme",
+        helperText: "Choose a visual style provided by Video.js themes.",
+        frontend: true
+    },
     showSeekButtons: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'controls',
+        showIf: x => x.config_tab === 'ui',
         type: 'boolean', defaultValue: true, label: "Show Seek Buttons (+/- 10s)", helperText: "Adds quick rewind/forward buttons to the control bar.", frontend: true
     },
     seekButtonStep: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'controls',
+        showIf: x => x.config_tab === 'ui',
         type: 'number', defaultValue: 10, min: 1, label: "Seek Button Step (Seconds)", helperText: "Time to skip when clicking the seek buttons.", frontend: true
     },
     showDownloadButton: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'controls',
+        showIf: x => x.config_tab === 'ui',
         type: 'boolean', defaultValue: true, label: "Show Download Button", helperText: "Adds a download icon to the control bar to download the original file.", frontend: true
     },
-    enableScrollVolume: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'controls',
-        type: 'boolean', defaultValue: true, label: "Scroll to Change Volume", helperText: "Change volume by scrolling the mouse wheel over the video area.", frontend: true
-    },
     enablePiP: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'controls',
+        showIf: x => x.config_tab === 'ui',
         type: 'boolean', defaultValue: true, label: "Picture-in-Picture Button", helperText: "Allow users to pop the video out into a floating window.", frontend: true
     },
-
-
-    // === 3. Keyboard Shortcuts ===
-    enableHotkeys: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'keys',
-        type: 'boolean', defaultValue: true, label: "Enable Keyboard Hotkeys", helperText: "Space (Pause), F (Fullscreen), M (Mute), Arrows (Seek/Volume).", frontend: true
-    },
-    hotkeySeekStep: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'keys',
-        type: 'number', defaultValue: 5, min: 1, label: "Arrow Key Seek Time", helperText: "Seconds to skip when pressing Left/Right arrows.", frontend: true
-    },
-    hotkeyVolumeStep: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'keys',
-        type: 'number', defaultValue: 5, min: 1, max: 100, label: "Arrow Key Volume Step", helperText: "Volume change % when pressing Up/Down arrows.", frontend: true
+    errorStyle: {
+        showIf: x => x.config_tab === 'ui',
+        type: 'select', options: ['overlay', 'toast'], defaultValue: 'overlay', label: "Error Notification Style", helperText: "'Overlay' covers the player. 'Toast' shows a popup message.", frontend: true
     },
 
 
-    // === 4. Layout & Sizing ===
+    // === 3. Layout Settings ===
     sizingMode: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'layout',
+        showIf: x => x.config_tab === 'layout',
         type: 'select',
         defaultValue: 'fluid',
         options: {
@@ -153,7 +148,7 @@ exports.config = {
         label: "Fixed Width (px)",
         helperText: "Width for 'Fixed' mode.",
         frontend: true,
-        showIf: x => (x.config_tab === 'all' || x.config_tab === 'layout') && x.sizingMode === 'fixed'
+        showIf: x => x.config_tab === 'layout' && x.sizingMode === 'fixed'
     },
     fixedHeight: {
         type: 'number',
@@ -162,51 +157,44 @@ exports.config = {
         label: "Fixed Height (px)",
         helperText: "Height for 'Fixed' mode.",
         frontend: true,
-        showIf: x => (x.config_tab === 'all' || x.config_tab === 'layout') && x.sizingMode === 'fixed'
+        showIf: x => x.config_tab === 'layout' && x.sizingMode === 'fixed'
     },
 
 
-    // === 5. Appearance ===
-    theme: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'appearance',
-        type: 'select',
-        defaultValue: 'default',
-        options: {
-            'Standard (Default)': 'default',
-            'City (Modern)': 'city',
-            'Fantasy (Classic)': 'fantasy',
-            'Forest (Green)': 'forest',
-            'Sea (Blue)': 'sea'
-        },
-        label: "Player Theme",
-        helperText: "Choose a visual style provided by Video.js themes.",
-        frontend: true
+    // === 4. Interaction Settings ===
+    enableHotkeys: {
+        showIf: x => x.config_tab === 'input',
+        type: 'boolean', defaultValue: true, label: "Enable Keyboard Hotkeys", helperText: "Space (Pause), F (Fullscreen), M (Mute), Arrows (Seek/Volume).", frontend: true
     },
-    errorStyle: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'appearance',
-        type: 'select', options: ['overlay', 'toast'], defaultValue: 'overlay', label: "Error Notification Style", helperText: "'Overlay' covers the player. 'Toast' shows a popup message.", frontend: true
+    hotkeySeekStep: {
+        showIf: x => x.config_tab === 'input',
+        type: 'number', defaultValue: 5, min: 1, label: "Arrow Key Seek Time", helperText: "Seconds to skip when pressing Left/Right arrows.", frontend: true
     },
-
-
-
-    // === 6. Mobile Experience ===
+    hotkeyVolumeStep: {
+        showIf: x => x.config_tab === 'input',
+        type: 'number', defaultValue: 5, min: 1, max: 100, label: "Arrow Key Volume Step", helperText: "Volume change % when pressing Up/Down arrows.", frontend: true
+    },
+    enableScrollVolume: {
+        showIf: x => x.config_tab === 'input',
+        type: 'boolean', defaultValue: true, label: "Scroll to Change Volume", helperText: "Change volume by scrolling the mouse wheel over the video area.", frontend: true
+    },
     enableDoubleTap: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'mobile',
+        showIf: x => x.config_tab === 'input',
         type: 'boolean', defaultValue: true, label: "Double Tap to Seek", helperText: "Like YouTube/Netflix. Double tap the sides of the screen to seek.", frontend: true
     },
     doubleTapSeekSeconds: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'mobile',
+        showIf: x => x.config_tab === 'input',
         type: 'number', defaultValue: 10, min: 1, label: "Double Tap Seconds", helperText: "Time skipped per double-tap.", frontend: true
     },
     autoRotate: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'mobile',
+        showIf: x => x.config_tab === 'input',
         type: 'boolean', defaultValue: true, label: "Mobile Auto-Landscape", helperText: "Automatically locks screen to landscape when entering fullscreen on phones.", frontend: true
     },
 
 
-    // === 7. Advanced / Experimental ===
+    // === 5. Transcoding & Advanced ===
     enableHLS: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'advanced',
+        showIf: x => x.config_tab === 'transcoding',
         type: 'boolean',
         defaultValue: false,
         label: "Enable HLS/MKV Client Support",
@@ -214,7 +202,7 @@ exports.config = {
         frontend: true
     },
     enable_ffmpeg_transcoding: {
-        showIf: x => x.config_tab === 'all' || x.config_tab === 'advanced',
+        showIf: x => x.config_tab === 'transcoding',
         type: 'boolean',
         defaultValue: false,
         label: "Enable FFmpeg Server Transcoding",
@@ -222,7 +210,7 @@ exports.config = {
         frontend: true
     },
     enable_transcoding_seeking: {
-        showIf: x => (x.config_tab === 'all' || x.config_tab === 'advanced') && x.enable_ffmpeg_transcoding,
+        showIf: x => x.config_tab === 'transcoding' && x.enable_ffmpeg_transcoding,
         type: 'boolean',
         defaultValue: false,
         label: "Allow Seeking in Transocded Videos (Experimental)",
@@ -230,7 +218,7 @@ exports.config = {
         frontend: true
     },
     ffmpeg_preset: {
-        showIf: x => (x.config_tab === 'all' || x.config_tab === 'advanced') && x.enable_ffmpeg_transcoding,
+        showIf: x => x.config_tab === 'transcoding' && x.enable_ffmpeg_transcoding,
         type: 'select',
         defaultValue: 'universal',
         options: {
@@ -251,30 +239,28 @@ exports.config = {
         fileMask: 'ffmpeg*',
         label: "FFmpeg Executable Path",
         helperText: "Path to the ffmpeg.exe or binary. Leave empty if added to system PATH.",
-        showIf: x => (x.config_tab === 'all' || x.config_tab === 'advanced') && x.enable_ffmpeg_transcoding
+        showIf: x => x.config_tab === 'transcoding' && x.enable_ffmpeg_transcoding
     },
     ffmpeg_parameters: {
         defaultValue: '',
         label: "Custom FFmpeg Flags",
         helperText: "Enter custom parameters (e.g. -c:v libx265 -crf 23). These are appended to the command. Only visible in 'Custom' mode.",
-        showIf: x => (x.config_tab === 'all' || x.config_tab === 'advanced') && x.enable_ffmpeg_transcoding && x.ffmpeg_preset === 'custom'
+        showIf: x => x.config_tab === 'transcoding' && x.enable_ffmpeg_transcoding && x.ffmpeg_preset === 'custom'
     },
-
-    // === 8. Transcoding Limits & Security ===
     transcoding_concurrency: {
-        showIf: x => (x.config_tab === 'all' || x.config_tab === 'transcoding') && x.enable_ffmpeg_transcoding,
+        showIf: x => x.config_tab === 'transcoding' && x.enable_ffmpeg_transcoding,
         type: 'number', defaultValue: 3, min: 1, max: 50, label: "Max Global Concurrent Streams", helperText: "Prevents server overload. Maximum number of conversions happening at once.", frontend: true
     },
     transcoding_allow_anonymous: {
-        showIf: x => (x.config_tab === 'all' || x.config_tab === 'transcoding') && x.enable_ffmpeg_transcoding,
+        showIf: x => x.config_tab === 'transcoding' && x.enable_ffmpeg_transcoding,
         type: 'boolean', defaultValue: true, label: "Allow Guest Transcoding", helperText: "If unchecked, guests must log in to play unsupported videos that require transcoding.", frontend: true
     },
     transcoding_rate_limit_per_user: {
-        showIf: x => (x.config_tab === 'all' || x.config_tab === 'transcoding') && x.enable_ffmpeg_transcoding && !x.transcoding_allow_anonymous,
+        showIf: x => x.config_tab === 'transcoding' && x.enable_ffmpeg_transcoding && !x.transcoding_allow_anonymous,
         type: 'number', defaultValue: 1, min: 1, max: 10, label: "Max Streams Per User", helperText: "Limit how many videos a single user can convert at once.", frontend: true
     },
     transcoding_allowed_users: {
-        showIf: x => (x.config_tab === 'all' || x.config_tab === 'transcoding') && x.enable_ffmpeg_transcoding && !x.transcoding_allow_anonymous,
+        showIf: x => x.config_tab === 'transcoding' && x.enable_ffmpeg_transcoding && !x.transcoding_allow_anonymous,
         type: 'username', multiple: true, label: "Whitelisted Users (Access List)", helperText: "Only these users can trigger transcoding. Leave empty to allow all logged-in users.", frontend: true
     }
 

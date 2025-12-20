@@ -39,77 +39,59 @@ This plugin replaces the basic default player with a professional-grade alternat
 
 ## ⚙️ Configuration Guide
 
-Settings are organized into categories in **Admin Panel > Plugins > videojs-player**. Use the **Configuration Category** dropdown to filter options.
+Settings are organized into categories in **Admin Panel > Plugins > videojs-player**.
 
-### 1. Core Playback
+### 1. Playback
 | Setting | Description | Default |
 | :--- | :--- | :--- |
-| **Autoplay Video** | Automatically start videos when the page loads. *Note: Browsers may block this if audio is enabled.* | `On` |
-| **Start Muted** | Forces video to start at 0% volume. *Required for autoplay in strictly blocking browsers.* | `Off` |
-| **Loop Playback** | Automatically restart the video when it ends. | `Off` |
-| **Preload Strategy** | • `Metadata`: loads duration only (Fastest).<br>• `Auto`: Buffers immediately.<br>• `None`: No data loaded until clicked. | `Metadata` |
-| **Enable Audio Player Mode** | Use this player for audio files (.mp3, .wav). Posters are hidden in audio mode. | `Off` |
-| **Integrate 'hfs-subtitles'** | Detects the `hfs-subtitles` plugin for advanced subtitle selection. | `Off` |
-| **Resume Playback** | Remembers playback position per video. *Disabled for "Live Transcoded" streams* | `On` |
-| **Remember Volume** | Saves your volume level between sessions. | `On` |
-| **Default Volume** | Initial volume (0-100%) if no preference is saved. | `100` |
-| **Playback Rates** | Comma-separated list of speed options (e.g. `0.5, 1, 2`). | `0.5, 1, 1.5, 2` |
+| **Autoplay Video** | Automatically start videos on load. *Browsers may block this w/ audio.* | `On` |
+| **Start Muted** | Forces 0% volume on start. Required for consistent Autoplay. | `Off` |
+| **Loop Playback** | Automatically restart video when ended. | `Off` |
+| **Preload Strategy** | • `Metadata`: Duration only (Fast).<br>• `Auto`: Buffers video.<br>• `None`: No load until click. | `Metadata` |
+| **Remember Resume** | Saves playback position per video. (Disabled for Transcoded streams). | `On` |
+| **Remember Volume** | Saves volume preference between sessions. | `On` |
+| **Default Volume** | Initial volume (0-100%). | `100` |
+| **Playback Rates** | Speed options (e.g. `0.5, 1, 1.5, 2`). | `0.5...` |
+| **Enable Audio Mode** | Use this player for .mp3/.wav files. | `Off` |
+| **Integrate Subtitles** | Detects `hfs-subtitles` plugin for advanced captions. | `Off` |
 
-### 2. Player Controls
+### 2. Interface
 | Setting | Description | Default |
 | :--- | :--- | :--- |
-| **Show Control Bar** | Toggle the bottom control bar visibility. | `On` |
-| **Auto-Hide Controls** | Time (ms) before controls fade out. `0` = always visible. | `2000` |
-| **Show Seek Buttons** | Adds Rewind and Forward buttons to the control bar. | `On` |
-| **Seek Button Step** | Seconds to increment/decrement per tap. | `10` |
-| **Show Download Button** | Adds a Download icon to the control bar. | `On` |
-| **Scroll to Change Volume** | Adjust volume by scrolling the mouse wheel over the player. | `On` |
-| **Picture-in-Picture** | Show the PiP toggle button. | `On` |
+| **Show Control Bar** | Toggle bottom controls (Play/Pause/Timeline). | `On` |
+| **Auto-Hide Controls** | Time (ms) before controls fade. `0` = Always visible. | `2000` |
+| **Player Theme** | Visual skins (`Standard`, `City`, `Sea`, etc). | `Standard` |
+| **Show Seek Buttons** | Adds +/- 10s buttons to control bar. | `On` |
+| **Seek Button Step** | Seconds to skip per click. | `10` |
+| **Show Download Button** | Adds download icon to control bar. | `On` |
+| **Picture-in-Picture** | Show PiP toggle button. | `On` |
+| **Error Style** | `Overlay` (Cover) or `Toast` (Popup) notifications. | `Overlay` |
 
-### 3. Keyboard Shortcuts
+### 3. Layout & Sizing
 | Setting | Description | Default |
 | :--- | :--- | :--- |
-| **Enable Hotkeys** | `Space` (Play/Pause), `F` (Fullscreen), `M` (Mute), `Arrows` (Seek/Vol). | `On` |
-| **Arrow Key Seek Time** | Seconds to skip with Left/Right arrows. | `5` |
-| **Arrow Key Volume Step** | Percentage to change volume with Up/Down arrows. | `5` |
+| **Sizing Mode** | • `Fluid`: Responsive & **Transparent**. Best for layouts.<br>• `Fill`: **Block** element. Fills parent 100%.<br>• `Fixed`: Custom pixel size.<br>• `Native`: Intrinsic video size. | `Fluid` |
+| **Fixed Width/Height** | Overrides only for **Fixed** mode. | `640`x`360` |
 
-### 4. Layout & Sizing
+### 4. Interaction
 | Setting | Description | Default |
 | :--- | :--- | :--- |
-| **Sizing Mode** | • `Fluid`: Responsive & **Transparent**. Best for modern layouts.<br>• `Fill`: **Block** element. Fills parent 100% w/ positioning.<br>• `Fixed`: Custom pixel size (`Inline-Block`).<br>• `Native`: Uses video's intrinsic resolution (`Inline-Block`). | `Fluid` |
-| **Fixed Width/Height** | Overrides only for **Fixed** mode. `0` = use video's intrinsic size. | `640` / `360` |
+| **Enable Hotkeys** | Space (Pause), F (Full), M (Mute), Arrows (Seek/Vol). | `On` |
+| **Arrow Seek/Vol Step** | Time(s) or Vol(%) changed by arrow keys. | `5` |
+| **Scroll Volume** | Mouse wheel changes volume. | `On` |
+| **Double Tap Seek** | (Mobile) Double-tap sides to seek. | `On` |
+| **Double Tap Seconds** | Time skipped per tap. | `10` |
+| **Auto-Rotate** | (Mobile) Lock landscape in fullscreen. | `On` |
 
-### 5. Appearance
+### 5. Transcoding & Advanced
 | Setting | Description | Default |
 | :--- | :--- | :--- |
-| **Player Theme** | Visual skins: `Standard`, `City`, `Fantasy`, `Forest`, `Sea`. | `Standard` |
-| **Error Notification Style** | • `Overlay`: Covers the player (Good for mobile).<br>• `Toast`: Shows a popup message. *Similarly to how successful login/logout notifications are displayed.* | `Overlay` |
-
-### 6. Mobile Experience
-| Setting | Description | Default |
-| :--- | :--- | :--- |
-| **Double Tap to Seek** | Double-tap screen sides to seek. Center toggles controls. | `On` |
-| **Double Tap Seconds** | Time skipped per interaction. | `10` |
-| **Mobile Auto-Landscape** | Automatically locks screen to landscape when entering fullscreen on Android. | `On` |
-
-### 7. Advanced / Hardware Acceleration
-| Setting | Description | Default |
-| :--- | :--- | :--- |
-| **Enable HLS/MKV Client Support** | Experimental client-side playback for .m3u8 and .mkv. | `Off` |
-| **Enable FFmpeg Transcoding** | **Live Transcoding**. Automatically converts unsupported videos (HEVC/H.265, AVI) on the server. | `Off` |
-| **Allow Seeking in Transocded Videos** | **(Beta)** Allows seeking in converted streams. May cause delays. | `Off` |
-| **Hardware Acceleration (Preset)** | Select your Hardware Acceleration optimization:<br>• **Universal**: CPU 'libx264'. Safe fallback.<br>• **Intel QuickSync**: `h264_qsv`.<br>• **NVIDIA NVENC**: `h264_nvenc`.<br>• **AMD AMF**: `h264_amf`.<br>• **Apple VideoToolbox**: `h264_videotoolbox` (macOS).<br>• **Stream Copy**: No re-encoding.<br>• **Custom**: Manual. | `Universal` |
-| **FFmpeg Executable Path** | Absolute path to `ffmpeg.exe`. | *Empty* |
-| **Custom FFmpeg Flags** | Only visible if **Preset** is set to `Custom`. Example: `-c:v libx265 -crf 23`. | *Empty* |
-
-### 8. Transcoding Limits
-| Setting | Description | Default |
-| :--- | :--- | :--- |
-| **Max Global Streams** | Limit total active conversions on the server. | `3` |
-| **Allow Guest Transcoding** | If disabled, guests must login to play HEVC files. | `On` |
-| **Max Streams Per User** | Limit active conversions per single user. | `1` |
-| **Whitelisted Users** | Restrict transcoding to specific usernames. | *Empty* |
-
+| **Enable HLS/MKV** | Experimental client-side support for .m3u8/.mkv. | `Off` |
+| **Enable Transcoding** | **Live Server Conversion** for unsupported formats (HEVC, AVI). | `Off` |
+| **Allow Seeking** | (Beta) Enable seeking in converted streams. | `Off` |
+| **Hardware Preset** | • `Universal`: CPU (Safe).<br>• `NVENC` / `QuickSync` / `AMF` / `VideoToolbox`: GPU.<br>• `Copy`: Passthrough. | `Universal` |
+| **FFmpeg Path** | Absolute path to binary. Empty = System PATH. | *Empty* |
+| **Limits** | • **Max Global**: Total active streams.<br>• **Max User**: Streams per user.<br>• **Allowed Users**: Whitelist. | `3`, `1`, `All` |
 ---
 
 ## 🛠️ Troubleshooting
