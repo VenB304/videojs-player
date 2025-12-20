@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 131;
+exports.version = 132;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -39,95 +39,95 @@ exports.config = {
     // === 1. Core Playback ===
     autoplay: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
-        type: 'boolean', defaultValue: true, label: "Autoplay", helperText: "Automatically start video", frontend: true
+        type: 'boolean', defaultValue: true, label: "Autoplay Video", helperText: "Start playing immediately when the page loads. Note: Browsers may block this if audio is enabled.", frontend: true
     },
     muted: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
-        type: 'boolean', defaultValue: false, label: "Start Muted", helperText: "Useful for browsers that block autoplay with sound", frontend: true
+        type: 'boolean', defaultValue: false, label: "Start Muted", helperText: "Mutes the video on start. Required for 'Autoplay' to work consistently in Chrome/Edge/Firefox.", frontend: true
     },
     loop: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
-        type: 'boolean', defaultValue: false, label: "Loop", helperText: "Repeat video when finished", frontend: true
+        type: 'boolean', defaultValue: false, label: "Loop Playback", helperText: "Automatically replay the video when it ends.", frontend: true
     },
     preload: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
         type: 'select',
         defaultValue: 'metadata',
-        options: { 'Metadata': 'metadata', 'Auto': 'auto', 'None': 'none' },
+        options: { 'Metadata (Fastest)': 'metadata', 'Auto (Buffer)': 'auto', 'None (Save Bandwidth)': 'none' },
         label: "Preload Strategy",
-        helperText: "How to load video data",
+        helperText: "'Metadata' loads duration only. 'Auto' downloads some video data. 'None' waits for play.",
         frontend: true
     },
     enableAudio: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
-        type: 'boolean', defaultValue: false, label: "Enable Audio Support", helperText: "Use this player for mp3, wav, etc.", frontend: true
+        type: 'boolean', defaultValue: false, label: "Enable Audio Player Mode", helperText: "If enabled, audio files (mp3, wav) will use this player instead of the browser default. Posters are hidden in audio mode.", frontend: true
     },
     enableSubtitlePluginIntegration: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
-        type: 'boolean', defaultValue: false, label: "Integrate with HFS-Subtitles", helperText: "Uses hfs-subtitles plugin for advanced subtitles if installed", frontend: true
+        type: 'boolean', defaultValue: false, label: "Integrate 'hfs-subtitles' Plugin", helperText: "Detects the 'hfs-subtitles' plugin to provide advanced subtitle selection. Requires that plugin to be installed separately.", frontend: true
     },
 
     resumePlayback: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
-        type: 'boolean', defaultValue: true, label: "Resume Playback", helperText: "Continue from last position", frontend: true
+        type: 'boolean', defaultValue: true, label: "Remember Playback Position (Resume)", helperText: "Saves your progress and resumes video where you left off. (Disabled for Transcoded streams)", frontend: true
     },
     persistentVolume: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
-        type: 'boolean', defaultValue: true, label: "Remember Volume", helperText: "Save volume between sessions", frontend: true
+        type: 'boolean', defaultValue: true, label: "Remember Volume Level", helperText: "Saves your volume preference between plays.", frontend: true
     },
     volume: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
-        type: 'number', defaultValue: 100, min: 0, max: 100, step: 5, label: "Default Volume (%)", helperText: "0 to 100", frontend: true
+        type: 'number', defaultValue: 100, min: 0, max: 100, step: 5, label: "Default Volume (%)", helperText: "Initial volume if no preference is saved. (0-100)", frontend: true
     },
     playbackRates: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'core',
-        type: 'string', defaultValue: "0.5, 1, 1.5, 2", label: "Playback Rates", helperText: "Comma separated numbers", frontend: true
+        type: 'string', defaultValue: "0.5, 1, 1.5, 2", label: "Available Speed Options", helperText: "Comma-separated list of playback speeds (e.g. 0.5, 1, 2) available in the menu.", frontend: true
     },
 
 
     // === 2. Player Controls ===
     controls: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'controls',
-        type: 'boolean', defaultValue: true, label: "Show Controls", helperText: "Enables the control bar", frontend: true
+        type: 'boolean', defaultValue: true, label: "Show Control Bar", helperText: "Uncheck to hide all controls (Play/Pause/Timeline). Useful for background videos.", frontend: true
     },
     inactivityTimeout: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'controls',
-        type: 'number', defaultValue: 2000, min: 0, label: "Controls Hide Delay (ms)", helperText: "0 = always visible", frontend: true
+        type: 'number', defaultValue: 2000, min: 0, label: "Auto-Hide Controls (ms)", helperText: "How long controls stay visible after mouse movement. Set 0 to keep always visible.", frontend: true
     },
     showSeekButtons: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'controls',
-        type: 'boolean', defaultValue: true, label: "Show Seek Buttons", helperText: "Adds +/- buttons to control bar", frontend: true
+        type: 'boolean', defaultValue: true, label: "Show Seek Buttons (+/- 10s)", helperText: "Adds quick rewind/forward buttons to the control bar.", frontend: true
     },
     seekButtonStep: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'controls',
-        type: 'number', defaultValue: 10, min: 1, label: "Seek Button Time (s)", helperText: "Seconds per tap", frontend: true
+        type: 'number', defaultValue: 10, min: 1, label: "Seek Button Step (Seconds)", helperText: "Time to skip when clicking the seek buttons.", frontend: true
     },
     showDownloadButton: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'controls',
-        type: 'boolean', defaultValue: true, label: "Show Download Button", helperText: "Adds download icon to controls", frontend: true
+        type: 'boolean', defaultValue: true, label: "Show Download Button", helperText: "Adds a download icon to the control bar to download the original file.", frontend: true
     },
     enableScrollVolume: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'controls',
-        type: 'boolean', defaultValue: true, label: "Enable Scroll Volume", helperText: "Adjust volume by scrolling over player", frontend: true
+        type: 'boolean', defaultValue: true, label: "Scroll to Change Volume", helperText: "Change volume by scrolling the mouse wheel over the video area.", frontend: true
     },
     enablePiP: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'controls',
-        type: 'boolean', defaultValue: true, label: "Enable Picture-in-Picture", helperText: "Show Picture-in-Picture button", frontend: true
+        type: 'boolean', defaultValue: true, label: "Picture-in-Picture Button", helperText: "Allow users to pop the video out into a floating window.", frontend: true
     },
 
 
     // === 3. Keyboard Shortcuts ===
     enableHotkeys: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'keys',
-        type: 'boolean', defaultValue: true, label: "Enable Hotkeys", helperText: "Space, F, Arrows, M", frontend: true
+        type: 'boolean', defaultValue: true, label: "Enable Keyboard Hotkeys", helperText: "Space (Pause), F (Fullscreen), M (Mute), Arrows (Seek/Volume).", frontend: true
     },
     hotkeySeekStep: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'keys',
-        type: 'number', defaultValue: 5, min: 1, label: "Hotkey Seek Time (s)", helperText: "Seconds to skip", frontend: true
+        type: 'number', defaultValue: 5, min: 1, label: "Arrow Key Seek Time", helperText: "Seconds to skip when pressing Left/Right arrows.", frontend: true
     },
     hotkeyVolumeStep: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'keys',
-        type: 'number', defaultValue: 5, min: 1, max: 100, label: "Hotkey Volume Step (%)", helperText: "Percent to change", frontend: true
+        type: 'number', defaultValue: 5, min: 1, max: 100, label: "Arrow Key Volume Step", helperText: "Volume change % when pressing Up/Down arrows.", frontend: true
     },
 
 
@@ -136,16 +136,16 @@ exports.config = {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'layout',
         type: 'select',
         defaultValue: 'fluid',
-        options: { 'Fluid': 'fluid', 'Fill': 'fill', 'Fixed / Native': 'native' },
-        label: "Sizing Mode",
-        frontend: true
+        options: { 'Fluid (Responsive)': 'fluid', 'Fill (100% Parent)': 'fill', 'Fixed / Native Size': 'native' },
+        label: "Player Sizing Mode",
+        frontend: true // Updated text logic in frontend? Just label change.
     },
     fixedWidth: {
         type: 'number',
         defaultValue: 640,
         min: 0,
         label: "Fixed Width (px)",
-        helperText: "0 = intrinsic size",
+        helperText: "Overrides fluid/fill. Set 0 to use video's intrinsic width.",
         frontend: true,
         showIf: x => (x.config_tab === 'all' || x.config_tab === 'layout') && x.sizingMode === 'native'
     },
@@ -154,7 +154,7 @@ exports.config = {
         defaultValue: 360,
         min: 0,
         label: "Fixed Height (px)",
-        helperText: "0 = intrinsic size",
+        helperText: "Overrides fluid/fill. Set 0 to use video's intrinsic height.",
         frontend: true,
         showIf: x => (x.config_tab === 'all' || x.config_tab === 'layout') && x.sizingMode === 'native'
     },
@@ -167,17 +167,18 @@ exports.config = {
         defaultValue: 'default',
         options: {
             'Standard (Default)': 'default',
-            'City': 'city',
-            'Fantasy': 'fantasy',
-            'Forest': 'forest',
-            'Sea': 'sea'
+            'City (Modern)': 'city',
+            'Fantasy (Classic)': 'fantasy',
+            'Forest (Green)': 'forest',
+            'Sea (Blue)': 'sea'
         },
         label: "Player Theme",
+        helperText: "Choose a visual style provided by Video.js themes.",
         frontend: true
     },
     errorStyle: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'appearance',
-        type: 'select', options: ['overlay', 'toast'], defaultValue: 'overlay', label: "Notification Style", helperText: "How to show errors and info (Toast/Overlay)", frontend: true
+        type: 'select', options: ['overlay', 'toast'], defaultValue: 'overlay', label: "Error Notification Style", helperText: "'Overlay' covers the player. 'Toast' shows a popup message.", frontend: true
     },
 
 
@@ -185,15 +186,15 @@ exports.config = {
     // === 6. Mobile Experience ===
     enableDoubleTap: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'mobile',
-        type: 'boolean', defaultValue: true, label: "Double Tap to Seek", helperText: "Double tap at the sides of the screen to seek forward/backward", frontend: true
+        type: 'boolean', defaultValue: true, label: "Double Tap to Seek", helperText: "Like YouTube/Netflix. Double tap the sides of the screen to seek.", frontend: true
     },
     doubleTapSeekSeconds: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'mobile',
-        type: 'number', defaultValue: 10, min: 1, label: "Double Tap Seek Time (s)", helperText: "Seconds to seek on double tap", frontend: true
+        type: 'number', defaultValue: 10, min: 1, label: "Double Tap Seconds", helperText: "Time skipped per double-tap.", frontend: true
     },
     autoRotate: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'mobile',
-        type: 'boolean', defaultValue: true, label: "Mobile Auto-Landscape", helperText: "Automatically enter landscape mode when in fullscreen", frontend: true
+        type: 'boolean', defaultValue: true, label: "Mobile Auto-Landscape", helperText: "Automatically locks screen to landscape when entering fullscreen on phones.", frontend: true
     },
 
 
@@ -202,24 +203,24 @@ exports.config = {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'advanced',
         type: 'boolean',
         defaultValue: false,
-        label: "Enable MKV / HLS Support",
-        helperText: "Experimental streaming for .mkv and .m3u8",
+        label: "Enable HLS/MKV Client Support",
+        helperText: "Tries to play .m3u8 or .mkv files natively. Experimental.",
         frontend: true
     },
     enable_ffmpeg_transcoding: {
         showIf: x => x.config_tab === 'all' || x.config_tab === 'advanced',
         type: 'boolean',
         defaultValue: false,
-        label: "Use FFmpeg for unsupported videos",
-        helperText: "Transcodes formats like HEVC on the fly. Requires FFmpeg installed.",
+        label: "Enable FFmpeg Server Transcoding",
+        helperText: "Allows playing unsupported files (HEVC, AVI, etc.) by converting them on the server. Requires FFmpeg installed.",
         frontend: true
     },
     enable_transcoding_seeking: {
         showIf: x => (x.config_tab === 'all' || x.config_tab === 'advanced') && x.enable_ffmpeg_transcoding,
         type: 'boolean',
         defaultValue: false,
-        label: "Enable Seeking in Transcoded Videos (Beta)",
-        helperText: "Experimental. Allows seeking, but may cause instability or delays.",
+        label: "Allow Seeking in Transocded Videos (Experimental)",
+        helperText: "Enables seeking for converted videos. May be slow or unstable depending on CPU/Server speed.",
         frontend: true
     },
     ffmpeg_preset: {
@@ -227,45 +228,48 @@ exports.config = {
         type: 'select',
         defaultValue: 'universal',
         options: {
-            'Universal (CPU / Soft)': 'universal',
-            'Intel QuickSync (QSV)': 'intel_qsv',
-            'NVIDIA NVENC': 'nvidia_nvenc',
-            'AMD AMF': 'amd_amf',
-            'Apple VideoToolbox (macOS)': 'apple_vt',
-            'Stream Copy (Passthrough)': 'copy'
+            'Universal (libx264)': 'universal',
+            'Intel QuickSync (h264_qsv)': 'intel_qsv',
+            'NVIDIA NVENC (h264_nvenc)': 'nvidia_nvenc',
+            'AMD AMF (h264_amf)': 'amd_amf',
+            'Apple VideoToolbox (h264_videotoolbox)': 'apple_vt',
+            'Stream Copy (No Transcoding)': 'copy',
+            'Custom (Manual Configuration)': 'custom'
         },
-        label: "Transcoding Backend (Preset)",
-        helperText: "Hardware acceleration requires correct drivers.",
+        label: "Hardware Acceleration (Preset)",
+        helperText: "Universal: CPU only. Others use GPU. 'Copy': No re-encoding. 'Custom': Edit flags below.",
         frontend: true
     },
     ffmpeg_path: {
         type: 'real_path',
         fileMask: 'ffmpeg*',
-        helperText: "Path to ffmpeg executable. Leave empty if in system PATH.",
+        label: "FFmpeg Executable Path",
+        helperText: "Path to the ffmpeg.exe or binary. Leave empty if added to system PATH.",
         showIf: x => (x.config_tab === 'all' || x.config_tab === 'advanced') && x.enable_ffmpeg_transcoding
     },
     ffmpeg_parameters: {
         defaultValue: '',
-        helperText: "Additional FFmpeg params (Appended AFTER preset args)",
-        showIf: x => (x.config_tab === 'all' || x.config_tab === 'advanced') && x.enable_ffmpeg_transcoding
+        label: "Custom FFmpeg Flags",
+        helperText: "Enter custom parameters (e.g. -c:v libx265 -crf 23). These are appended to the command. Only visible in 'Custom' mode.",
+        showIf: x => (x.config_tab === 'all' || x.config_tab === 'advanced') && x.enable_ffmpeg_transcoding && x.ffmpeg_preset === 'custom'
     },
 
     // === 8. Transcoding Limits & Security ===
     transcoding_concurrency: {
         showIf: x => (x.config_tab === 'all' || x.config_tab === 'transcoding') && x.enable_ffmpeg_transcoding,
-        type: 'number', defaultValue: 3, min: 1, max: 50, label: "Max Global Concurrent Streams", helperText: "Limit total number of active conversions", frontend: true
+        type: 'number', defaultValue: 3, min: 1, max: 50, label: "Max Global Concurrent Streams", helperText: "Prevents server overload. Maximum number of conversions happening at once.", frontend: true
     },
     transcoding_allow_anonymous: {
         showIf: x => (x.config_tab === 'all' || x.config_tab === 'transcoding') && x.enable_ffmpeg_transcoding,
-        type: 'boolean', defaultValue: true, label: "Allow Guest Transcoding", helperText: "If disabled, only logged-in users can stream", frontend: true
+        type: 'boolean', defaultValue: true, label: "Allow Guest Transcoding", helperText: "If unchecked, guests must log in to play unsupported videos that require transcoding.", frontend: true
     },
     transcoding_rate_limit_per_user: {
         showIf: x => (x.config_tab === 'all' || x.config_tab === 'transcoding') && x.enable_ffmpeg_transcoding && !x.transcoding_allow_anonymous,
-        type: 'number', defaultValue: 1, min: 1, max: 10, label: "Max Streams Per User", helperText: "Limit active conversions per account", frontend: true
+        type: 'number', defaultValue: 1, min: 1, max: 10, label: "Max Streams Per User", helperText: "Limit how many videos a single user can convert at once.", frontend: true
     },
     transcoding_allowed_users: {
         showIf: x => (x.config_tab === 'all' || x.config_tab === 'transcoding') && x.enable_ffmpeg_transcoding && !x.transcoding_allow_anonymous,
-        type: 'username', multiple: true, label: "Allowed Users (Whitelist)", helperText: "Leave empty to allow all logged-in users", frontend: true
+        type: 'username', multiple: true, label: "Whitelisted Users (Access List)", helperText: "Only these users can trigger transcoding. Leave empty to allow all logged-in users.", frontend: true
     }
 
 };
@@ -430,74 +434,86 @@ exports.init = api => {
                     }
                     args.push('-i', src);
 
+
+
                     // --- Dynamic Preset Logic ---
-                    // Base flags for MP4 container
-                    args.push(
-                        '-f', 'mp4',
-                        '-movflags', 'frag_keyframe+empty_moov+delay_moov',
-                        '-strict', '-2'
-                    );
 
-                    // Encoder Selection
-                    switch (preset) {
-                        case 'intel_qsv':
-                            // Intel QuickSync
-                            args.push(
-                                '-c:v', 'h264_qsv',
-                                '-global_quality', '23',
-                                '-load_plugin', 'hevc_hw', // Often needed for HEVC input hardware decode
-                                '-c:a', 'aac'
-                            );
-                            break;
-                        case 'nvidia_nvenc':
-                            // NVIDIA NVENC
-                            args.push(
-                                '-c:v', 'h264_nvenc',
-                                '-preset', 'p1',   // Lowest latency / Fast
-                                '-tune', 'll',     // Low Latency
-                                '-c:a', 'aac'
-                            );
-                            break;
-                        case 'amd_amf':
-                            // AMD AMF
-                            args.push(
-                                '-c:v', 'h264_amf',
-                                '-usage', 'transcoding',
-                                '-c:a', 'aac'
-                            );
-                            break;
-                        case 'apple_vt':
-                            // Apple VideoToolbox
-                            args.push(
-                                '-c:v', 'h264_videotoolbox',
-                                '-realtime', 'true',
-                                '-c:a', 'aac' // Ensure audio is compatible
-                            );
-                            break;
-                        case 'copy':
-                            // Stream Copy (Pass-through)
-                            // WARNING: Only works if source is already H264/AAC compliant for MP4
-                            args.push('-c', 'copy');
-                            break;
-                        case 'universal':
-                        default:
-                            // CPU Universal (libx264)
-                            args.push(
-                                '-c:v', 'libx264',
-                                '-preset', 'superfast',
-                                '-pix_fmt', 'yuv420p',
-                                '-c:a', 'aac'
-                            );
-                            break;
+                    if (preset === 'custom') {
+                        // Custom Mode: Minimal defaults + User Parameters
+                        args.push(
+                            '-f', 'mp4',
+                            '-movflags', 'frag_keyframe+empty_moov+delay_moov',
+                            '-strict', '-2'
+                        );
+                        // Append User Parameters (ffmpeg_parameters)
+                        if (extra && extra.length > 0) {
+                            args.push(...extra);
+                        }
+                    } else {
+                        // Preset Mode: Standard defaults + Specific Encoder Flags
+                        // Ignore 'extra' (ffmpeg_parameters) as user requested they be disabled/hidden
+                        args.push(
+                            '-f', 'mp4',
+                            '-movflags', 'frag_keyframe+empty_moov+delay_moov',
+                            '-strict', '-2'
+                        );
+
+                        // Encoder Selection
+                        switch (preset) {
+                            case 'intel_qsv':
+                                // Intel QuickSync
+                                args.push(
+                                    '-c:v', 'h264_qsv',
+                                    '-global_quality', '23',
+                                    '-load_plugin', 'hevc_hw',
+                                    '-c:a', 'aac'
+                                );
+                                break;
+                            case 'nvidia_nvenc':
+                                // NVIDIA NVENC
+                                args.push(
+                                    '-c:v', 'h264_nvenc',
+                                    '-preset', 'p1',
+                                    '-tune', 'll',
+                                    '-c:a', 'aac'
+                                );
+                                break;
+                            case 'amd_amf':
+                                // AMD AMF
+                                args.push(
+                                    '-c:v', 'h264_amf',
+                                    '-usage', 'transcoding',
+                                    '-c:a', 'aac'
+                                );
+                                break;
+                            case 'apple_vt':
+                                // Apple VideoToolbox
+                                args.push(
+                                    '-c:v', 'h264_videotoolbox',
+                                    '-realtime', 'true',
+                                    '-c:a', 'aac'
+                                );
+                                break;
+                            case 'copy':
+                                // Stream Copy (Passthrough)
+                                args.push('-c', 'copy');
+                                break;
+                            case 'universal':
+                            default:
+                                // CPU Universal (libx264)
+                                args.push(
+                                    '-c:v', 'libx264',
+                                    '-preset', 'superfast',
+                                    '-pix_fmt', 'yuv420p',
+                                    '-c:a', 'aac'
+                                );
+                                break;
+                        }
+
+                        // CopyTS logic
+                        args.push('-copyts');
                     }
 
-                    // CopyTS is generally good for keeping sync, but verify with presets?
-                    // It can sometimes cause issues with duration detection if not careful.
-                    args.push('-copyts');
-
-                    if (extra && extra.length > 0) {
-                        args.push(...extra);
-                    }
                     args.push('pipe:1');
                     return args;
                 }
