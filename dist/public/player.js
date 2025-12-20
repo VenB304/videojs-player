@@ -425,6 +425,11 @@
                             background-color: rgba(0,0,0,0.5); 
                             border-radius: 8px;
                         }
+                        /* Hide Video-only controls in Audio Mode */
+                        .vjs-audio-mode .vjs-fullscreen-control, 
+                        .vjs-audio-mode .vjs-picture-in-picture-control { 
+                            display: none !important; 
+                        }
                     `;
                     document.head.appendChild(style);
                 }
@@ -455,14 +460,14 @@
                     loop: C.loop,
                     muted: C.muted,
                     preload: C.preload,
-                    fluid: isFluid && !isAudio, // Audio shouldn't be fluid (usually)
+                    fluid: isFluid && !isAudio, // Initial fluid state
                     fill: isFill && !isAudio,
                     height: isAudio ? 50 : undefined,
                     playbackRates: rates.length ? rates : [0.5, 1, 1.5, 2],
                     inactivityTimeout: C.inactivityTimeout,
                     controlBar: {
-                        pictureInPictureToggle: C.enablePiP && !isAudio,
-                        fullscreenToggle: !isAudio
+                        pictureInPictureToggle: C.enablePiP, // Always enable, hide via CSS
+                        fullscreenToggle: true             // Always enable, hide via CSS
                     },
                     userActions: {
                         hotkeys: false // We handle our own
@@ -876,6 +881,33 @@
                         // Clear previous errors/overlays
                         setOverlayState(null);
                         errorShownRef.current = false;
+
+                        // --- Mode Switching Logic (Audio <-> Video) ---
+                        // Re-evaluate audio status for the NEW source
+                        const isAudio = C.enableAudio && (
+                            determineMimeType(targetSrc).startsWith('audio/') ||
+                            AUDIO_EXTS.some(ext => targetSrc.toLowerCase().endsWith(ext))
+                        );
+
+                        // Toggle Classes and Dimensions
+                        if (isAudio) {
+                            if (!player.hasClass('vjs-audio-mode')) {
+                                player.addClass('vjs-audio-mode');
+                                player.height(50);
+                                player.fluid(false); // Audio is fixed height
+                            }
+                        } else {
+                            if (player.hasClass('vjs-audio-mode')) {
+                                player.removeClass('vjs-audio-mode');
+                                player.height(null); // Reset to allow CSS/fluid to take over
+                                if (C.sizingMode === 'fluid') {
+                                    player.fluid(true);
+                                }
+                            }
+                        }
+
+                        // Always clear poster to avoid stale "Title" / Artwork from previous track
+                        player.poster('');
 
                         player.src({
                             src: targetSrc,
