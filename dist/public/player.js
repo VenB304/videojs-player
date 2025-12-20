@@ -979,38 +979,7 @@
                         errorShownRef.current = false;
 
                         // --- Mode Switching Logic (Audio <-> Video) ---
-                        // Re-evaluate audio status for the NEW source
-                        const isAudio = C.enableAudio && (
-                            determineMimeType(targetSrc).startsWith('audio/') ||
-                            AUDIO_EXTS.some(ext => targetSrc.toLowerCase().endsWith(ext))
-                        );
-
-                        // Toggle Classes and Dimensions
-                        if (isAudio) {
-                            if (!player.hasClass('vjs-audio-mode')) {
-                                player.addClass('vjs-audio-mode');
-                                player.height(50);
-                                player.fluid(false); // Audio is fixed height
-                            }
-                        } else {
-                            if (player.hasClass('vjs-audio-mode')) {
-                                player.removeClass('vjs-audio-mode');
-                                // Reset height: Video.js doesn't like null/undefined in height() API
-                                // Direct DOM manipulation is safer to clear inline styles added by height(50)
-                                if (player.el()) {
-                                    player.el().style.height = '';
-                                    player.el().style.width = '';
-                                }
-
-                                // Re-enable fluid mode if configured
-                                if (C.sizingMode === 'fluid') {
-                                    player.fluid(true);
-                                }
-                            }
-                        }
-
-                        // always clear poster so it doesn't persist
-                        player.poster('');
+                        // MOVED TO EVENT LISTENERS (enforcePlayerState) for robustness.
 
                         player.src({
                             src: targetSrc,
@@ -1049,36 +1018,53 @@
                     }
                 }
 
+                // --- Helper: Enforce Player State (Audio/Video Mode) ---
+                // We bind this to loadstart/loadedmetadata to ensure state is applied even if Video.js resets it.
+                const enforcePlayerState = () => {
+                    if (!player) return;
 
-                // Ref needed for seek logic (MOVED TO TOP LEVEL)
+                    const src = player.currentSrc() || props.src || '';
+                    const isAudio = C.enableAudio && (
+                        determineMimeType(src).startsWith('audio/') ||
+                        AUDIO_EXTS.some(ext => src.toLowerCase().endsWith(ext))
+                    );
 
-                // Helper: Aggressive Duration Enforcement
-                // Browsers often reset duration to Infinity for open pipes. We must fight back.
-                const enforceDuration = () => {
-                    if (conversionMode && window._vjs_saved_duration && player) {
-                        const d = player.duration();
-                        // Allow a small tolerance, but if it differs significantly or is Infinity, fix it
-                        if (d === Infinity || Math.abs(d - window._vjs_saved_duration) > 5) {
-                            // console.log(`[VideoJS] Enforcing duration: ${window._vjs_saved_duration} (was ${d})`);
-                            player.duration(window._vjs_saved_duration);
+                    // console.log(`[VideoJS] Enforcing State: ${src} -> isAudio=${isAudio}`);
 
-                            // Also fix the UI if it thinks it's live
-                            if (player.hasClass('vjs-live')) {
-                                player.removeClass('vjs-live');
+                    if (isAudio) {
+                        if (!player.hasClass('vjs-audio-mode')) {
+                            player.addClass('vjs-audio-mode');
+                        }
+                        // Always force these in case they were reset
+                        player.height(50);
+                        player.fluid(false);
+                        player.poster(''); // Hide poster
+
+                        // Ensure controls are visible
+                        if (!player.controls()) player.controls(true);
+
+                    } else {
+                        if (player.hasClass('vjs-audio-mode')) {
+                            player.removeClass('vjs-audio-mode');
+
+                            // Reset DOM styles
+                            if (player.el()) {
+                                player.el().style.height = '';
+                                player.el().style.width = '';
                             }
-                            const durDisplay = player.getChild('ControlBar')?.getChild('DurationDisplay');
-                            if (durDisplay && durDisplay.el()) {
-                                // Force show if hidden
-                                durDisplay.show();
+
+                            if (C.sizingMode === 'fluid') {
+                                player.fluid(true);
                             }
                         }
                     }
                 };
 
                 // Listeners for enforcement
-                player.on('durationchange', enforceDuration);
-                player.on('timeupdate', enforceDuration); // Periodic check
-                player.on('loadedmetadata', enforceDuration);
+                player.on('loadstart', enforcePlayerState);
+                player.on('loadedmetadata', enforcePlayerState);
+                player.on('durationchange', enforceDuration); // Existing
+                player.on('timeupdate', enforceDuration); // Existing
 
                 // Detect Absolute vs Relative Timestamps
                 player.on('timeupdate', () => {
