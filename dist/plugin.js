@@ -6,7 +6,8 @@ exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9
 // HFS allows loading external URLs directly in frontend_js/css
 exports.frontend_css = [
     'video-js.css', // Local Video.js Styles
-    'themes.css'    // Official Themes Bundle
+    'themes.css',    // Official Themes Bundle
+    'custom.css'     // Plugin Specific Styles
 ];
 
 exports.frontend_js = [

@@ -156,4 +156,27 @@ This plugin bridges **HFS (Server)** and **Video.js (Client)** using a hybrid ap
 
 ---
 
+## 🛠️ Maintenance & Updating
+**Administrators** can ensure the plugin stays up-to-date with the latest Video.js features and security patches even if this plugin is no longer actively maintained.
+
+### Updating Video.js Library
+Included in the `scripts` folder are automated tools to fetch the latest `video.js` core files.
+
+**Windows:**
+1.  Open the plugin folder (`plugins/videojs-player/scripts`).
+2.  Right-click `update-videojs.ps1` and select **Run with PowerShell**.
+
+**Linux / macOS / Docker:**
+1.  Navigate to the scripts folder: `cd plugins/videojs-player/scripts`
+2.  Make the script executable: `chmod +x update-videojs.sh`
+3.  Run the updater: `./update-videojs.sh`
+
+The script will safely download the latest version from the official CDN and update the player files in `dist/public`.
+
+> **Note**: Your custom themes and transcoding overlays are stored in a separate `custom.css` file and will **NOT** be overwritten by this update process.
+
+---
+
 ## Sponsored by Google's Antigravity, Gemini 3 Pro and 1 Year Google AI Pro for Students
+
+---
