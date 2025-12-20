@@ -271,7 +271,6 @@
             const isAbsoluteTimestampRef = React.useRef(false); // Detects if browser respected -copyts
 
             const [overlayState, setOverlayState] = React.useState(null); // { message, type, show }
-            const [audioTitle, setAudioTitle] = React.useState(null); // State for Audio Title Overlay
 
             // Calculate styles for Render
             let cssClasses = 'video-js vjs-big-play-centered';
@@ -449,43 +448,6 @@
                     document.head.appendChild(styleEl);
                 }
                 styleEl.innerHTML = `
-                    .vjs-audio-mode { background-color: transparent !important; }
-                    .vjs-audio-mode .vjs-tech { display: none; }
-                    /* USER REQUEST: Disable Audio Title/Poster -> Hide it */
-                    .vjs-audio-mode .vjs-poster { display: none !important; }
-                    .vjs-audio-mode .vjs-big-play-button { display: none; }
-                    .vjs-audio-mode .vjs-control-bar { 
-                        display: flex !important; 
-                        visibility: visible !important; 
-                        opacity: 1 !important; 
-                        background-color: rgba(0,0,0,0.5); 
-                        border-radius: 8px;
-                    }
-                    /* Hide Video-only controls in Audio Mode */
-                    .vjs-audio-mode .vjs-fullscreen-control, 
-                    .vjs-audio-mode .vjs-picture-in-picture-control { 
-                        display: none !important; 
-                    }
-                    /* Audio Title Overlay */
-                    .vjs-audio-title {
-                        position: absolute;
-                        top: 25%; /* Moved higher to avoid controls */
-                        left: 50%;
-                        transform: translate(-50%, -50%);
-                        color: white;
-                        font-family: sans-serif;
-                        font-size: 1.2em;
-                        text-align: center;
-                        text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-                        pointer-events: none; /* Let clicks pass through to player */
-                        z-index: 10;
-                        width: 90%;
-                        white-space: pre-wrap; /* Allow line breaks for Artist/Album */
-                        overflow: hidden;
-                        text-overflow: ellipsis;
-                        opacity: 0.9;
-                    }
-
                     /* converting overlay */
                     .vjs-converting::after {
                         content: "Transcoding Media...";
@@ -1041,70 +1003,21 @@
                     }
                 }
 
-                // --- Helper: Enforce Player State (Audio/Video Mode) ---
+                // --- Helper: Enforce Player State (Resetting any lingering audio-mode artifacts) ---
                 const enforcePlayerState = () => {
                     setTimeout(() => {
                         if (!player || player.isDisposed()) return;
 
-                        const src = player.currentSrc() || props.src || '';
-                        const isAudio = C.enableAudio && (
-                            determineMimeType(src).startsWith('audio/') ||
-                            AUDIO_EXTS.some(ext => src.toLowerCase().endsWith(ext))
-                        );
+                        // We no longer have a specialized audio mode. 
+                        // Video.js handles audio files natively in the video frame (showing the poster).
 
-                        if (isAudio) {
-                            if (!player.hasClass('vjs-audio-mode')) {
-                                player.addClass('vjs-audio-mode');
-                            }
-                            // Always force these in case they were reset
-                            player.height(50);
-                            player.fluid(false);
-                            player.poster(''); // Hide poster in audio mode
-
-                            // Set Audio Title (Structured: Artist - Title \n Album \n Year)
-                            const e = props.entry || {};
-                            const title = e.meta_title || e.name || decodeURIComponent(src.split('/').pop().split('?')[0]);
-                            const artist = e.meta_artist || "";
-                            const album = e.meta_album || "";
-                            const year = e.meta_year || "";
-
-                            let displayStr = "";
-                            if (artist) displayStr += artist + " - ";
-                            displayStr += title;
-                            if (album) displayStr += "\n" + album;
-                            if (year) displayStr += " (" + year + ")";
-
-                            setAudioTitle(displayStr);
-
-                            // Ensure controls are visible
-                            if (!player.controls()) player.controls(true);
-
-                            // Trigger HFS metadata update
-                            if (props.onPlay) props.onPlay();
-
-                        } else {
-                            // Video Mode
-                            setAudioTitle(null); // Clear Audio Title Overlay
-
-                            if (player.hasClass('vjs-audio-mode')) {
-                                player.removeClass('vjs-audio-mode');
-
-                                // Restore Poster if available
-                                if (props.poster) {
-                                    player.poster(props.poster);
-                                }
-
-                                // Reset DOM styles
-                                if (player.el()) {
-                                    player.el().style.height = '';
-                                    player.el().style.width = '';
-                                }
-
-                                if (C.sizingMode === 'fluid') {
-                                    player.fluid(true);
-                                }
-                            }
+                        // Cleanup any legacy classes if they somehow persist
+                        if (player.hasClass('vjs-audio-mode')) {
+                            player.removeClass('vjs-audio-mode');
                         }
+
+                        // Trigger HFS metadata update (Native HFS UI)
+                        if (props.onPlay) props.onPlay();
                     }, 10);
                 };
 
@@ -1242,7 +1155,7 @@
             return h('div', {
                 'data-vjs-player': true,
                 ref: containerRef,
-                style: { display: 'contents', position: 'relative', width: '100%', height: '100%' }
+                style: { display: 'contents', position: 'relative' }
             }, [
                 // Manual Video Element is appended here by useEffect
 
@@ -1273,8 +1186,8 @@
                     h('div', {}, overlayState.message)
                 ]) : null,
 
-                // Audio Title Overlay
-                audioTitle ? h('div', { className: 'vjs-audio-title' }, audioTitle) : null,
+                // Audio Title Overlay (REMOVED)
+
 
                 // Dummy video for HFS (Hidden)
                 h('video', {
