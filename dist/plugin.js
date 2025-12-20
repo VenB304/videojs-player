@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 122;
+exports.version = 123;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -316,26 +316,46 @@ exports.init = api => {
                     }
                 }
 
-                // --- Concurrency Limits ---
+                // --- Concurrency Limits (With Preemption) ---
                 const maxGlobal = api.getConfig('transcoding_concurrency');
                 const maxPerUser = !allowAnonymous ? api.getConfig('transcoding_rate_limit_per_user') : 0;
 
-                // Count active processes
+                // 1. Global Limit Check (Return 503 if overloaded globally)
                 if (running.size >= maxGlobal) {
-                    return ctx.status = 429; // Too Many Requests
+                    // Try to preempt an anonymous process to make room for a user?
+                    // For now, simple FIFO logic or Hard Reject.
+                    // Let's hard reject for global safety.
+                    return ctx.status = 503; // Service Unavailable
                 }
 
+                // 2. User Limit Check (Preemption)
                 if (maxPerUser > 0) {
-                    let userCount = 0;
-                    for (const u of running.values()) {
-                        if (u === username) userCount++;
+                    const userProcs = [];
+                    for (const [p, u] of running.entries()) {
+                        if (u === username) userProcs.push(p);
                     }
-                    if (userCount >= maxPerUser) {
-                        return ctx.status = 429; // Too Many Requests
+
+                    if (userProcs.length >= maxPerUser) {
+                        // Preemption Logic: Kill the oldest process for this user
+                        // The Map inserts in order, so the first one we found is likely the oldest?
+                        // Actually Map iteration order is insertion order in JS.
+                        const oldest = userProcs[0];
+                        console.log(`[VideoJS] User ${username} hit concurrency limit. Preempting old process...`);
+                        terminate(oldest);
+                        running.delete(oldest);
+                        // running.delete is important so we don't count it immediately again, 
+                        // though terminate() is async, the removal from our 'running' map acts as the semaphore release.
                     }
                 }
 
-                await new Promise(res => setTimeout(res, 500)) // Debounce: avoid short-lasting requests spawning ffmpeg
+                // Per-User Debounce (Map of timeouts)
+                // We shouldn't use a global sleep(500) because that blocks the thread or just delays everything.
+                // We should use a per-user debounce to avoid "fast seek" spam.
+                // However, the "Preemption" logic above handles the spam by killing the old one,
+                // so we mainly need to ensure we don't spawn 10 processes in 10ms.
+                // The client debounces seeking. Let's keep a small server delay for safety.
+                await new Promise(res => setTimeout(res, 200));
+
                 if (ctx.socket.closed) return
 
                 // SECURITY NOTE: These configs are Admin-only.
@@ -378,7 +398,7 @@ exports.init = api => {
                 // Sanitize src? HFS usually provides a clean absolute path in fileSource.
                 // But just in case, we trust the `spawn` array method to handle argument escaping for the shell.
 
-                // Seek support
+                // Seek support via URLSearchParams
                 const qs = new URLSearchParams(ctx.querystring);
                 const startTimeInput = qs.get('startTime');
                 const startTime = startTimeInput ? parseFloat(startTimeInput) : 0;

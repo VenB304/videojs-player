@@ -82,6 +82,13 @@
             return 'video/mp4';
         }
 
+
+        // --- Assets ---
+        const SVGs = {
+            download: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`,
+            search: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`
+        };
+
         /**
          * Video.js Player Component
          * Wraps the Video.js library in a React component.
@@ -112,6 +119,7 @@
                 videoStyle.objectFit = 'cover';
             }
 
+
             // --- Helper: Notification System (Toast vs Overlay) ---
             const notify = (player, message, type = 'info', duration = 2000) => {
                 if (C.errorStyle === 'toast') {
@@ -124,13 +132,15 @@
 
                     if (duration > 0) {
                         setTimeout(() => {
-                            // Only hide if it matches the current message (simple check) to avoid race conditions hiding new errors 
-                            // Actually a simple timeout is fine for now, or use a ref to track active timeout ID.
                             setOverlayState(prev => prev && prev.message === message ? { ...prev, show: false } : prev);
                         }, duration);
                     }
                 }
             };
+
+            // Call Custom Hooks
+            useMobileGestures(playerRef, notify, videoElementRef);
+            useHotkeys(playerRef, notify);
 
             // --- Helper: Handle Playback Error (Conversion Integration) ---
             const handlePlaybackError = (player, message = "Video format not supported.") => {
@@ -192,14 +202,14 @@
                     const t = parseFloat(savedTime);
                     if (!isNaN(t) && t > 1) {
 
-                        // If we are transcoding, we MUST use Server-Side Resume (offset)
-                        // Client-side seeking on a fresh server pipe is unreliable/impossible.
-                        if (conversionMode && C.enable_transcoding_seeking) {
-                            console.log(`[VideoJS] Server-Side Resume to ${t}s`);
-                            setSeekOffset(t);
+                        // HEADACHE: Disable resume for transcoding
+                        if (conversionMode) {
+                            console.log("[VideoJS] Resume skipped for transcoding.");
+                            notify(playerRef.current, "Resume disabled for converted video", "info", 3000);
                             hasResumedRef.current = true;
                             return;
                         }
+
 
                         const applyResume = () => {
                             const p = playerRef.current;
@@ -394,7 +404,7 @@
 
                             const btnDl = controlBar.addChild('button', {
                                 controlText: "Download Video",
-                                className: 'vjs-download-button',
+                                className: 'vjs-visible-text vjs-download-button',
                                 clickHandler: () => {
                                     const src = player.currentSrc();
                                     if (src) {
@@ -408,169 +418,18 @@
                                 }
                             }, insertIndex);
 
-                            // Use a standard download icon if available or text
-                            btnDl.el().innerHTML = `
-                                <svg viewBox="0 0 24 24" fill="white" width="22" height="22" style="vertical-align: middle;">
-                                    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
-                                </svg>`;
-                            btnDl.el().title = "Download";
+                            // Use SVGs constant
+                            btnDl.el().innerHTML = SVGs.download;
+                            btnDl.el().title = "Download Video";
                             btnDl.el().style.cursor = "pointer";
                         }
                     });
                 }
 
-                // --- Feature 3: Hotkeys ---
-                if (C.enableHotkeys) {
-                    const handleKey = (e) => {
-                        // Ignore if typing in an input
-                        if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
 
-                        // Check if player is visible/active (simple check)
-                        if (!player || player.isDisposed()) return;
 
-                        // Prevent default scrolling for arrows/space if we handle it
-                        switch (e.key) {
-                            case ' ':
-                            case 'k':
-                            case 'K':
-                                e.preventDefault();
-                                if (player.paused()) {
-                                    player.play();
-                                    notify(player, "Play", "info", 500);
-                                } else {
-                                    player.pause();
-                                    notify(player, "Pause", "info", 500);
-                                }
-                                break;
-                            case 'f':
-                            case 'F':
-                                e.preventDefault();
-                                if (player.isFullscreen()) {
-                                    player.exitFullscreen();
-                                } else {
-                                    player.requestFullscreen();
-                                }
-                                break;
-                            case 'm':
-                            case 'M':
-                                e.preventDefault();
-                                player.muted(!player.muted());
-                                notify(player, player.muted() ? "Muted" : "Unmuted", "info", 1000);
-                                break;
-                            case 'p':
-                            case 'P':
-                                e.preventDefault();
-                                if (document.pictureInPictureElement) {
-                                    document.exitPictureInPicture();
-                                } else if (player.videoWidth() > 0) {
-                                    player.requestPictureInPicture();
-                                }
-                                break;
-                            case 'ArrowLeft':
-                                e.preventDefault();
-                                player.currentTime(player.currentTime() - C.hotkeySeekStep);
-                                notify(player, `Rewind ${C.hotkeySeekStep}s`, "info", 500);
-                                break;
-                            case 'ArrowRight':
-                                e.preventDefault();
-                                player.currentTime(player.currentTime() + C.hotkeySeekStep);
-                                notify(player, `Forward ${C.hotkeySeekStep}s`, "info", 500);
-                                break;
-                            case 'ArrowUp':
-                                e.preventDefault();
-                                {
-                                    const v = Math.min(player.volume() + C.hotkeyVolumeStep, 1);
-                                    player.volume(v);
-                                    notify(player, `Volume: ${Math.round(v * 100)}%`, "info", 500);
-                                }
-                                break;
-                            case 'ArrowDown':
-                                e.preventDefault();
-                                {
-                                    const v = Math.max(player.volume() - C.hotkeyVolumeStep, 0);
-                                    player.volume(v);
-                                    notify(player, `Volume: ${Math.round(v * 100)}%`, "info", 500);
-                                }
-                                break;
-                        }
-                    };
+                // --- Feature 4: Mobile Double-Tap Gestures (Moved to Hook) ---
 
-                    // Attach to player.el() (The main Video.js div)
-                    // We must wait for player to be ready or just attach now since initialized above
-                    const el = player.el();
-                    if (el) {
-                        el.addEventListener('keydown', handleKey);
-                        // Store handler for cleanup
-                        player.on('dispose', () => {
-                            el.removeEventListener('keydown', handleKey);
-                        });
-                    }
-                }
-
-                // --- Feature 4: Mobile Double-Tap Gestures ---
-                if (C.enableDoubleTap) {
-                    let lastTouchTime = 0;
-                    const handleTouch = (e) => {
-                        const now = Date.now();
-                        // Double tap threshold: 300ms
-                        if (now - lastTouchTime < 300) {
-                            e.preventDefault(); // Prevent zoom/default browser actions
-
-                            // Calculate touch position relative to the player
-                            const touch = e.changedTouches[0];
-                            let rect = e.currentTarget.getBoundingClientRect();
-
-                            // Fallback: If player wrapper has 0 width (e.g. display issues), try the video element itself
-                            if (rect.width === 0 && videoElementRef.current) {
-                                rect = videoElementRef.current.getBoundingClientRect();
-                            }
-
-                            const x = touch.clientX - rect.left;
-                            const width = rect.width;
-                            const pct = x / width;
-
-                            // Sanity check
-                            if (width === 0) return;
-
-                            const seekSeconds = C.doubleTapSeekSeconds;
-
-                            if (pct < 0.3) {
-                                // Left 30%: Rewind
-                                let newTime = player.currentTime() - seekSeconds;
-                                if (newTime < 0) newTime = 0;
-                                player.currentTime(newTime);
-                                notify(player, `Rewind ${seekSeconds}s`, "info", 1000);
-                            } else if (pct > 0.7) {
-                                // Right 30%: Forward
-                                let newTime = player.currentTime() + seekSeconds;
-                                if (newTime > player.duration()) newTime = player.duration();
-                                player.currentTime(newTime);
-                                notify(player, `Forward ${seekSeconds}s`, "info", 1000);
-                            } else {
-                                // Center 40%: Fullscreen Toggle
-                                if (player.isFullscreen()) {
-                                    player.exitFullscreen();
-                                } else {
-                                    player.requestFullscreen();
-                                }
-                                // notify(player, player.isFullscreen() ? "Full Screen" : "Windowed", 'info', 1000);
-                            }
-                        }
-                        lastTouchTime = now;
-                    };
-
-                    const el = player.el();
-                    if (el) {
-                        el.style.touchAction = 'manipulation'; // Prevent double-tap to zoom
-                        // Use capture phase to ensure we get the event before Video.js internals
-                        const opts = { capture: true, passive: false };
-                        el.addEventListener('touchend', handleTouch, opts);
-
-                        player.on('dispose', () => {
-                            el.removeEventListener('touchend', handleTouch, opts);
-                        });
-                    }
-                }
 
                 // --- Feature 5: Scroll for Volume ---
                 if (C.enableScrollVolume) {
