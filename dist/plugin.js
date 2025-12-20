@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 112;
+exports.version = 113;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -311,7 +311,7 @@ exports.init = api => {
                 // We use the full querystring to ensure we catch parameters regardless of order
                 // ctx.querystring is the raw string without '?'
                 const params = new URLSearchParams(ctx.querystring);
-                
+
                 // Check if this is a transcoding request
                 if (!params.has('ffmpeg')) return;
 
@@ -349,36 +349,33 @@ exports.init = api => {
 
                 // --- Per-User Debounce ---
                 // Prevent rapid-fire requests from the same user/IP from spawning multiple heavy processes
-                // We use a static map on the module level or attached to the api object if needed.
-                // Since 'running' is closure-scoped, we can add a 'lastRequest' map here too.
-                // However, for simplicity, we can just check if this user has a process that started VERY recently.
-                // But 'running' only tracks active. We need a history.
-                // Let's attach a simple cache to the exports or a local variable outside middleware.
-                // For now, valid implementation:
+                // We utilize a simple cache attached to exports to track last request times.
+                // We sleep for the remainder of the debounce window instead of rejecting, 
+                // allowing legitimate rapid seeks to eventually succeed without breaking the player.
                 const now = Date.now();
                 if (username) {
-                   if (!exports._lastReq) exports._lastReq = new Map();
-                   const lastTime = exports._lastReq.get(username) || 0;
-                   if (now - lastTime < 1000) {
-                       // Silent ignore or 429? 
-                       // 429 is better to tell client to back off, but might break rapid seeking if client is dumb.
-                       // Just delay is safer but we want to avoid server hold.
-                       // Let's return 429 which client should handle or simple return.
-                       // Actually, if we return, it serves the file as static. We don't want that for ffmpeg req.
-                       return ctx.status = 429; 
-                   }
-                   exports._lastReq.set(username, now);
-                   
-                   // Cleanup map occasionally?
-                   if (exports._lastReq.size > 100) { 
-                       // Simple cleanup: delete older than 1 minute
-                       for (const [u, t] of exports._lastReq.entries()) {
-                           if (now - t > 60000) exports._lastReq.delete(u);
-                       }
-                   }
+                    if (!exports._lastReq) exports._lastReq = new Map();
+                    const lastTime = exports._lastReq.get(username) || 0;
+                    const timeSince = now - lastTime;
+                    const minInterval = 1000; // 1 second interval between spawns
+
+                    if (timeSince < minInterval) {
+                        const wait = minInterval - timeSince;
+                        // console.log(`[VideoJS] Debouncing user ${username} for ${wait}ms`);
+                        await new Promise(res => setTimeout(res, wait));
+                    }
+                    exports._lastReq.set(username, Date.now());
+
+                    // Cleanup map occasionally
+                    if (exports._lastReq.size > 200) {
+                        const expiry = Date.now() - 60000;
+                        for (const [u, t] of exports._lastReq.entries()) {
+                            if (t < expiry) exports._lastReq.delete(u);
+                        }
+                    }
                 } else {
-                    // Global debounce for anonymous to be safe?
-                     await new Promise(res => setTimeout(res, 200));
+                    // Global debounce for anonymous to be safe
+                    await new Promise(res => setTimeout(res, 500));
                 }
 
                 if (ctx.socket.closed) return
