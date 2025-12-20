@@ -1231,22 +1231,19 @@
                 }
             }
 
+            // Apply Dynamic Overrides to Manual Video Element
+            React.useEffect(() => {
+                if (videoElementRef.current) {
+                    Object.assign(videoElementRef.current.style, videoStyleOverride);
+                }
+            }); // Run every render to ensure overrides persist against Video.js changes
+
             return h('div', {
                 'data-vjs-player': true,
                 ref: containerRef,
                 style: containerStyle
             }, [
                 // Manual Video Element is appended here by useEffect
-
-                // Helper to apply dynamic styles to manual DOM
-                h(React.useEffect, {
-                    key: 'style-updater',
-                    children: () => {
-                        if (videoElementRef.current) {
-                            Object.assign(videoElementRef.current.style, videoStyleOverride);
-                        }
-                    }
-                }),
 
                 // React-Native Overlay Component (Integrated)
                 (overlayState && overlayState.show) ? h('div', {
