@@ -183,7 +183,6 @@
 
             const attemptResume = (src) => {
                 if (!C.resumePlayback || !src) return;
-                // Prevent double resume for the same source load
                 if (hasResumedRef.current) return;
 
                 const resumeKey = `vjs-resume-${src.split('/').pop()}`;
@@ -192,27 +191,33 @@
                 if (savedTime) {
                     const t = parseFloat(savedTime);
                     if (!isNaN(t) && t > 1) {
+
+                        // If we are transcoding, we MUST use Server-Side Resume (offset)
+                        // Client-side seeking on a fresh server pipe is unreliable/impossible.
+                        if (conversionMode && C.enable_transcoding_seeking) {
+                            console.log(`[VideoJS] Server-Side Resume to ${t}s`);
+                            setSeekOffset(t);
+                            hasResumedRef.current = true;
+                            return;
+                        }
+
                         const applyResume = () => {
                             const p = playerRef.current;
                             if (!p) return;
                             const dur = p.duration();
-                            if (!dur || (dur - t > 5)) { // Don't resume if near end
+                            if (!dur || (dur - t > 5)) {
                                 p.currentTime(t);
                                 notify(p, `Resumed at ${Math.round(t)}s`, "info", 2000);
-                                hasResumedRef.current = true; // Mark as done
+                                hasResumedRef.current = true;
                             }
                         };
 
                         const p = playerRef.current;
                         if (p) {
-                            if (p.readyState() > 0) {
-                                applyResume();
-                            } else {
-                                p.one('loadedmetadata', applyResume);
-                            }
+                            if (p.readyState() > 0) applyResume();
+                            else p.one('loadedmetadata', applyResume);
                         }
                     } else {
-                        // No saved time, mark as done so we don't keep checking
                         hasResumedRef.current = true;
                     }
                 } else {
