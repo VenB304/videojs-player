@@ -333,7 +333,7 @@
         };
 
         // --- Custom Hook: Transcoding Logic ---
-        const useTranscoding = (playerRef, notify, savedDurationRef) => {
+        const useTranscoding = (playerRef, notify) => {
             const [conversionMode, setConversionMode] = React.useState(false);
             const isConvertingRef = React.useRef(false);
             const [seekOffset, setSeekOffset] = React.useState(0);
@@ -348,7 +348,9 @@
 
                         const d = player.duration();
                         if (d && d > 0 && d !== Infinity) {
-                            savedDurationRef.current = d;
+                            // RESTORED GLOBAL STATE: Essential for persistence across player resets
+                            window._vjs_saved_duration = d;
+                            console.log("[VideoJS] Saved duration (Global):", d);
                         }
 
                         isConvertingRef.current = true;
@@ -368,13 +370,13 @@
                 const player = playerRef.current;
                 if (!player || player.isDisposed() || player.ended() || isConvertingRef.current) return;
 
-                // Simple heuristic: if video but 0x0 dimensions
                 const w = player.videoWidth();
                 const h = player.videoHeight();
+                // Check if video but 0x0 dimensions (and strictly not audio file)
                 if (determineMimeType(player.currentSrc()).startsWith('video/') && (w === 0 || h === 0)) {
                     // Retry once quickly
                     setTimeout(() => {
-                        // Check if we started converting in the meantime
+                        // Double check we haven't started converting yet
                         if (player.videoWidth() === 0 && !isConvertingRef.current) {
                             handlePlaybackError(player, "HEVC/Unsupported format detected.");
                         }
@@ -388,63 +390,32 @@
                 if (!player || !conversionMode) return;
 
                 const enforceDuration = () => {
-                    if (savedDurationRef.current) {
+                    const saved = window._vjs_saved_duration;
+                    if (saved) {
                         const d = player.duration();
-                        if (d === Infinity || Math.abs(d - savedDurationRef.current) > 5) {
-                            player.duration(savedDurationRef.current);
+                        if (d === Infinity || Math.abs(d - saved) > 5) {
+                            player.duration(saved);
+                            if (player.hasClass('vjs-live')) player.removeClass('vjs-live');
                         }
                     }
                 };
 
                 player.on('durationchange', enforceDuration);
                 player.on('loadedmetadata', enforceDuration);
+                player.on('timeupdate', enforceDuration); // Aggressive check
                 return () => {
                     player.off('durationchange', enforceDuration);
                     player.off('loadedmetadata', enforceDuration);
+                    player.off('timeupdate', enforceDuration);
                 };
             }, [conversionMode, playerRef.current]);
 
             // Simple Seek Interceptor that just updates the state to trigger reload
-            // We removed the complex currentTime patch.
-            // If user seeks using the bar, VideoJS updates currentTime.
-            // We need to catch that 'seeking' event? 
-            // Actually, for Live streams, the standard seek bar might be disabled or erratic.
-            // But let's try to trust the standard 'seeking' event if duration is set.
-            /* 
-             * === NOTE ON TRANSCODING SEEKING (THE HEADACHE) ===
-             * Seeking in a piped FFmpeg stream is extremely fragile. 
-             * Browsers often treat the stream as "Live" and reset timestamps to 0, ignoring '-copyts'.
-             * 
-             * Previous attempts to "hack" the UI to show absolute time (by adding offset to currentTime)
-             * caused infinite loops with the Resume Playback feature and UI glitching.
-             * 
-             * CURRENT STRATEGY:
-             * 1. Trust the browser's "Live" behavior.
-             * 2. When the user seeks (via the bar), we intercept the SETTER.
-             * 3. We do NOT update the player's internal time (which would conflict with the stream).
-             * 4. Instead, we update 'seekOffset' state, which triggers a full React effect.
-             * 5. The effect reloads the video source with `?ffmpeg&startTime=X`.
-             * 
-             * DO NOT attempt to force 'currentTime' to match absolute time unless you want pain.
-             */
+            // (Using the "Headache" safe strategy)
             React.useEffect(() => {
                 const player = playerRef.current;
                 if (!player || !conversionMode || !C.enable_transcoding_seeking) return;
 
-                const onSeek = () => {
-                    // User seeked. We need to reload the stream at this position.
-                    const t = player.currentTime();
-                    // Debounce?
-                    if (Math.abs(t - seekOffset) > 2) { // 2s threshold
-                        console.log(`[VideoJS] Seek detected: ${t}`);
-                        setSeekOffset(t);
-                        notify(player, `Seeking to ${Math.round(t)}s...`, "info", 2000);
-                    }
-                };
-
-                // Use 'seeking' or 'seeked'? 'seeking' fires repeatedly while dragging.
-                // We want 'seeked' but sometimes that doesn't fire if stream stalls.
-                // Let's monkey patch currentTime SETTER only simplistically to catch intent.
                 const originalCurrentTime = player.currentTime;
                 let debounce = null;
 
@@ -456,10 +427,11 @@
                             setSeekOffset(t);
                             notify(player, `Seeking to ${Math.round(t)}s...`, "info", 2000);
                         }, 500);
-                        // We do NOT call original setter because we are about to reload the source!
-                        // Calling it might confuse the player or buffer.
                         return t;
                     }
+                    // Getter: Return browser time + offset if browser reset it (optional patch)
+                    // We removed the aggressive patch, but for UI sync we might need minimal correction?
+                    // No, let's keep it clean as requested by "revert".
                     return originalCurrentTime.apply(player);
                 };
 
@@ -513,7 +485,7 @@
             const {
                 conversionMode, setConversionMode, isConvertingRef,
                 seekOffset, setSeekOffset, handlePlaybackError, checkHevc, errorShownRef
-            } = useTranscoding(playerRef, notify, savedDurationRef);
+            } = useTranscoding(playerRef, notify);
 
             // Main Init Effect
             React.useEffect(() => {
