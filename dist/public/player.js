@@ -1149,10 +1149,34 @@
             // We use Manual DOM management (created in useEffect) to ensure React never touches the video element.
             // This prevents React from stripping classes like 'vjs-audio-mode' or 'vjs-playing'.
 
+            // Dynamic Container Styling for Sizing Modes
+            // Fluid/Fill/Audio: Needs display:block + width:100% to fill parent and allow positioning.
+            // Fixed: Needs display:inline-block to shrink-wrap the fixed player so overlays center correctly.
+            // We AVOID display:contents because it breaks position:relative context for overlays.
+            const mode = C.sizingMode;
+            // Both fluid and fill act as "fluid" for the container wrapper
+            const isFluidContainer = (mode === 'fluid' || mode === 'fill');
+
+            // Re-calculate isAudio for render (to ensure container behaves like a block)
+            const isAudioRender = C.enableAudio && (
+                determineMimeType(props.src).startsWith('audio/') ||
+                AUDIO_EXTS.some(ext => props.src.toLowerCase().endsWith(ext))
+            );
+
+            const containerStyle = {
+                position: 'relative', // Essential for absolute overlays (error, custom text) to position relative to player
+                display: (isFluidContainer || isAudioRender) ? 'block' : 'inline-block',
+            };
+
+            if (isFluidContainer || isAudioRender) {
+                containerStyle.width = '100%';
+                containerStyle.height = '100%';
+            }
+
             return h('div', {
                 'data-vjs-player': true,
                 ref: containerRef,
-                style: { display: 'contents', position: 'relative' }
+                style: containerStyle
             }, [
                 // Manual Video Element is appended here by useEffect
 
