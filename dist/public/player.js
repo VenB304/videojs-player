@@ -49,7 +49,7 @@
             enableScrollVolume: rawConfig.enableScrollVolume ?? true,
             enablePiP: rawConfig.enablePiP ?? true,
             doubleTapSeekSeconds: parseInt(rawConfig.doubleTapSeekSeconds) || 10,
-            doubleTapSeekSeconds: parseInt(rawConfig.doubleTapSeekSeconds) || 10,
+
             errorStyle: rawConfig.errorStyle || 'overlay',
             theme: rawConfig.theme || 'default',
             inactivityTimeout: parseInt(rawConfig.inactivityTimeout) || 2000,
