@@ -311,7 +311,6 @@
                     if (fw > 0) containerStyle.width = `${fw}px`;
                     if (fh > 0) containerStyle.height = `${fh}px`;
 
-                    console.log(`VideoJS Audio Fixed: ${fw}x${fh}`);
                 } else {
                     // Fluid / Fill / Native: Fill the parent container
                     // User wants "bottom alignment", which VJS handles naturally if given 100% height of a container.
@@ -572,13 +571,24 @@
                         100% { transform: translate(-50%, -50%) rotate(360deg); }
                     }
 
-                    /* Native Mode: Force Control Bar to Bottom */
+                    /* Native Mode: Force Control Bar to Bottom & Tech Centered */
                     .vjs-native-mode .vjs-control-bar {
                         position: absolute !important;
                         bottom: 0 !important;
                         left: 0 !important;
                         width: 100% !important;
-                        z-index: 101 !important; /* Ensure above video if active */
+                        z-index: 101 !important;
+                    }
+                    /* Force Video Tech to be small/intrinsic in Native Mode */
+                    .vjs-native-mode .vjs-tech {
+                        width: auto !important;
+                        height: auto !important;
+                        max-width: none !important;
+                        max-height: none !important;
+                        top: 50% !important;
+                        left: 50% !important;
+                        transform: translate(-50%, -50%) !important;
+                        position: absolute !important;
                     }
                 `;
 
@@ -623,10 +633,17 @@
                 setupMobileGestures(player, notify, videoElementRef);
                 setupHotkeys(player, notify);
 
-                if (isAudioRender) {
+                // Only apply vjs-audio-mode if we WANT the skinny audio player look.
+                // If we are in Fixed/Fill/Native modes for Audio, we want the "Black Box" look,
+                // so we treat it as a video player (no vjs-audio-mode) which naturally puts controls at bottom.
+                if (isAudioRender && mode === 'fluid') {
+                    // Fluid Audio = Skinny Bar
                     player.addClass('vjs-audio-mode');
-                    // Force height
                     player.height(50);
+                } else if (isAudioRender) {
+                    // Fixed/Fill/Native Audio = Black Box
+                    player.removeClass('vjs-audio-mode'); // Ensure it's treated as video layout
+                    // No height override (handled by container/CSS)
                 }
 
                 // Native Mode Overflow Fix
