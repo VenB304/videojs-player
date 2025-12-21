@@ -215,7 +215,7 @@ exports.config = {
         type: 'boolean',
         defaultValue: false,
         label: "Replace Direct Download Links",
-        helperText: "If enabled, accessing a video file directly opens it in this player instead of downloading it. Works with HFS Share Links.",
+        helperText: "Opens video files in this player instead of downloading. works with rejetto's hfs-share-links plugin.",
         frontend: true
     },
     enable_transcoding_seeking: {

@@ -203,6 +203,18 @@ The script will safely download the latest version from the official CDN and upd
 
 > **Note**: Your custom themes and transcoding overlays are stored in a separate `custom.css` file and will **NOT** be overwritten by this update process.
 
+### Updating Preact (For Offline Player)
+The "Direct Link Player" relies on `preact.min.js` and `hooks.min.js`. To update these:
+
+**Windows:**
+1.  Open `plugins/videojs-player/scripts`.
+2.  Right-click `update-preact.ps1` and select **Run with PowerShell**.
+
+**Linux / macOS:**
+1.  `cd plugins/videojs-player/scripts`
+2.  `chmod +x update-preact.sh` (Create if needed, or stick to manual download)
+3.  `./update-preact.sh` (If implemented) or manually download files to `dist/public`.
+
 ---
 
 ## 🏆 Credits
