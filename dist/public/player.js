@@ -1010,7 +1010,8 @@
                 if (player && props.src) {
                     let suffix = '';
                     if (conversionMode) {
-                        suffix = '?ffmpeg';
+                        const separator = props.src.includes('?') ? '&' : '?';
+                        suffix = `${separator}ffmpeg`;
                         if (seekOffset > 0) {
                             suffix += `&startTime=${seekOffset}`;
                         }

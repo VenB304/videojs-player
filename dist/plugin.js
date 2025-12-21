@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 170;
+exports.version = 171;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -527,7 +527,13 @@ exports.init = api => {
                  */
 
                 const src = ctx.state.fileSource
-                if (!ctx.querystring.startsWith('ffmpeg') || !src) return
+                // Check if 'ffmpeg' param is present (empty value allowed)
+                // We use new URLSearchParams because ctx.query might give 'true' or empty string depending on parsing
+                // But strictly, we just need to know if the key exists.
+                // ctx.querystring check is safer to avoid prototype issues? 
+                // Let's use generic check.
+                const qsObj = new URLSearchParams(ctx.querystring);
+                if (!qsObj.has('ffmpeg') || !src) return
 
                 const username = api.getCurrentUsername(ctx);
 
