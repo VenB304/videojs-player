@@ -50,6 +50,18 @@ Get the most out of the player in 30 seconds:
 
 ---
 
+## 🔗 Direct Link Player (Offline Support)
+**[NEW]** This plugin can replace the default browser handling of video files. If users navigate directly to `example.com/video.mp4` (or use a Share Link), they will see the Video.js player instead of the browser's native player.
+
+-   **Features**: Custom themes, hotkeys, and transcoding support on direct links.
+-   **Integration**: Works with `hfs-share-links` plugin!
+-   **Offline Mode**: This feature works **100% Offline**. It bundles `preact` and `hooks` locally.
+-   **Maintenance**: To update the local dependencies, run the included script:
+    -   Windows: `scripts\update-preact.ps1`
+    -   Linux: `scripts/update-preact.sh` (Manual creation required if not present)
+
+---
+
 ## ⚙️ Configuration Guide
 
 Settings are organized into categories in **Admin Panel > Plugins > videojs-player**.
@@ -103,6 +115,7 @@ Settings are organized into categories in **Admin Panel > Plugins > videojs-play
 | :--- | :--- | :--- |
 | **Enable HLS/MKV** | Native client-side support for `.m3u8` or `.mkv`. | `Off` |
 | **FFmpeg Transcoding** | Convert unsupported files on-the-fly. | `Off` |
+| **Replace Direct Links** | **[NEW]** Enable "Direct Link Player" mode for all video files. | `Off` |
 | **Allow Seeking** | (Experimental) Allow seeking in converted videos. | `Off` |
 | **Hardware Accel** | Choose Backend: `Software`, `Intel`, `NVENC`, `AMD`, `Apple`, `VAAPI`. | `Software` |
 | **Encoder Preset** | Quality/Speed tradeoff (Options vary by Backend). | `Balanced` |

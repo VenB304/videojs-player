@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 163;
+exports.version = 164;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -210,6 +210,14 @@ exports.config = {
         helperText: "Allows playing unsupported files (HEVC, AVI, etc.) by converting them on the server. Requires FFmpeg installed.",
         frontend: true
     },
+    enable_direct_link_player: {
+        showIf: x => x.config_tab === 'transcoding',
+        type: 'boolean',
+        defaultValue: false,
+        label: "Replace Direct Download Links",
+        helperText: "If enabled, accessing a video file directly opens it in this player instead of downloading it. Works with HFS Share Links.",
+        frontend: true
+    },
     enable_transcoding_seeking: {
         showIf: x => x.config_tab === 'transcoding' && x.enable_ffmpeg_transcoding,
         type: 'boolean',
@@ -329,6 +337,115 @@ exports.init = api => {
     process.on('SIGINT', onExit);
     process.on('SIGTERM', onExit);
 
+    /**
+     * Generates the standalone HTML page for the player.
+     * @param {object} api - Plugin API
+     * @param {object} ctx - Koa context
+     */
+    function generatePlayerHtml(api, ctx) {
+        // Construct paths to public assets
+        const p = "/~/plugins/" + exports.repo + "/";
+        const config = api.getPluginConfig(exports.name) || {};
+
+        // Ensure the config we pass has the correct structure for the player
+        // The player expects standard keys.
+
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Video Player</title>
+    <link href="${p}video-js.css" rel="stylesheet">
+    <link href="${p}themes.css" rel="stylesheet">
+    <link href="${p}custom.css" rel="stylesheet">
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+        #root { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        /* Fix for Preact not automatically mounting sometimes? */
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- Dependencies (Local) -->
+    <script src="${p}video.min.js"></script>
+    <script src="${p}preact.min.js"></script>
+    <script src="${p}hooks.min.js"></script>
+
+    <!-- Mock HFS Environment -->
+    <script>
+        // Polyfill HFS Global for the player script
+        window.HFS = {
+            getPluginConfig: () => (${JSON.stringify(config)}),
+            React: window.preact,
+            h: window.preact.h,
+            // Mock other used HFS functions if any
+            markVideoComponent: (c) => c,
+            markAudioComponent: (c) => c,
+            // Minimal toast for notifications
+            toast: (msg, type) => {
+                console.log('[Toast]', type, msg);
+                // We could implement a simple HTML toast here if needed
+            }
+        };
+        // Attach Hooks to React object to satisfy player's destructuring
+        Object.assign(window.HFS.React, window.preactHooks);
+        
+        // Also expose React globally as the player might check window.React
+        window.React = window.HFS.React;
+        window.h = window.HFS.h;
+    </script>
+
+    <!-- Player Script -->
+    <script src="${p}player.js"></script>
+
+    <!-- Mount App -->
+    <script>
+        (function() {
+            const { h, render } = window.preact;
+            const VideoJsPlayer = window.VideoJsPlayer;
+
+            if (VideoJsPlayer) {
+                // Determine SRC
+                // Check if 'sharelink' is present, if so, we must preserve it in the src
+                const params = new URLSearchParams(window.location.search);
+                
+                // If we are here, we are intercepting.
+                // We need to fetch the RAW video.
+                // We append 'raw=1' to current URL.
+                // BUT if sharelink is present, HFS share-links logic might need 'sharelink' param to authorize.
+                // Middleware checks 'sharelink' param.
+                
+                // Construct the src URL
+                // If we simply append raw=1, HFS (and our middleware) will skip interception.
+                // HFS core will serve the file if we satisfy permissions.
+                
+                // Clone current params and add raw=1
+                params.append('raw', '1');
+                
+                // Current path + params
+                const src = window.location.pathname + '?' + params.toString();
+                
+                // Props
+                const props = {
+                    src: src,
+                    poster: "", // No easy way to get poster in standalone mode without extra request
+                    className: "showing" // Trigger full size styles
+                };
+                
+                const root = document.getElementById('root');
+                render(h(VideoJsPlayer, props), root);
+            } else {
+                console.error("VideoJsPlayer component not found. script loading failed?");
+                document.getElementById('root').innerHTML = "<div style='color:white;text-align:center;'>Player Load Error</div>";
+            }
+        })();
+    </script>
+</body>
+</html>`;
+    }
+
     return {
         unload() {
             process.off('exit', onExit);
@@ -343,9 +460,42 @@ exports.init = api => {
          */
         middleware: async ctx => {
             return async () => { // wait for fileSource to be available
+
+                // --- DIRECT LINK PLAYER LOGIC ---
+                const directLinkEnabled = api.getConfig('enable_direct_link_player');
+                const dlSrc = ctx.state.fileSource;
+
+                // Compatibility Checks:
+                // 1. Must be enabled
+                // 2. Must be browser navigation (accepts html)
+                // 3. Must NOT be 'raw' access (standard HFS param)
+                // 4. Must NOT be 'dl' access (force download)
+                // 5. Must NOT have 'player=0' (manual bypass)
+                // 6. Must be a supported video file OR a sharelink
+
+                const isHtmlReq = ctx.get('Accept')?.includes('text/html');
+                const dlQs = new URLSearchParams(ctx.querystring);
+                const isRaw = dlQs.has('raw') || dlQs.has('dl') || dlQs.get('player') === '0';
+
+                if (directLinkEnabled && isHtmlReq && !isRaw && dlSrc) {
+                    const ext = dlSrc.substring(dlSrc.lastIndexOf('.')).toLowerCase();
+                    const VIDEO_EXTS = ['.mp4', '.webm', '.ogv', '.mov', '.mkv', '.avi', '.wma', '.m4v'];
+
+                    // Special Case: Share Links (token in query or path?)
+                    // HFS Share Links plugin passes 'sharelink' query param.
+                    const isShareLink = dlQs.has('sharelink');
+
+                    if (VIDEO_EXTS.includes(ext) || isShareLink) {
+                        ctx.type = 'text/html';
+                        ctx.body = generatePlayerHtml(api, ctx);
+                        return; // Stop processing, serve player
+                    }
+                }
+
                 // Only intercept if we are enabled AND querystring is ffmpeg
                 const transcodingEnabled = api.getConfig('enable_ffmpeg_transcoding');
                 if (!transcodingEnabled) return;
+
 
                 /* 
                  * LIVE TRANSCODING LOGIC

@@ -1311,6 +1311,10 @@
             params.Component = (props) => h(ComponentToUse, { ...props, key: props.src });
         });
 
+        if (typeof window !== 'undefined' && !window.VideoJsPlayer) {
+            window.VideoJsPlayer = VideoJsPlayer;
+        }
+
     } else {
         console.error("VideoJS Plugin: React/Preact not found on window or HFS. Plugin execution aborted.");
     }
