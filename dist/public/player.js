@@ -1147,54 +1147,66 @@
                     const originalCurrentTime = player.currentTime;
                     let seekDebounce = null;
 
-                    // Override
+                    // Override both Getter and Setter
                     player.currentTime = function (time) {
-                        if (time !== undefined) {
-                            // Setter call - User (or internal logic) is trying to seek
-                            const targetTime = parseFloat(time);
+                        if (time === undefined) {
+                            // GETTER: Return virtual time (Raw Time + Offset)
+                            // We rely on relative timestamps now that -copyts is removed.
+                            const val = originalCurrentTime.call(player);
+                            // Avoid returning Infinity or NaN
+                            if (val === undefined || isNaN(val)) return 0;
+                            return val + seekOffset;
+                        }
 
-                            // Ignore seek to near 0
-                            if (targetTime > 0.1) {
-                                // console.log("[VideoJS] Intercepted Seek Intent:", targetTime);
+                        // SETTER: User is trying to seek
+                        const targetTime = parseFloat(time);
 
-                                if (seekDebounce) clearTimeout(seekDebounce);
-                                seekDebounce = setTimeout(() => {
-                                    // Use detection to decide logic
-                                    let newOffset = 0;
-                                    if (isAbsoluteTimestampRef.current) {
-                                        // Absolute Mode: The bar is showing real time. Target is absolute.
-                                        // console.log("[VideoJS] Seek Mode: ABSOLUTE. Target:", targetTime);
-                                        newOffset = targetTime;
-                                    } else {
-                                        // Relative Mode: The bar resets to 0. Target is relative to current chunk.
-                                        // console.log("[VideoJS] Seek Mode: RELATIVE. Target:", targetTime, "+ Offset:", seekOffset);
-                                        newOffset = seekOffset + targetTime;
-                                    }
+                        // Ignore seek to near 0 (initial load often triggers this)
+                        // But allow if we really mean it? No, usually player init sets 0.
+                        if (targetTime >= 0) {
+                            if (seekDebounce) clearTimeout(seekDebounce);
+                            seekDebounce = setTimeout(() => {
+                                // Calculate new relative offset
+                                // Since we are relative, the new chunk must start at targetTime.
+                                // So newOffset = targetTime.
 
-                                    // Safety: Clamp to saved duration
-                                    if (window._vjs_saved_duration && newOffset > window._vjs_saved_duration) {
-                                        newOffset = window._vjs_saved_duration - 5;
-                                    }
+                                // Logic: We want to start playing at 'targetTime'.
+                                // We tell server to skip 'targetTime' seconds.
+                                // Server sends stream starting at 'targetTime' (which will be 0s in player).
+                                // Our GETTER adds 'targetTime' (as seekOffset) to 0s -> returns targetTime. Correct.
 
+                                let newOffset = targetTime;
+
+                                // Clamp
+                                if (window._vjs_saved_duration && newOffset > window._vjs_saved_duration) {
+                                    newOffset = window._vjs_saved_duration - 5;
+                                }
+                                if (newOffset < 0) newOffset = 0;
+
+                                // Only update if changed significantly
+                                if (Math.abs(newOffset - seekOffset) > 1) {
+                                    console.log(`[VideoJS] Seeking to ${newOffset}s (Offset updated)...`);
                                     setSeekOffset(newOffset);
                                     notify(player, `Seeking to ${Math.round(newOffset)}s...`, "info", 2000);
-                                }, 600);
-                            }
+                                }
+                            }, 600);
                         }
-                        // Always pass through to original to keep Video.js happy
-                        return originalCurrentTime.apply(player, arguments);
+
+                        // We do NOT pass the setter to the underlying player immediately?
+                        // If we do, it seeks within the CURRENT buffer.
+                        // But the buffer might not have that time?
+                        // Actually, for UI response, we might want to let it happen?
+                        // If we return here, the UI knob might not move until we reload.
+                        // Better to let it pass through, usually returns 'this'.
+                        return originalCurrentTime.call(player, 0); // Reset internal cursor to 0 to match stream?
+                        // No, just let it be.
                     };
 
-                    // console.log("[VideoJS] Intercepted currentTime execution for seeking support");
-
                     return () => {
-                        // console.log("[VideoJS] Restoring original currentTime");
                         // Restore original function on cleanup
                         player.currentTime = originalCurrentTime;
                         if (seekDebounce) clearTimeout(seekDebounce);
-                        player.off('durationchange', enforceDuration);
-                        player.off('timeupdate', enforceDuration);
-                        player.off('loadedmetadata', enforceDuration);
+                        // DO NOT remove global listeners here (enforceDuration) as they are needed across re-renders
                     };
                 }
             }, [props.src, conversionMode, seekOffset]);
