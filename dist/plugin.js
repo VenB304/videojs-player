@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 167;
+exports.version = 168;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -382,6 +382,7 @@ exports.init = api => {
     <!-- Mock HFS Environment -->
     <script>
         // Polyfill HFS Global for the player script
+        // We are using raw Preact, so we need to bridge it to look like React
         window.HFS = {
             getPluginConfig: () => (${JSON.stringify(config)}),
             React: window.preact,
@@ -395,12 +396,27 @@ exports.init = api => {
                 // We could implement a simple HTML toast here if needed
             }
         };
-        // Attach Hooks to React object to satisfy player's destructuring
-        Object.assign(window.HFS.React, window.preactHooks);
-        
-        // Also expose React globally as the player might check window.React
-        window.React = window.HFS.React;
-        window.h = window.HFS.h;
+
+        // Initialize React object from Preact
+        window.React = window.preact;
+        window.h = window.preact.h;
+
+        // Attach Hooks
+        if (window.preactHooks) {
+            Object.assign(window.React, window.preactHooks);
+        } else {
+             console.error("VideoJS Player: preactHooks not found. Hooks will fail.");
+        }
+
+        // Polyfill forwardRef (Not in raw Preact, usually in preact/compat)
+        // Simple implementation: Just treat it as a HOC that passes ref down
+        if (!window.React.forwardRef) {
+            window.React.forwardRef = function(fn) {
+                return function(props) {
+                    return fn(props, props.ref);
+                }
+            };
+        }
     </script>
 
     <!-- Player Script -->
