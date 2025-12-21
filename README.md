@@ -217,7 +217,15 @@ The "Direct Link Player" relies on `preact.min.js` and `hooks.min.js`. To update
 
 ---
 
-## 🏆 Credits
+## 🏆 Credits and Special Mentions
 
-*   **@rejetto**: Special thanks for the original live transcoding code from the [unsupported-videos](https://github.com/rejetto/unsupported-videos) plugin, which powers the FFmpeg backend of this player.
+### Core Technologies
+*   **[Video.js](https://videojs.org/)**: The open-source HTML5 video player framework.
+*   **[Preact](https://preactjs.com/)**: Fast 3kB React alternative used for the Direct Link Player interface.
+*   **[FFmpeg](https://ffmpeg.org/)**: The leading multimedia framework used for server-side transcoding.
+
+### HFS Community & Plugins
+*   **unsupported-videos**: Thanks to @rejetto for the original live transcoding code from the [unsupported-videos](https://github.com/rejetto/unsupported-videos) plugin, which powers the backend of this player.
+*   **hfs-share-links**: The official [Share Links](https://github.com/rejetto/hfs-share-links) plugin. This player fully supports shared links, allowing external users to view videos with the full player interface.
+*   **hfs-subtitles**: A highly recommended plugin found in the HFS plugin repository. It provides advanced subtitle management and selection, which this player can integrate with.
 
