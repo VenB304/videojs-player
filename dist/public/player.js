@@ -167,7 +167,9 @@
 
             const handleKey = (e) => {
                 // Ignore if typing in an input
-                if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+                if (document.activeElement.tagName === 'INPUT' ||
+                    document.activeElement.tagName === 'TEXTAREA' ||
+                    document.activeElement.isContentEditable) return;
 
                 // Check if player is visible/active (simple check)
                 if (!player || player.isDisposed()) return;
@@ -239,15 +241,14 @@
                 }
             };
 
-            // Attach to player.el() (The main Video.js div)
-            const el = player.el();
-            if (el) {
-                el.addEventListener('keydown', handleKey);
-                // Store handler for cleanup
-                player.on('dispose', () => {
-                    el.removeEventListener('keydown', handleKey);
-                });
-            }
+            // Attach to global document to allow control without explicit focus
+            // This satisfies the user request for "persistent focus"
+            document.addEventListener('keydown', handleKey);
+
+            // Cleanup on dispose
+            player.on('dispose', () => {
+                document.removeEventListener('keydown', handleKey);
+            });
         };
 
         /**
