@@ -274,16 +274,14 @@
                                 // Replace text
                                 node.innerHTML = node.innerHTML.replace(/Go to previous\/next file/g, arrowText);
 
-                                // Append our shortcuts
+                                // Append our unique shortcuts (Avoid duplicates like Space/F)
                                 const extras = `
-                                    <br>Space: Play/Pause
-                                    <br>F: Fullscreen
                                     <br>M: Mute/Unmute
                                     <br>Double-click sides: Seek
                                 `;
                                 // Try to find the list container or append to end
                                 // Assuming simple text structure for now
-                                if (!node.innerHTML.includes('Space: Play/Pause')) {
+                                if (!node.innerHTML.includes('M: Mute/Unmute')) {
                                     node.innerHTML += extras;
                                 }
                             }
