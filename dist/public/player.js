@@ -640,6 +640,7 @@
 
                 player.ready(() => {
                     player.volume(startVolume);
+                    player.trigger('volumechange'); // Force UI sync
                 });
 
 
@@ -877,44 +878,64 @@
 
                 player.on('loadedmetadata', checkHevc);
 
-                // Persistence Listeners
+                // --- Persistence Helpers ---
+                const saveVolume = () => {
+                    if (C.persistentVolume && player) {
+                        try {
+                            localStorage.setItem('vjs-volume-level', player.volume());
+                        } catch (e) { }
+                    }
+                };
+
+                const saveProgress = () => {
+                    if (C.resumePlayback && player) {
+                        // DISABLE RESUME SAVE FOR TRANSCODING UNLESS SEEKING IS ENABLED
+                        if (isConvertingRef.current && !C.enable_transcoding_seeking) return;
+
+                        const cur = player.currentTime();
+                        const dur = player.duration();
+                        // Don't save if near end
+                        if (cur > 0 && (!dur || (dur - cur > 10))) {
+                            const src = props.src || player.currentSrc();
+                            if (src) {
+                                const key = `vjs-resume-${src.split('/').pop().split('?')[0]}`;
+                                try {
+                                    localStorage.setItem(key, cur.toFixed(1));
+                                } catch (e) { }
+                            }
+                        }
+                    }
+                };
+
+                // Persistence Listeners (Throttled)
                 if (C.persistentVolume) {
                     let lastVolSave = 0;
                     player.on('volumechange', () => {
                         const now = Date.now();
                         if (now - lastVolSave > 1000) {
-                            localStorage.setItem('vjs-volume-level', player.volume());
+                            saveVolume();
                             lastVolSave = now;
                         }
                     });
                 }
 
                 if (C.resumePlayback) {
-                    // Save progress every few seconds
-                    // Throttle manually or just use timeupdate (fires 3-4 times a second)
-                    // We can save every second.
                     let lastSave = 0;
                     player.on('timeupdate', () => {
-                        // DISABLE RESUME SAVE FOR TRANSCODING UNLESS SEEKING IS ENABLED
-                        if (isConvertingRef.current && !C.enable_transcoding_seeking) return;
-
                         const now = Date.now();
                         if (now - lastSave > 2000) {
-                            const cur = player.currentTime();
-                            const dur = player.duration();
-                            // Don't save if near end
-                            if (cur > 0 && (!dur || (dur - cur > 10))) {
-                                // Use props.src for stable key (ignoring query params added by transcoding)
-                                const src = props.src || player.currentSrc();
-                                if (src) {
-                                    const key = `vjs-resume-${src.split('/').pop().split('?')[0]}`; // Ensure clean filename
-                                    localStorage.setItem(key, cur.toFixed(1));
-                                }
-                            }
+                            saveProgress();
                             lastSave = now;
                         }
                     });
                 }
+
+                // Persistence Listeners (Immediate Triggers)
+                // Save immediately on Pause to capture "stop and resume later" workflows
+                player.on('pause', () => {
+                    saveVolume();
+                    saveProgress();
+                });
 
                 // Feature: Auto-Rotate on Mobile Fullscreen
                 player.on('fullscreenchange', () => {
@@ -986,6 +1007,10 @@
 
                 return () => {
                     // Cleanup
+                    // Force save on unmount/dispose
+                    saveVolume();
+                    saveProgress();
+
                     if (videoElementRef.current && document.pictureInPictureElement === videoElementRef.current) {
                         try {
                             // document.exitPictureInPicture(); // DISABLED per user request
