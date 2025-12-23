@@ -555,6 +555,20 @@
 
 
                 // Initialize Video.js
+                // SHIM: Force passive: false for touch events to allow preventsDefault() (Fixes seeking error on mobile)
+                // We wrap addEventListener on the specific element before VideoJS gets it.
+                const originalAddEventListener = videoElement.addEventListener;
+                videoElement.addEventListener = function (type, listener, options) {
+                    if (type === 'touchstart' || type === 'touchmove') {
+                        if (typeof options === 'object' && options !== null) {
+                            options.passive = false;
+                        } else {
+                            options = { passive: false };
+                        }
+                    }
+                    return originalAddEventListener.call(this, type, listener, options);
+                };
+
                 // Pass existing element ref
                 const player = videojs(videoElement, {
                     controls: C.controls,

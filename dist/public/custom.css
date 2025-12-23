@@ -78,6 +78,7 @@
 }
 
 /* Fix Passive Event Listener Error on Mobile */
+.vjs-control-bar,
 .vjs-progress-control,
 .vjs-volume-control {
     touch-action: none;
