@@ -636,10 +636,10 @@
                         startVolume = parseFloat(savedVol);
                     }
                 }
-                player.volume(startVolume);
+                // player.volume(startVolume); // Moved into ready() to ensure UI updates
 
                 player.ready(() => {
-                    // Ready listeners if any (Volume set above)
+                    player.volume(startVolume);
                 });
 
 
