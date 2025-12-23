@@ -24,6 +24,21 @@ This plugin replaces the basic default player with a professional-grade alternat
 
 ---
 
+## ⌨️ Keyboard Shortcuts
+
+| Key | Action |
+| :--- | :--- |
+| **Space / K** | Play / Pause |
+| **F** | Toggle Fullscreen |
+| **M** | Mute / Unmute |
+| **Arrows (←/→)** | Seek -5s / +5s (Configurable) |
+| **Arrows (↑/↓)** | Volume Up / Down |
+| **Double Tap (Sides)** | Seek (Mobile/Desktop) |
+
+> **Note**: Arrow key behavior can be changed in the plugin settings to navigate files instead of seeking.
+
+---
+
 ## 🚀 Installation
 
 ### Option 1: Automatic (Recommended)
@@ -94,6 +109,7 @@ Settings are organized into categories in **Admin Panel > Plugins > videojs-play
 | Setting | Description | Default |
 | :--- | :--- | :--- |
 | **Keyboard Hotkeys** | `Space`, `F`, `M`, `Arrows` and `K`, `P`. | `On` |
+| **Arrow Behavior** | `Seek` Video or `Navigate` Files (Next/Prev). | `Seek` |
 | **Hotkey Seek Time** | Seconds skipped per `Left`/`Right` arrow press. | `5` |
 | **Hotkey Volume** | Volume % changed per `Up`/`Down` arrow press. | `5` |
 | **Scroll Volume** | Change volume using the mouse wheel. | `On` |

@@ -252,62 +252,9 @@
             const useCapture = true;
             document.addEventListener('keydown', handleKey, { capture: useCapture });
 
-            // Help Text Patcher (Dynamically update/add Help Modal options)
-            const helpPatcher = new MutationObserver((mutations) => {
-                const helpModal = document.querySelector('.modal.help'); // HFS Class?
-                // HFS usually appends a dialog or overlay.
-                // We look for text nodes containing specific strings.
-
-                // Better approach: HFS 2.x often uses a global help dialog.
-                // We simply scan body or specific container? 
-                // Let's scan specific text content to be safe.
-
-                mutations.forEach(m => {
-                    m.addedNodes.forEach(node => {
-                        if (node.nodeType === 1) { // Element
-                            // Check if it's the help container
-                            if (node.innerText && node.innerText.includes('Go to previous/next file')) {
-                                // Found it!
-                                const isSeek = C.arrowKeysAction !== 'navigate';
-                                const arrowText = isSeek ? "Seek video -5/+5s" : "Go to previous/next file";
-
-                                // Safe Injection using DOM Traversal (Prevent removing listeners)
-                                const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
-                                let currentNode;
-                                while (currentNode = walker.nextNode()) {
-                                    // 1. Arrow Key Text Replacement (Safe)
-                                    if (currentNode.nodeValue.includes('Go to previous/next file')) {
-                                        currentNode.nodeValue = currentNode.nodeValue.replace('Go to previous/next file', arrowText);
-                                    }
-
-                                    // 2. Insert Mute/Double-tap after "Auto-play"
-                                    if (currentNode.nodeValue.includes('A Auto-play')) {
-                                        // Avoid duplicate insertion
-                                        if (currentNode.parentNode && currentNode.parentNode.innerHTML.includes('M: Mute/Unmute')) continue;
-
-                                        const span = document.createElement('span');
-                                        span.innerHTML = "<br>M: Mute/Unmute<br>Double-click sides: Seek";
-
-                                        // Insert safely after the text node
-                                        if (currentNode.nextSibling) {
-                                            currentNode.parentNode.insertBefore(span, currentNode.nextSibling);
-                                        } else {
-                                            currentNode.parentNode.appendChild(span);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    });
-                });
-            });
-            helpPatcher.observe(document.body, { childList: true, subtree: true });
-
-
             // Cleanup on dispose
             player.on('dispose', () => {
                 document.removeEventListener('keydown', handleKey, { capture: useCapture });
-                helpPatcher.disconnect();
             });
         };
 
