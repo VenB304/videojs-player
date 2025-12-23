@@ -76,3 +76,9 @@
     transform: translate(-50%, -50%) !important;
     position: absolute !important;
 }
+
+/* Fix Passive Event Listener Error on Mobile */
+.vjs-progress-control,
+.vjs-volume-control {
+    touch-action: none;
+}
