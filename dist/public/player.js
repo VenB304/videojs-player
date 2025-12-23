@@ -274,15 +274,18 @@
                                 // Replace text
                                 node.innerHTML = node.innerHTML.replace(/Go to previous\/next file/g, arrowText);
 
-                                // Append our unique shortcuts (Avoid duplicates like Space/F)
-                                const extras = `
-                                    <br>M: Mute/Unmute
-                                    <br>Double-click sides: Seek
-                                `;
-                                // Try to find the list container or append to end
-                                // Assuming simple text structure for now
-                                if (!node.innerHTML.includes('M: Mute/Unmute')) {
-                                    node.innerHTML += extras;
+                                // Safe Injection: Insert *between* "A Auto-play" and "From the file list"
+                                // We use string replacement on innerHTML to inject comfortably without breaking structure.
+                                // We also avoid `innerHTML +=` which kills event listeners (like the Close button).
+
+                                const autoPlayText = "A Auto-play";
+                                if (node.innerHTML.includes(autoPlayText) && !node.innerHTML.includes('M: Mute/Unmute')) {
+                                    const extras = `
+                                        <br>M: Mute/Unmute
+                                        <br>Double-click sides: Seek`;
+
+                                    // Insert after Auto-play
+                                    node.innerHTML = node.innerHTML.replace(autoPlayText, autoPlayText + extras);
                                 }
                             }
                         }
