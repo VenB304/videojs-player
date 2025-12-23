@@ -271,21 +271,30 @@
                                 const isSeek = C.arrowKeysAction !== 'navigate';
                                 const arrowText = isSeek ? "Seek video -5/+5s" : "Go to previous/next file";
 
-                                // Replace text
-                                node.innerHTML = node.innerHTML.replace(/Go to previous\/next file/g, arrowText);
+                                // Safe Injection using DOM Traversal (Prevent removing listeners)
+                                const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+                                let currentNode;
+                                while (currentNode = walker.nextNode()) {
+                                    // 1. Arrow Key Text Replacement (Safe)
+                                    if (currentNode.nodeValue.includes('Go to previous/next file')) {
+                                        currentNode.nodeValue = currentNode.nodeValue.replace('Go to previous/next file', arrowText);
+                                    }
 
-                                // Safe Injection: Insert *between* "A Auto-play" and "From the file list"
-                                // We use string replacement on innerHTML to inject comfortably without breaking structure.
-                                // We also avoid `innerHTML +=` which kills event listeners (like the Close button).
+                                    // 2. Insert Mute/Double-tap after "Auto-play"
+                                    if (currentNode.nodeValue.includes('A Auto-play')) {
+                                        // Avoid duplicate insertion
+                                        if (currentNode.parentNode && currentNode.parentNode.innerHTML.includes('M: Mute/Unmute')) continue;
 
-                                const autoPlayText = "A Auto-play";
-                                if (node.innerHTML.includes(autoPlayText) && !node.innerHTML.includes('M: Mute/Unmute')) {
-                                    const extras = `
-                                        <br>M: Mute/Unmute
-                                        <br>Double-click sides: Seek`;
+                                        const span = document.createElement('span');
+                                        span.innerHTML = "<br>M: Mute/Unmute<br>Double-click sides: Seek";
 
-                                    // Insert after Auto-play
-                                    node.innerHTML = node.innerHTML.replace(autoPlayText, autoPlayText + extras);
+                                        // Insert safely after the text node
+                                        if (currentNode.nextSibling) {
+                                            currentNode.parentNode.insertBefore(span, currentNode.nextSibling);
+                                        } else {
+                                            currentNode.parentNode.appendChild(span);
+                                        }
+                                    }
                                 }
                             }
                         }
