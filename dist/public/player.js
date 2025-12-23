@@ -213,12 +213,18 @@
                         }
                         break;
                     case 'ArrowLeft':
+                        if (C.arrowKeysAction === 'navigate') return; // Allow bubbling to HFS
                         e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
                         player.currentTime(player.currentTime() - hotkeySeekStep);
                         notify(player, `Rewind ${hotkeySeekStep}s`, "info", 500);
                         break;
                     case 'ArrowRight':
+                        if (C.arrowKeysAction === 'navigate') return; // Allow bubbling to HFS
                         e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
                         player.currentTime(player.currentTime() + hotkeySeekStep);
                         notify(player, `Forward ${hotkeySeekStep}s`, "info", 500);
                         break;
@@ -242,12 +248,56 @@
             };
 
             // Attach to global document to allow control without explicit focus
-            // This satisfies the user request for "persistent focus"
-            document.addEventListener('keydown', handleKey);
+            // Use Capture Phase ({ capture: true }) to intercept before HFS
+            const useCapture = true;
+            document.addEventListener('keydown', handleKey, { capture: useCapture });
+
+            // Help Text Patcher (Dynamically update/add Help Modal options)
+            const helpPatcher = new MutationObserver((mutations) => {
+                const helpModal = document.querySelector('.modal.help'); // HFS Class?
+                // HFS usually appends a dialog or overlay.
+                // We look for text nodes containing specific strings.
+
+                // Better approach: HFS 2.x often uses a global help dialog.
+                // We simply scan body or specific container? 
+                // Let's scan specific text content to be safe.
+
+                mutations.forEach(m => {
+                    m.addedNodes.forEach(node => {
+                        if (node.nodeType === 1) { // Element
+                            // Check if it's the help container
+                            if (node.innerText && node.innerText.includes('Go to previous/next file')) {
+                                // Found it!
+                                const isSeek = C.arrowKeysAction !== 'navigate';
+                                const arrowText = isSeek ? "Seek video -5/+5s" : "Go to previous/next file";
+
+                                // Replace text
+                                node.innerHTML = node.innerHTML.replace(/Go to previous\/next file/g, arrowText);
+
+                                // Append our shortcuts
+                                const extras = `
+                                    <br>Space: Play/Pause
+                                    <br>F: Fullscreen
+                                    <br>M: Mute/Unmute
+                                    <br>Double-click sides: Seek
+                                `;
+                                // Try to find the list container or append to end
+                                // Assuming simple text structure for now
+                                if (!node.innerHTML.includes('Space: Play/Pause')) {
+                                    node.innerHTML += extras;
+                                }
+                            }
+                        }
+                    });
+                });
+            });
+            helpPatcher.observe(document.body, { childList: true, subtree: true });
+
 
             // Cleanup on dispose
             player.on('dispose', () => {
-                document.removeEventListener('keydown', handleKey);
+                document.removeEventListener('keydown', handleKey, { capture: useCapture });
+                helpPatcher.disconnect();
             });
         };
 
