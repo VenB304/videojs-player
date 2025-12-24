@@ -83,3 +83,16 @@
 .vjs-volume-control {
     touch-action: none;
 }
+
+/* --- Audio Poster Mode --- */
+/* Forces poster to remain visible during playback for audio files */
+.vjs-audio-poster-mode.vjs-has-started .vjs-poster {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    background-size: contain;
+    background-position: center;
+    background-color: #000;
+    pointer-events: none;
+    /* Let clicks pass through to video (play/pause) */
+}

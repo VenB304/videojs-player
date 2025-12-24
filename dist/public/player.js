@@ -669,15 +669,19 @@
                 setupHotkeys(player, notify);
 
                 // Only apply vjs-audio-mode if we WANT the skinny audio player look.
-                // If we are in Fixed/Fill/Native modes for Audio, we want the "Black Box" look,
-                // so we treat it as a video player (no vjs-audio-mode) which naturally puts controls at bottom.
-                if (isAudioRender && mode === 'fluid') {
+                // If 'enableOnlineAlbumArt' is ON, we want the full box (Video Mode) to show the art.
+                // Also if we are Fixed/Fill/Native, we use Black Box.
+                const useSkinnyBar = mode === 'fluid' && !C.enableOnlineAlbumArt;
+
+                if (isAudioRender && useSkinnyBar) {
                     // Fluid Audio = Skinny Bar
                     player.addClass('vjs-audio-mode');
                     player.height(50);
                 } else if (isAudioRender) {
-                    // Fixed/Fill/Native Audio = Black Box
+                    // Fixed/Fill/Native Audio OR Album Art Mode = Black Box
                     player.removeClass('vjs-audio-mode'); // Ensure it's treated as video layout
+                    player.addClass('vjs-audio-poster-mode'); // Keep poster visible during playback
+
                     // No height override (handled by container/CSS)
                 }
 
