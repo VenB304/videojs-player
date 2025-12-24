@@ -240,10 +240,9 @@ The "Direct Link Player" relies on `preact.min.js` and `hooks.min.js`. To update
 *   **[FFmpeg](https://ffmpeg.org/)**: The leading multimedia framework used for server-side transcoding.
 
 ### HFS Community & Plugins
-- **Rejetto**: For the amazing HFS file server and the `unsupported-videos` plugin logic.
-- **Video.js Team**: For the excellent player framework.
-- **Moer**: For the `hfs-subtitles` plugin integration logic.
-- **B0pe**: For the `online-album-art` plugin integration logic.
+*   **[unsupported-videos](https://github.com/rejetto/unsupported-videos)**: Thanks to @rejetto for the original live transcoding code from the unsupported-videos plugin, which powers the backend of this player.
 *   **[hfs-share-links](https://github.com/rejetto/hfs-share-links)**: This player fully supports shared links, allowing external users to view videos with the full player interface.
 *   **[hfs-subtitles](https://github.com/rejetto/hfs-subtitles)**: It provides subtitle management and selection, which this player can integrate with.
-```
+*   **[online-album-art](https://github.com/rejetto/hfs-other-plugins)**: Fetches album covers for audio files, integrated directly into this player.
+
+
