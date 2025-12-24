@@ -1270,6 +1270,92 @@
 
 
 
+            // --- Feature: Overlay DOM Injection (Fullscreen Fix) ---
+            // We must inject the overlay INSIDE the player.el() so it stays visible in Fullscreen.
+            React.useEffect(() => {
+                const player = playerRef.current;
+                if (!player) return;
+
+                const playerEl = player.el();
+                if (!playerEl) return;
+
+                // Find or Create Overlay Element
+                let overlay = playerEl.querySelector('.vjs-custom-overlay');
+                if (!overlay) {
+                    overlay = document.createElement('div');
+                    overlay.className = 'vjs-custom-overlay';
+
+                    // Base Styles
+                    Object.assign(overlay.style, {
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        pointerEvents: 'none',
+                        zIndex: '99',
+                        textAlign: 'center',
+                        padding: '12px 20px',
+                        borderRadius: '8px',
+                        fontFamily: 'sans-serif',
+                        transition: 'opacity 0.3s ease',
+                        opacity: '0', // Hidden by default
+                        display: 'none'
+                    });
+
+                    playerEl.appendChild(overlay);
+                }
+
+                // Update State
+                if (overlayState && overlayState.show) {
+                    // Update Content
+                    overlay.innerHTML = ''; // Clear previous
+
+                    if (overlayState.type === 'error') {
+                        const title = document.createElement('div');
+                        title.style.fontWeight = 'bold';
+                        title.style.marginBottom = '4px';
+                        title.textContent = 'Error';
+                        overlay.appendChild(title);
+                    }
+
+                    const msg = document.createElement('div');
+                    msg.textContent = overlayState.message;
+                    overlay.appendChild(msg);
+
+                    // Dynamic Styles
+                    if (overlayState.type === 'error') {
+                        overlay.style.backgroundColor = 'rgba(0,0,0,0.85)';
+                        overlay.style.color = '#ff6b6b';
+                        overlay.style.border = '1px solid #ff6b6b';
+                        overlay.style.fontSize = '1.1em';
+                        overlay.style.maxWidth = '80%';
+                    } else {
+                        overlay.style.backgroundColor = 'rgba(0,0,0,0.6)';
+                        overlay.style.color = '#fff';
+                        overlay.style.border = 'none';
+                        overlay.style.fontSize = '1.2em';
+                        overlay.style.maxWidth = 'auto';
+                    }
+
+                    // Show
+                    overlay.style.display = 'block';
+                    requestAnimationFrame(() => {
+                        overlay.style.opacity = '1';
+                    });
+
+                } else {
+                    // Hide
+                    overlay.style.opacity = '0';
+                    setTimeout(() => {
+                        // Only hide if it's still supposed to be hidden
+                        if (overlay.style.opacity === '0') {
+                            overlay.style.display = 'none';
+                        }
+                    }, 300);
+                }
+
+            }, [overlayState]);
+
             // Render with valid Structure
             if (!props.src) {
                 return h('div', {
@@ -1303,32 +1389,8 @@
             }, [
                 // Manual Video Element is appended here by useEffect
 
-                // React-Native Overlay Component (Integrated)
-                (overlayState && overlayState.show) ? h('div', {
-                    className: 'vjs-custom-overlay',
-                    style: {
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        pointerEvents: 'none',
-                        zIndex: 99,
-                        textAlign: 'center',
-                        padding: '12px 20px',
-                        borderRadius: '8px',
-                        fontFamily: 'sans-serif',
-                        transition: 'opacity 0.3s ease',
-                        opacity: 1,
-                        backgroundColor: overlayState.type === 'error' ? 'rgba(0,0,0,0.85)' : 'rgba(0,0,0,0.6)',
-                        color: overlayState.type === 'error' ? '#ff6b6b' : '#fff',
-                        border: overlayState.type === 'error' ? '1px solid #ff6b6b' : 'none',
-                        fontSize: overlayState.type === 'error' ? '1.1em' : '1.2em',
-                        maxWidth: overlayState.type === 'error' ? '80%' : 'auto'
-                    }
-                }, [
-                    overlayState.type === 'error' ? h('div', { style: { fontWeight: 'bold', marginBottom: '4px' } }, 'Error') : null,
-                    h('div', {}, overlayState.message)
-                ]) : null,
+                // React-Native Overlay Component (REMOVED - Moved to DOM Injection for Fullscreen support)
+                // (overlayState && overlayState.show) ? h('div', { ... }) : null,
 
                 // Audio Title Overlay (REMOVED)
 
