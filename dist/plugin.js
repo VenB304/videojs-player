@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 181;
+exports.version = 182;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -26,7 +26,8 @@ exports.config = {
             '2. Interface': 'ui',
             '3. Layout': 'layout',
             '4. Interaction': 'input',
-            '5. Transcoding & Advanced': 'transcoding'
+            '5. Transcoding & Advanced': 'transcoding',
+            '6. Integrations': 'integrations'
         },
         label: "Configuration Category",
         helperText: "Select a category to view and edit settings.",
@@ -75,10 +76,7 @@ exports.config = {
         showIf: x => x.config_tab === 'playback',
         type: 'boolean', defaultValue: false, label: "Enable Audio Player Mode", helperText: "If enabled, audio files (mp3, wav) will use this player instead of the browser default. Posters are hidden in audio mode.", frontend: true
     },
-    enableSubtitlePluginIntegration: {
-        showIf: x => x.config_tab === 'playback',
-        type: 'boolean', defaultValue: false, label: "Integrate 'hfs-subtitles' Plugin", helperText: "Detects the 'hfs-subtitles' plugin to provide advanced subtitle selection. Requires that plugin to be installed separately.", frontend: true
-    },
+
 
 
     // === 2. Interface Settings ===
@@ -196,6 +194,7 @@ exports.config = {
         showIf: x => x.config_tab === 'input',
         type: 'boolean', defaultValue: true, label: "Mobile Auto-Landscape", helperText: "Automatically locks screen to landscape when entering fullscreen on phones.", frontend: true
     },
+
 
 
     // === 5. Transcoding & Advanced ===
@@ -316,7 +315,18 @@ exports.config = {
     transcoding_allowed_users: {
         showIf: x => x.config_tab === 'transcoding' && x.enable_ffmpeg_transcoding && !x.transcoding_allow_anonymous,
         type: 'username', multiple: true, label: "Whitelisted Users (Access List)", helperText: "Only these users can trigger transcoding. Leave empty to allow all logged-in users.", frontend: true
+    },
+
+    // === 6. Integrations ===
+    enableSubtitlePluginIntegration: {
+        showIf: x => x.config_tab === 'integrations',
+        type: 'boolean', defaultValue: false, label: "Integrate 'hfs-subtitles' Plugin", helperText: "Detects the 'hfs-subtitles' plugin to provide advanced subtitle selection. Requires that plugin to be installed separately.", frontend: true
+    },
+    enableOnlineAlbumArt: {
+        showIf: x => x.config_tab === 'integrations',
+        type: 'boolean', defaultValue: false, label: "Integrate 'online-album-art' Plugin", helperText: "Fetches album covers for audio files using the 'online-album-art' plugin if installed. Requires internet access.", frontend: true
     }
+
 
 };
 

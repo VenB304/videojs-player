@@ -133,6 +133,14 @@ Settings are organized into categories in **Admin Panel > Plugins > videojs-play
 | **Max Per User** | Limit simultaneous streams per user. Oldest stops if exceeded. | `1` |
 | **Whitelisted Users** | Restriction list for transcoding access. | *Empty* |
 
+### 6. Integrations
+Settings for third-party plugin integrations.
+
+| Option | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **Integrate 'hfs-subtitles' Plugin** | `boolean` | `false` | Detects the `hfs-subtitles` plugin for advanced captions. |
+| **Integrate 'online-album-art' Plugin** | `boolean` | `false` | Fetches album covers from Spotify/LastFM via the `online-album-art` plugin. Requires internet. |
+
 ---
 
 ## 🛠️ Troubleshooting
@@ -232,7 +240,10 @@ The "Direct Link Player" relies on `preact.min.js` and `hooks.min.js`. To update
 *   **[FFmpeg](https://ffmpeg.org/)**: The leading multimedia framework used for server-side transcoding.
 
 ### HFS Community & Plugins
-*   **[unsupported-videos](https://github.com/rejetto/unsupported-videos)**: Thanks to @rejetto for the original live transcoding code from the unsupported-videos plugin, which powers the backend of this player.
+- **Rejetto**: For the amazing HFS file server and the `unsupported-videos` plugin logic.
+- **Video.js Team**: For the excellent player framework.
+- **Moer**: For the `hfs-subtitles` plugin integration logic.
+- **B0pe**: For the `online-album-art` plugin integration logic.
 *   **[hfs-share-links](https://github.com/rejetto/hfs-share-links)**: This player fully supports shared links, allowing external users to view videos with the full player interface.
 *   **[hfs-subtitles](https://github.com/rejetto/hfs-subtitles)**: It provides subtitle management and selection, which this player can integrate with.
-
+```

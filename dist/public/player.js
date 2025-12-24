@@ -56,7 +56,8 @@
             enable_ffmpeg_transcoding: rawConfig.enable_ffmpeg_transcoding ?? false,
             enable_transcoding_seeking: rawConfig.enable_transcoding_seeking ?? false,
             enableAudio: rawConfig.enableAudio ?? false,
-            enableSubtitlePluginIntegration: rawConfig.enableSubtitlePluginIntegration ?? true,
+            enableSubtitlePluginIntegration: rawConfig.enableSubtitlePluginIntegration ?? true, // Fallback true for legacy
+            enableOnlineAlbumArt: rawConfig.enableOnlineAlbumArt ?? false,
 
         };
 
@@ -277,6 +278,7 @@
             const isAbsoluteTimestampRef = React.useRef(false); // Detects if browser respected -copyts
 
             const [overlayState, setOverlayState] = React.useState(null); // { message, type, show }
+            const [dynamicPoster, setDynamicPoster] = React.useState(props.poster);
 
             // Calculate styles for Render
             let cssClasses = 'video-js vjs-big-play-centered';
@@ -510,6 +512,67 @@
                 }
             };
 
+            // --- Helper: Album Art Integration ---
+            React.useEffect(() => {
+                const fetchAlbumArt = async () => {
+                    if (!C.enableOnlineAlbumArt || !props.entry || !window.albumArt) {
+                        return;
+                    }
+
+                    const entry = props.entry;
+                    // Only Fetch if audio? Or music video? Let's check logic.
+                    // online-album-art usually relies on artist/album metadata.
+                    // We trust the plugin to do the heavy lifting if we pass it the right query.
+
+                    // Metadata check (HFS often parses ID3 tags for audio)
+                    // We look for 'artist' and 'album' in params if available, or just filename.
+
+                    // NOTE: HFS file object (entry) usually has properties like 'n' (name). 
+                    // More detailed metadata might be available in `props.entry.tags` if HFS exposes it?
+                    // Usually HFS 2.x doesn't expose ID3 tags in the `entry` object deeply in fileShow unless customized.
+                    // HOWEVER, the `online-album-art` plugin itself often runs its own scraping logic.
+
+                    // Look at `online-album-art` implementation:
+                    // HFS.onEvent('showPlay', async ({ meta, setCover }) => { ... })
+                    // It listens to 'showPlay'. VideoJS player replaces the default player, so 'showPlay' might not fire in the same way 
+                    // OR we are the one suppressing the default player.
+
+                    // Wait, checking the user request: "integrate well with... when the plugin runs along side".
+                    // If we are the player, we should probably trigger what `online-album-art` needs OR call its API directly.
+                    // The user provided `c:\Users\Ven\OneDrive\Documents\GitHub\hfs-other-plugins\online-album-art\dist\public\main.js`:
+                    // It exposes `window.albumArt` (global function).
+                    // It attempts to find art based on `artist` and `album`.
+
+                    let artist = "";
+                    let album = "";
+
+                    // Simple filename parsing fallback
+                    // "Artist - Title.mp3"
+                    const filename = entry.n || "";
+                    const parts = filename.replace(/\.[^/.]+$/, "").split(" - ");
+                    if (parts.length >= 2) {
+                        artist = parts[0].trim();
+                    }
+
+                    if (!artist) {
+                        return; // Can't search without artist
+                    }
+
+                    try {
+                        console.log("[VideoJS] Fetching album art for:", artist);
+                        const artUrl = await window.albumArt(artist, { album: album, size: 'large' });
+                        if (artUrl) {
+                            console.log("[VideoJS] Album art found:", artUrl);
+                            setDynamicPoster(artUrl);
+                        }
+                    } catch (e) {
+                        console.warn("[VideoJS] Album art fetch failed:", e);
+                    }
+                };
+
+                fetchAlbumArt();
+            }, [props.src, props.entry]);
+
             React.useEffect(() => {
                 if (!window._videoConfigLogged) {
                     console.log("VideoJS Plugin: Mounted with config:", C);
@@ -596,7 +659,8 @@
                     userActions: {
                         hotkeys: false // We handle our own
                     },
-                    sources: [] // Initialize empty
+                    sources: [], // Initialize empty
+                    poster: dynamicPoster // Use dynamic poster
                 });
                 playerRef.current = player;
 
@@ -1430,7 +1494,7 @@
             // FORCED RE-MOUNT: Using a wrapper component with a dynamic key based on SRC.
             // This forces React to destroy and recreate the player when switching files,
             // effectively resetting all internal and Video.js states (fixes sticky metadata).
-            params.Component = (props) => h(ComponentToUse, { ...props, key: props.src });
+            params.Component = (props) => h(ComponentToUse, { ...props, key: props.src, entry: entry });
         });
 
         if (typeof window !== 'undefined' && !window.VideoJsPlayer) {
