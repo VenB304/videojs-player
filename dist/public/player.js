@@ -395,7 +395,7 @@
                     }
                 } else {
                     // State-based Overlay
-                    setOverlayState({ message, type, show: true });
+                    setOverlayState({ message, type, show: true, persistent: duration === 0 });
 
                     if (duration > 0) {
                         setTimeout(() => {
@@ -965,8 +965,8 @@
                 });
 
                 player.on('play', () => {
-                    // Remove error overlay if retrying or playing new source
-                    setOverlayState(prev => (prev && prev.type === 'error') ? { ...prev, show: false } : prev);
+                    // Remove error overlay if retrying or playing new source, OR if it's a persistent info overlay (like "Click to Play")
+                    setOverlayState(prev => (prev && (prev.type === 'error' || prev.persistent)) ? { ...prev, show: false } : prev);
 
                     if (props.onPlay) props.onPlay();
                 });
