@@ -94,5 +94,16 @@
     background-position: center;
     background-color: #000;
     pointer-events: none;
-    /* Let clicks pass through to video (play/pause) */
+    z-index: 1 !important;
+}
+
+/* Hide the black video element in this mode so it doesn't cover the poster */
+.vjs-audio-poster-mode .vjs-tech {
+    opacity: 0 !important;
+    z-index: 0 !important;
+}
+
+/* Ensure controls remain on top */
+.vjs-audio-poster-mode .vjs-control-bar {
+    z-index: 10 !important;
 }
