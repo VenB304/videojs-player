@@ -1,5 +1,5 @@
 exports.description = "A Video.js player plugin for HFS.";
-exports.version = 185;
+exports.version = 186;
 exports.apiRequired = 10.0; // Ensures HFS version is compatible
 exports.repo = "VenB304/videojs-player";
 exports.preview = ["https://github.com/user-attachments/assets/d8502d67-6c5b-4a9a-9f05-e5653122820c", "https://github.com/user-attachments/assets/39be202e-fbb9-42de-8aea-3cf8852f1018", "https://github.com/user-attachments/assets/5e21ffca-5a4c-4905-b862-660eafafe690"]
@@ -446,9 +446,12 @@ exports.init = api => {
     <script>
         (function() {
             const { h, render } = window.preact;
-            const VideoJsPlayer = window.VideoJsPlayer;
+            const root = document.getElementById('root');
+            
+            const mount = () => {
+                const VideoJsPlayer = window.VideoJsPlayer;
+                if (!VideoJsPlayer) return false;
 
-            if (VideoJsPlayer) {
                 // Determine SRC
                 // Check if 'sharelink' is present, if so, we must preserve it in the src
                 const params = new URLSearchParams(window.location.search);
@@ -456,12 +459,6 @@ exports.init = api => {
                 // If we are here, we are intercepting.
                 // We need to fetch the RAW video.
                 // We append 'raw=1' to current URL.
-                // BUT if sharelink is present, HFS share-links logic might need 'sharelink' param to authorize.
-                // Middleware checks 'sharelink' param.
-                
-                // Construct the src URL
-                // If we simply append raw=1, HFS (and our middleware) will skip interception.
-                // HFS core will serve the file if we satisfy permissions.
                 
                 // Clone current params and add raw=1
                 params.append('raw', '1');
@@ -476,12 +473,27 @@ exports.init = api => {
                     className: "showing" // Trigger full size styles
                 };
                 
-                const root = document.getElementById('root');
                 render(h(VideoJsPlayer, props), root);
-            } else {
-                console.error("VideoJsPlayer component not found. script loading failed?");
-                document.getElementById('root').innerHTML = "<div style='color:white;text-align:center;'>Player Load Error</div>";
-            }
+                return true;
+            };
+
+            // Retry mechanism for slower connections/devices
+            let attempts = 0;
+            const tryLoad = () => {
+                // Try to mount
+                if (mount()) return;
+                
+                attempts++;
+                if (attempts < 50) { // 5 seconds max (50 * 100ms)
+                    setTimeout(tryLoad, 100);
+                } else {
+                    console.error("VideoJsPlayer component not found after 5s timeout.");
+                    root.innerHTML = "<div style='color:white;text-align:center;font-family:sans-serif;padding-top:20px;'>Player Load Error: Script Timeout.<br>Please reload the page.</div>";
+                }
+            };
+
+            // Start trying
+            tryLoad();
         })();
     </script>
 </body>
