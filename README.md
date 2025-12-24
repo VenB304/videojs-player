@@ -117,7 +117,15 @@ Settings are organized into categories in **Admin Panel > Plugins > videojs-play
 | **Double Tap Secs** | Seconds skipped per double-tap. | `10` |
 | **Auto-Landscape** | Automatically rotate to landscape in Fullscreen. | `On` |
 
-### 5. Transcoding & Advanced
+### 5. Integrations
+Settings for third-party plugin integrations.
+
+| Option | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **Integrate 'hfs-subtitles' Plugin** | `boolean` | `false` | Detects the `hfs-subtitles` plugin for advanced captions. |
+| **Integrate 'online-album-art' Plugin** | `boolean` | `false` | Fetches album covers from Spotify/LastFM via the `online-album-art` plugin. Requires internet. |
+
+### 6. Transcoding & Advanced
 | Setting | Description | Default |
 | :--- | :--- | :--- |
 | **Enable HLS/MKV** | Native client-side support for `.m3u8` or `.mkv`. | `Off` |
@@ -132,14 +140,6 @@ Settings are organized into categories in **Admin Panel > Plugins > videojs-play
 | **Allow Guests** | If off, guests must log in to use transcoding. | `On` |
 | **Max Per User** | Limit simultaneous streams per user. Oldest stops if exceeded. | `1` |
 | **Whitelisted Users** | Restriction list for transcoding access. | *Empty* |
-
-### 6. Integrations
-Settings for third-party plugin integrations.
-
-| Option | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| **Integrate 'hfs-subtitles' Plugin** | `boolean` | `false` | Detects the `hfs-subtitles` plugin for advanced captions. |
-| **Integrate 'online-album-art' Plugin** | `boolean` | `false` | Fetches album covers from Spotify/LastFM via the `online-album-art` plugin. Requires internet. |
 
 ---
 

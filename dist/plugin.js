@@ -26,8 +26,8 @@ exports.config = {
             '2. Interface': 'ui',
             '3. Layout': 'layout',
             '4. Interaction': 'input',
-            '5. Transcoding & Advanced': 'transcoding',
-            '6. Integrations': 'integrations'
+            '5. Integrations': 'integrations',
+            '6. Transcoding & Advanced': 'transcoding'
         },
         label: "Configuration Category",
         helperText: "Select a category to view and edit settings.",
@@ -197,7 +197,18 @@ exports.config = {
 
 
 
-    // === 5. Transcoding & Advanced ===
+    // === 5. Integrations ===
+    enableSubtitlePluginIntegration: {
+        showIf: x => x.config_tab === 'integrations',
+        type: 'boolean', defaultValue: false, label: "Integrate 'hfs-subtitles' Plugin", helperText: "Detects the 'hfs-subtitles' plugin to provide advanced subtitle selection. Requires that plugin to be installed separately.", frontend: true
+    },
+    enableOnlineAlbumArt: {
+        showIf: x => x.config_tab === 'integrations',
+        type: 'boolean', defaultValue: false, label: "Integrate 'online-album-art' Plugin", helperText: "Fetches album covers for audio files using the 'online-album-art' plugin if installed. Requires internet access.", frontend: true
+    },
+
+
+    // === 6. Transcoding & Advanced ===
     enableHLS: {
         showIf: x => x.config_tab === 'transcoding',
         type: 'boolean',
@@ -317,15 +328,8 @@ exports.config = {
         type: 'username', multiple: true, label: "Whitelisted Users (Access List)", helperText: "Only these users can trigger transcoding. Leave empty to allow all logged-in users.", frontend: true
     },
 
-    // === 6. Integrations ===
-    enableSubtitlePluginIntegration: {
-        showIf: x => x.config_tab === 'integrations',
-        type: 'boolean', defaultValue: false, label: "Integrate 'hfs-subtitles' Plugin", helperText: "Detects the 'hfs-subtitles' plugin to provide advanced subtitle selection. Requires that plugin to be installed separately.", frontend: true
-    },
-    enableOnlineAlbumArt: {
-        showIf: x => x.config_tab === 'integrations',
-        type: 'boolean', defaultValue: false, label: "Integrate 'online-album-art' Plugin", helperText: "Fetches album covers for audio files using the 'online-album-art' plugin if installed. Requires internet access.", frontend: true
-    }
+
+
 
 
 };
