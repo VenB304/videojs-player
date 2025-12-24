@@ -308,7 +308,8 @@
                 // User requested to apply 'Fixed' logic (black box + full fill) to all audio modes.
 
                 // Common Audio Styles
-                containerStyle.backgroundColor = '#000';
+                // If Transparent Mode (Album Art), use transparent background. Otherwise black.
+                containerStyle.backgroundColor = C.enableOnlineAlbumArt ? 'transparent' : '#000';
                 containerStyle.position = 'relative';
                 // Override HFS .showing max-width/height to allow full control
                 containerStyle.maxWidth = 'none';
@@ -512,66 +513,29 @@
                 }
             };
 
-            // --- Helper: Album Art Integration ---
+            // --- Helper: Wire up HFS Events ---
             React.useEffect(() => {
-                const fetchAlbumArt = async () => {
-                    if (!C.enableOnlineAlbumArt || !props.entry || !window.albumArt) {
-                        return;
-                    }
+                const p = playerRef.current;
+                if (!p) return;
 
-                    const entry = props.entry;
-                    // Only Fetch if audio? Or music video? Let's check logic.
-                    // online-album-art usually relies on artist/album metadata.
-                    // We trust the plugin to do the heavy lifting if we pass it the right query.
-
-                    // Metadata check (HFS often parses ID3 tags for audio)
-                    // We look for 'artist' and 'album' in params if available, or just filename.
-
-                    // NOTE: HFS file object (entry) usually has properties like 'n' (name). 
-                    // More detailed metadata might be available in `props.entry.tags` if HFS exposes it?
-                    // Usually HFS 2.x doesn't expose ID3 tags in the `entry` object deeply in fileShow unless customized.
-                    // HOWEVER, the `online-album-art` plugin itself often runs its own scraping logic.
-
-                    // Look at `online-album-art` implementation:
-                    // HFS.onEvent('showPlay', async ({ meta, setCover }) => { ... })
-                    // It listens to 'showPlay'. VideoJS player replaces the default player, so 'showPlay' might not fire in the same way 
-                    // OR we are the one suppressing the default player.
-
-                    // Wait, checking the user request: "integrate well with... when the plugin runs along side".
-                    // If we are the player, we should probably trigger what `online-album-art` needs OR call its API directly.
-                    // The user provided `c:\Users\Ven\OneDrive\Documents\GitHub\hfs-other-plugins\online-album-art\dist\public\main.js`:
-                    // It exposes `window.albumArt` (global function).
-                    // It attempts to find art based on `artist` and `album`.
-
-                    let artist = "";
-                    let album = "";
-
-                    // Simple filename parsing fallback
-                    // "Artist - Title.mp3"
-                    const filename = entry.n || "";
-                    const parts = filename.replace(/\.[^/.]+$/, "").split(" - ");
-                    if (parts.length >= 2) {
-                        artist = parts[0].trim();
-                    }
-
-                    if (!artist) {
-                        return; // Can't search without artist
-                    }
-
-                    try {
-                        console.log("[VideoJS] Fetching album art for:", artist);
-                        const artUrl = await window.albumArt(artist, { album: album, size: 'large' });
-                        if (artUrl) {
-                            console.log("[VideoJS] Album art found:", artUrl);
-                            setDynamicPoster(artUrl);
-                        }
-                    } catch (e) {
-                        console.warn("[VideoJS] Album art fetch failed:", e);
-                    }
+                // 1. onLoad (Signals HFS that loading is done)
+                // We trigger this on 'ready' or 'loadedmetadata'
+                // Video.js 'ready' happens fast, 'loadedmetadata' ensures we have duration.
+                const handleLoad = () => {
+                    if (props.onLoad) props.onLoad();
                 };
+                p.ready(handleLoad);
 
-                fetchAlbumArt();
-            }, [props.src, props.entry]);
+                // 2. onPlay (Signals HFS to fetch metadata/artwork)
+                const handlePlay = () => {
+                    if (props.onPlay) props.onPlay();
+                };
+                p.on('play', handlePlay);
+
+                return () => {
+                    p.off('play', handlePlay);
+                };
+            }, [props.src, props.onLoad, props.onPlay]);
 
             React.useEffect(() => {
                 if (!window._videoConfigLogged) {
@@ -670,7 +634,7 @@
 
                 // Only apply vjs-audio-mode if we WANT the skinny audio player look.
                 // If 'enableOnlineAlbumArt' is ON, we want the full box (Video Mode) to show the art.
-                // Also if we are Fixed/Fill/Native, we use Black Box.
+                // WE use a Transparent Mode to let the HFS album art (rendered behind us) show through.
                 const useSkinnyBar = mode === 'fluid' && !C.enableOnlineAlbumArt;
 
                 if (isAudioRender && useSkinnyBar) {
@@ -678,9 +642,9 @@
                     player.addClass('vjs-audio-mode');
                     player.height(50);
                 } else if (isAudioRender) {
-                    // Fixed/Fill/Native Audio OR Album Art Mode = Black Box
-                    player.removeClass('vjs-audio-mode'); // Ensure it's treated as video layout
-                    player.addClass('vjs-audio-poster-mode'); // Keep poster visible during playback
+                    // Transparent Mode: Full size but transparent
+                    player.removeClass('vjs-audio-mode');
+                    player.addClass('vjs-transparent-mode');
 
                     // No height override (handled by container/CSS)
                 }

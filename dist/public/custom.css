@@ -84,26 +84,25 @@
     touch-action: none;
 }
 
-/* --- Audio Poster Mode --- */
-/* Forces poster to remain visible during playback for audio files */
-.vjs-audio-poster-mode.vjs-has-started .vjs-poster {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    background-size: contain;
-    background-position: center;
-    background-color: #000;
+/* --- Audio Transparent Mode (Album Art) --- */
+/* Makes the player background and video element transparent so HFS cover shows through */
+.vjs-transparent-mode.vjs-has-started .vjs-poster {
+    display: none !important;
+}
+
+.vjs-transparent-mode {
+    background-color: transparent !important;
     pointer-events: none;
-    z-index: 1 !important;
+    /* Let clicks pass through to HFS background (Close Dialog) */
 }
 
-/* Hide the black video element in this mode so it doesn't cover the poster */
-.vjs-audio-poster-mode .vjs-tech {
+/* Hide the black video element in this mode */
+.vjs-transparent-mode .vjs-tech {
     opacity: 0 !important;
-    z-index: 0 !important;
 }
 
-/* Ensure controls remain on top */
-.vjs-audio-poster-mode .vjs-control-bar {
+/* Ensure controls remain interactive */
+.vjs-transparent-mode .vjs-control-bar {
+    pointer-events: auto;
     z-index: 10 !important;
 }
